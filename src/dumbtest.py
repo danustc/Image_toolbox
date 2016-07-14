@@ -18,7 +18,7 @@ new_stack = impp.stack_high_trunc()
 # fig, axes = plt.subplots(ncols=2, nrows=1,figsize=(12, 6))
 
 
-# ax0, ax1 = axes.flat
+ax0, ax1 = axes.flat
 
 
 # f1 = tp.locate(image[5], 11, minmass = 1000, invert = False, threshold=100)
