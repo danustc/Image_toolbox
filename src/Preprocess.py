@@ -46,7 +46,7 @@ class Preprocess(object):
         return im0
 
 
-    def image_high_trunc_adjacent(self, sca = 3.0):
+    def image_high_trunc_adjacent(self, wt = 0.40, sca = 3.0):
         sig = sca*self.sig # the Gaussian filter width of the adjacent slice 
         # Should this be done after the in-plane deblurring is accomplished, or before that? 
         if self.current > 0 and self.current < (self.Nslice-1):
@@ -69,7 +69,7 @@ class Preprocess(object):
             
             print('%.6f' %sca_up, '%.6f' %sca_down)
             
-            i_mid -= 0.40*(sca_up*ifilt_up+sca_down*ifilt_down) # Pay attention: it means self.raw_stack changes!
+            i_mid -= wt*(sca_up*ifilt_up+sca_down*ifilt_down) # Pay attention: it means self.raw_stack changes!
             return i_mid
         else: 
             pass    
@@ -78,11 +78,11 @@ class Preprocess(object):
         
         # truncate image from neighbors
 
-    def stack_high_trunc(self):
+    def stack_high_trunc(self, wt = 0.40):
     # run stack_high_trunc for a whole stack 
         for ii in np.arange(self.Nslice):
             self.current = ii
-            self.image_high_trunc_adjacent() # subtract the adjacent plane values first 
+            self.image_high_trunc_adjacent(wt) # subtract the adjacent plane values first 
             self.image_high_trunc_inplane()  # in-plane correction
             
         
