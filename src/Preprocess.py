@@ -1,4 +1,5 @@
 # ----------- Author: Dan Xie ------------------------
+# ------------Last update: 07/22/2016 --------------------------
 """
 This file deblurrs the in-plane image and deblurrs each image from its adjacent stacks 
 """
@@ -6,10 +7,11 @@ This file deblurrs the in-plane image and deblurrs each image from its adjacent 
 import tifffunc
 import numpy as np
 from skimage import filters
-import pyfftw
+import scipy.fftpack as fftp
 
 class Preprocess(object):
     def __init__(self, impath, sig = 25):
+        # sig is the width of Gaussian filter 
         self.raw_stack = tifffunc.read_tiff(impath).astype('float') # load a raw image and convert to float type 
         self.cell_list = []
         self.current = 0 # just using an index
@@ -19,13 +21,11 @@ class Preprocess(object):
         self.status = -1* np.ones(self.Nslice) # the status 
         self.sig = sig
         
-        
         """
         status = -1: the slices are raw
         status = 0: current slice deblurred and aligned 
         status = 1: current slice deblurred but not aligned 
         """
-    
     
     
     def image_high_trunc_inplane(self):
@@ -46,13 +46,13 @@ class Preprocess(object):
         return im0
 
 
-    def image_high_trunc_adjacent(self):
-        sig = 3*self.sig
+    def image_high_trunc_adjacent(self, sca = 3.0):
+        sig = sca*self.sig # the Gaussian filter width of the adjacent slice 
         # Should this be done after the in-plane deblurring is accomplished, or before that? 
         if self.current > 0 and self.current < (self.Nslice-1):
             i_mid = self.raw_stack[self.current]
-            i_up = self.raw_stack[self.current-1]
-            i_down = self.raw_stack[self.current+1]
+            i_up = self.raw_stack[self.current-1] # the previous slice 
+            i_down = self.raw_stack[self.current+1] # the next slice 
             ifilt_up = filters.gaussian(i_up, sigma = sig)
             ifilt_down = filters.gaussian(i_down, sigma = sig)
             
@@ -90,35 +90,41 @@ class Preprocess(object):
         return self.new_stack
         
 
-
-
 class Drift_correction(object):
+    # This is not completed yet  ----- 07/22/2016
+    # Please ignore it.
     def __init__(self, raw_stack):
         self.stack = raw_stack
-        self.nslices = raw_stack.shape[0]
+        self.nslices = raw_stack.shape[0] # number of slices 
         # have a raw stack
    
    
     def __pair_correct__(self,im1, im2):
         # correct a pair of images 
-        ft_im = pyfftw.FFTW(im1, im2)
+        ft_im1 = fftp.fft2(im1)
+        ft_im2 = fftp.fft2(im2) 
         
-            
+        # here do the fftw-2d
+        # some shift might be necessary to 
+        F_prod = ft_im1*ft_im2
+        X_corr = fftp.ifft2(F_prod)
         
+        # findout the maximum of X_corr and fit to the Gaussian 
+        Xmax = np.argmax(X_corr)
+        nrow, ncol = np.unravel_index(Xmax, X_corr.shape)
+        
+        # circular shift the array im2 by -[nrow, ncol]
+        
+        return [nrow, ncol]   
         
     def drift_correct_linear(self):
         im_ref = self.stack[0]
-        for ii in np.arange(1, self.nslices):
+        for ii in np.arange(1,self.nslices):
             im_corr = self.stack[ii]
-            
-
+            self.__pair_correct__(im_ref, im_corr)
             im_ref = im_corr
-            # do some correction 
-            
-            
-            
         
-        
+    
     def drift_correct_gaussian(self):
         pass    
         
@@ -127,3 +133,24 @@ class Drift_correction(object):
 
 """ below are some shared functions
 """        
+def circ_shift(matr, nshifts, overwrite = True):
+    # matr: the matrix that would be shifted
+    # nshifts: the number of pixels that should be shifted in each dimension
+    if overwrite == False:
+        m_shift = np.copy(matr)
+    else:
+        m_shift = matr
+        
+    
+    
+    for ii in len(nshifts):
+        ns = nshifts[ii]
+        print(ns)
+#         shift(matr, -ns)
+    return m_shift    
+         
+        
+
+
+    
+    

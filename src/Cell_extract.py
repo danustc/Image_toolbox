@@ -85,11 +85,12 @@ def image_blobs(im0, blob_set = [5,4,6], th = 50, OL = 1):
     
 def stack_blobs(stack, blob_set = [5,4,6], th = 50, OL = 1):
     # extract all the blobs 
-    
+    # This is not done 
+    #
     blobs_stack = []
     for img in stack:
         blobs_log = image_blobs(img, blob_set, th, OL)
-        blobs_stack = np.concatenate()
+        blobs_stack = np.concatenate(blobs_stack, blobs_log) # This is wrong! 
         
         
         
