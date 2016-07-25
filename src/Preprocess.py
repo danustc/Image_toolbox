@@ -82,8 +82,8 @@ class Preprocess(object):
     # run stack_high_trunc for a whole stack 
         for ii in np.arange(self.Nslice):
             self.current = ii
-            self.image_high_trunc_adjacent()
-            self.image_high_trunc_inplane()
+            self.image_high_trunc_adjacent() # subtract the adjacent plane values first 
+            self.image_high_trunc_inplane()  # in-plane correction
             
         
         self.new_stack = np.copy(self.raw_stack).astype('uint16')
