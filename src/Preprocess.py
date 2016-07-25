@@ -17,9 +17,12 @@ class Preprocess(object):
         self.current = 0 # just using an index
         self.new_stack = np.copy(self.raw_stack)
         self.Nslice = self.raw_stack.shape[0] # number of slices 
+        print("The number of slices:", self.Nslice)
         self.px_num = self.raw_stack.shape[1:] # the number of pixels in x and y for each slice
+        print("The shape of images:", self.px_num)
         self.status = -1* np.ones(self.Nslice) # the status 
         self.sig = sig
+        
         
         """
         status = -1: the slices are raw
@@ -28,14 +31,19 @@ class Preprocess(object):
         """
     
     
-    def image_high_trunc_inplane(self):
+    def image_high_trunc_inplane(self, nslice = None):
     # the idea comes from Nature-scientific reports,  3:2266.
     # im0: image 0 
     # method: filter method
     # ext: extension of the filter 
     # sig: width of the Gaussian filter
         sig = self.sig
-        im0 = self.raw_stack[self.current]
+        if (nslice is None):
+            im0 = self.raw_stack[self.current]
+        else:
+            im0 = self.raw_stack[nslice]
+            
+            
         ifilt = filters.gaussian(im0, sigma=sig)
         iratio = im0/ifilt
         nmin = np.argmin(iratio) 
@@ -44,6 +52,9 @@ class Preprocess(object):
         print(sca)
         im0 -= (ifilt*sca*0.98) # update the background-corrected image
         return im0
+
+
+
 
 
     def image_high_trunc_adjacent(self, wt = 0.40, sca = 3.0):
@@ -78,15 +89,17 @@ class Preprocess(object):
         
         # truncate image from neighbors
 
-    def stack_high_trunc(self, wt = 0.40):
-    # run stack_high_trunc for a whole stack 
+    def stack_high_trunc(self, adjacent = False, wt = 0.40):
+    # run stack_high_trunc for a whole stack
+    # updated: make adjacent optional  
         for ii in np.arange(self.Nslice):
             self.current = ii
-            self.image_high_trunc_adjacent(wt) # subtract the adjacent plane values first 
+            if(adjacent):
+                self.image_high_trunc_adjacent(wt) # subtract the adjacent plane values first 
             self.image_high_trunc_inplane()  # in-plane correction
             
         
-        self.new_stack = np.copy(self.raw_stack).astype('uint16')
+        self.new_stack = np.copy(self.raw_stack)
         return self.new_stack
         
 
