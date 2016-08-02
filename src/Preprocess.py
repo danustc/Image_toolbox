@@ -146,6 +146,7 @@ class Drift_correction(object):
         F_prod = np.conj(self.ft_ref)*self.ft_cor
         X_corr = fftp.ifft2(F_prod).astype('float')
         
+        
         # findout the maximum of X_corr and fit to the Gaussian 
         Xmax = np.argmax(X_corr)
         nrow, ncol = np.unravel_index(Xmax, X_corr.shape)
@@ -188,20 +189,23 @@ class Drift_correction(object):
 
             xrange = np.arange(Cnx-self.mfit, Cnx+ self.mfit+1) # Again, this "+1" is due to the subtle differences between matlab and python. 
             yrange = np.arange(Cny-self.mfit, Cny+ self.mfit+1)                
-            corr_profile = X_corr[yrange, xrange]
+            corr_profile = X_corr[yrange,:][:,xrange]
             # next, let's determine the initial value of the arguments 
             am_fit = np.max(X_corr)-np.min(X_corr)
-            cx_fit = self.mfit 
-            cy_fit = self.mfit
             dx_fit = self.mfit*2 
             dy_fit = self.mfit*2 # this is a random guess 
             of_fit = np.min(X_corr)
-            args = (am_fit, cx_fit, cy_fit, dx_fit, dy_fit, of_fit)
+            args = (am_fit, Cnx, Cny, dx_fit, dy_fit, of_fit)
+            MX, MY = np.meshgrid(xrange,yrange)
             
-            gfit = optimize.leastsq(gaussian2D, corr_profile, args)
-            cx = gfit[1]
-            cy = gfit[2]
-            drift = [dry,  drx] + np.round([cy, cx]) 
+            
+            print(MX.shape)
+            print(corr_profile.shape)
+            
+            popt, pconv = optimize.curve_fit(gaussian2D, [MX,MY], corr_profile, args)
+            cx = popt[1]
+            cy = popt[2]
+            drift = [dry,  drx] + np.round([cy, cx]).astype('int64') 
             
         return drift
             
@@ -210,7 +214,7 @@ class Drift_correction(object):
         # offset = m: start from the mth slice  
 #         self.mfit = mfit
         im_ref = self.stack[offset]
-        for ii in np.arange(1,self.nslices):
+        for ii in np.arange(offset+1,self.nslices):
             im_cor = self.stack[ii]
             self.stack[ii]=self._pair_correct(im_ref,im_cor)
             im_ref = self.stack[ii]

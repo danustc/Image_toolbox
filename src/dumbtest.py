@@ -15,18 +15,15 @@ def main():
 
     # step 1: do the image deblurring 
     datapath = ''
-    input_name = 'raw_image' # replace this with your image name.
-    sig = 30 # play with this number. Hint: create a for loop like:
-#     for sig in np.arange(10, 40, step = 5):
-    impp = Preprocess(datapath + input_name, sig)
-    new_stack = impp.stack_high_trunc(sig) # not doing adjacent corrections 
-    # Next, let's test the alignment of the stack 
-    output_name = datapath + input_name + '_deblur'
-    tifffunc.write_tiff(new_stack.astype('uint16'), output_name )
+    input_name = 'raw_image_deblur' # replace this with your image name.
+    new_stack = tifffunc.read_tiff(input_name)
+    
+    
+    
     Drift_C = Drift_correction(new_stack, mfit=3)
     a_stack = Drift_C.drift_correct()
     
-    output_name = datapath + input_name + '_w_'+ str(sig) + '_aligned'
+    output_name = datapath + input_name  + '_aligned'
     tifffunc.write_tiff(a_stack.astype('uint16'), output_name)
 
 
