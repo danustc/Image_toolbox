@@ -8,8 +8,7 @@ import tifffunc
 import numpy as np
 from skimage import filters
 import scipy.fftpack as fftp
-from scipy import optimize
-from common_funcs import gaussian2D
+from common_funcs import fitgaussian2D
 
 
 class Preprocess(object):
@@ -138,8 +137,6 @@ class Drift_correction(object):
         im_cor = np.roll(im_cor, -drift[0], axis = 0)
         im_cor = np.roll(im_cor, -drift[1], axis = 1)
 
-        return im_cor
-        
     
     def _shift_calculation(self):
          
@@ -191,21 +188,16 @@ class Drift_correction(object):
             yrange = np.arange(Cny-self.mfit, Cny+ self.mfit+1)                
             corr_profile = X_corr[yrange,:][:,xrange]
             # next, let's determine the initial value of the arguments 
-            am_fit = np.max(X_corr)-np.min(X_corr)
-            dx_fit = self.mfit*2 
-            dy_fit = self.mfit*2 # this is a random guess 
-            of_fit = np.min(X_corr)
-            args = (am_fit, Cnx, Cny, dx_fit, dy_fit, of_fit)
-            MX, MY = np.meshgrid(xrange,yrange)
             
             
-            print(MX.shape)
             print(corr_profile.shape)
             
-            popt, pconv = optimize.curve_fit(gaussian2D, [MX,MY], corr_profile, args)
+            popt = fitgaussian2D(corr_profile)
             cx = popt[1]
             cy = popt[2]
             drift = [dry,  drx] + np.round([cy, cx]).astype('int64') 
+            print(drift)
+
             
         return drift
             
@@ -216,9 +208,8 @@ class Drift_correction(object):
         im_ref = self.stack[offset]
         for ii in np.arange(offset+1,self.nslices):
             im_cor = self.stack[ii]
-            self.stack[ii]=self._pair_correct(im_ref,im_cor)
+            self.stack[ii] = np.copy(self._pair_correct(im_ref,im_cor))
             im_ref = self.stack[ii]
-            print(ii)
             
         return self.stack
 

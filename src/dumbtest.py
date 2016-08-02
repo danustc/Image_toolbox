@@ -20,7 +20,7 @@ def main():
     
     
     
-    Drift_C = Drift_correction(new_stack, mfit=3)
+    Drift_C = Drift_correction(new_stack, mfit=0)
     a_stack = Drift_C.drift_correct()
     
     output_name = datapath + input_name  + '_aligned'
