@@ -116,24 +116,35 @@ class Drift_correction(object):
     def __init__(self, raw_stack, mfit = 0):
         self.stack = raw_stack
         self.nslices = raw_stack.shape[0] # number of slices
-        self.mfit = mfit  
+        self.idim = np.array(raw_stack.shape[1:])
+        self.mfit = mfit 
+         
         # have a raw stack
    
    
-    def __pair_correct__(self,im1, im2):
-        # correct a pair of images 
-        ft_im1 = fftp.fft2(im1) # fft of the reference image 
-        ft_im2 = fftp.fft2(im2) 
+    def _pair_correct(self,im1, im2):
+        # calculate the pixel shift between a pair of images (no correction is done at this moment!) 
+        
+        self.ft_ref = fftp.fft2(im1) # fft of the reference image 
+        self.ft_cor = fftp.fft2(im2) 
         # here do the fftw-2d
         # some shift might be necessary to 
 #          Cxy=ifft2(conj(FT_ref).*FT_shif);
-        idim = im1.shape
-        F_prod = np.conj(ft_im1)*ft_im2
-        self.X_corr = fftp.ifft2(F_prod).astype('float')
+
+        drift = self._shift_calculation()
+        # shift back y first and x second 
+        im2 = np.roll(im2, -drift[0], axis = 0)
+        im2 = np.roll(im2, -drift[1], axis = 1)
+        
+    
+    def _shift_calculation(self):
+         
+        F_prod = np.conj(self.ft_ref)*self.ft_cor
+        X_corr = fftp.ifft2(F_prod).astype('float')
         
         # findout the maximum of X_corr and fit to the Gaussian 
-        Xmax = np.argmax(self.X_corr)
-        nrow, ncol = np.unravel_index(Xmax, self.X_corr.shape)
+        Xmax = np.argmax(X_corr)
+        nrow, ncol = np.unravel_index(Xmax, X_corr.shape)
         
         def res_ind(indi, hdim):
 #             hdim: the dimension of the array. If the indi is larger than half of hdim, then indi is replaced by indi-hdim.
@@ -143,8 +154,8 @@ class Drift_correction(object):
                 indo = indi
             return indo
         
-        dry=res_ind(nrow,idim[0])
-        drx=res_ind(ncol,idim[1])
+        dry=res_ind(nrow,self.idim[0])
+        drx=res_ind(ncol,self.idim[1])
         
         
         if(self.mfit == 0):
@@ -152,34 +163,34 @@ class Drift_correction(object):
             
         else: # mfit is the width of gaussian function
             # This should be tested. 
-            ncompy = np.round(idim[0]/4)
-            ncompx = np.round(idim[1]/4)
+            ncompy = np.round(self.idim[0]/4)
+            ncompx = np.round(self.idim[1]/4)
             
             # x part: 
             if(np.abs(drx)<ncompx):
-                self.X_corr = np.roll(self.X_corr,ncompx*2, axis = 1)
+                X_corr = np.roll(X_corr,ncompx*2, axis = 1)
                 Cnx = drx + ncompx*2
             else:
-                Cnx = np.mod(drx, idim[1])  
+                Cnx = np.mod(drx, self.idim[1])  
                
             # y part:    
                 
             if(np.abs(dry)<ncompy):
-                self.X_corr = np.roll(self.X_corr, ncompy*2, axis = 0)    
+                X_corr = np.roll(X_corr, ncompy*2, axis = 0)    
                 Cny = dry + ncompy*2
             else:
-                Cny = np.mod(dry, idim[0])
+                Cny = np.mod(dry, self.idim[0])
 
             xrange = np.arange(Cnx-self.mfit, Cnx+ self.mfit+1) # Again, this "+1" is due to the subtle differences between matlab and python. 
             yrange = np.arange(Cny-self.mfit, Cny+ self.mfit+1)                
-            corr_profile = self.X_corr[yrange, xrange]
+            corr_profile = X_corr[yrange, xrange]
             # next, let's determine the initial value of the arguments 
-            am_fit = np.max(self.X_corr)-np.min(self.X_corr)
+            am_fit = np.max(X_corr)-np.min(X_corr)
             cx_fit = self.mfit 
             cy_fit = self.mfit
             dx_fit = self.mfit*2 
             dy_fit = self.mfit*2 # this is a random guess 
-            of_fit = np.min(self.X_corr)
+            of_fit = np.min(X_corr)
             args = (am_fit, cx_fit, cy_fit, dx_fit, dy_fit, of_fit)
             
             gfit = optimize.leastsq(gaussian2D, corr_profile, args)
@@ -187,14 +198,17 @@ class Drift_correction(object):
             cy = gfit[2]
             drift = [dry,  drx] + np.round([cy, cx]) 
             
-            
         return drift
         
+        
+    
+    
+    
     def drift_correct_linear(self):
         im_ref = self.stack[0]
         for ii in np.arange(1,self.nslices):
             im_corr = self.stack[ii]
-            self.__pair_correct__(im_ref, im_corr)
+            self._pair_correct(im_ref, im_corr)
             im_ref = im_corr
         
     
