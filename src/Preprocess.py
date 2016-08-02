@@ -8,6 +8,7 @@ import tifffunc
 import numpy as np
 from skimage import filters
 import scipy.fftpack as fftp
+from vtk.util.colors import indian_red
 
 class Preprocess(object):
     def __init__(self, impath, sig = 25):
@@ -44,7 +45,7 @@ class Preprocess(object):
             im0 = self.raw_stack[nslice]
             
             
-        ifilt = filters.gaussian(im0, sigma=sig)
+        ifilt = filters.gaussian_filter(im0, sigma=sig)
         iratio = im0/ifilt
         nmin = np.argmin(iratio) 
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
@@ -104,8 +105,7 @@ class Preprocess(object):
         
 
 class Drift_correction(object):
-    # This is not completed yet  ----- 07/22/2016
-    # Please ignore it.
+    # updated on 08/01.    
     def __init__(self, raw_stack):
         self.stack = raw_stack
         self.nslices = raw_stack.shape[0] # number of slices 
@@ -114,20 +114,32 @@ class Drift_correction(object):
    
     def __pair_correct__(self,im1, im2):
         # correct a pair of images 
-        ft_im1 = fftp.fft2(im1)
+        ft_im1 = fftp.fft2(im1) # fft of the reference image 
         ft_im2 = fftp.fft2(im2) 
-        
         # here do the fftw-2d
         # some shift might be necessary to 
-        F_prod = ft_im1*ft_im2
-        X_corr = fftp.ifft2(F_prod)
+#          Cxy=ifft2(conj(FT_ref).*FT_shif);
+        idim = im1.shape
+        F_prod = np.conj(ft_im1)*ft_im2
+        X_corr = fftp.ifft2(F_prod).astype('float')
         
         # findout the maximum of X_corr and fit to the Gaussian 
         Xmax = np.argmax(X_corr)
         nrow, ncol = np.unravel_index(Xmax, X_corr.shape)
         
-        # circular shift the array im2 by -[nrow, ncol]
+        def res_ind(indi, hdim):
+#             hdim: the dimension of the array. If the indi is larger than half of hdim, then indi is replaced by indi-hdim.
+            if(indi>hdim/2):
+                indo = indi - hdim
+            else:
+                indo = indi
+            
+            return indo
         
+        dry=res_ind(nrow,idim[0])
+        drx=res_ind(ncol,idim[1])
+    
+
         return [nrow, ncol]   
         
     def drift_correct_linear(self):
