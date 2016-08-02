@@ -122,19 +122,19 @@ class Drift_correction(object):
         # have a raw stack
    
    
-    def _pair_correct(self,im1, im2):
+    def _pair_correct(self):
         # calculate the pixel shift between a pair of images (no correction is done at this moment!) 
         
-        self.ft_ref = fftp.fft2(im1) # fft of the reference image 
-        self.ft_cor = fftp.fft2(im2) 
+        self.ft_ref = fftp.fft2(self.im_ref) # fft of the reference image 
+        self.ft_cor = fftp.fft2(self.im_cor) 
         # here do the fftw-2d
         # some shift might be necessary to 
 #          Cxy=ifft2(conj(FT_ref).*FT_shif);
 
         drift = self._shift_calculation()
         # shift back y first and x second 
-        im2 = np.roll(im2, -drift[0], axis = 0)
-        im2 = np.roll(im2, -drift[1], axis = 1)
+        self.im_cor = np.roll(self.im_cor, -drift[0], axis = 0)
+        self.im_cor = np.roll(self.im_cor, -drift[1], axis = 1)
         
     
     def _shift_calculation(self):
@@ -205,11 +205,11 @@ class Drift_correction(object):
     
     
     def drift_correct_linear(self):
-        im_ref = self.stack[0]
+        self.im_ref = self.stack[0]
         for ii in np.arange(1,self.nslices):
-            im_corr = self.stack[ii]
-            self._pair_correct(im_ref, im_corr)
-            im_ref = im_corr
+            self.im_cor = self.stack[ii]
+            self._pair_correct()
+            self.im_ref = self.im_cor
         
     
     def drift_correct_gaussian(self):
