@@ -47,7 +47,7 @@ class Preprocess(object):
             im0 = self.raw_stack[nslice]
             
             
-        ifilt = filters.gaussian_filter(im0, sigma=sig)
+        ifilt = filters.gaussian(im0, sigma=sig)
         iratio = im0/ifilt
         nmin = np.argmin(iratio) 
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
@@ -122,19 +122,23 @@ class Drift_correction(object):
         # have a raw stack
    
    
-    def _pair_correct(self):
+    def _pair_correct(self,im_ref, im_cor):
         # calculate the pixel shift between a pair of images (no correction is done at this moment!) 
-        
-        self.ft_ref = fftp.fft2(self.im_ref) # fft of the reference image 
-        self.ft_cor = fftp.fft2(self.im_cor) 
+        # no further argument tested.
+        print("Image marks:")
+        print(np.mean(im_ref), np.mean(im_cor))
+        self.ft_ref = fftp.fft2(im_ref) # fft of the reference image 
+        self.ft_cor = fftp.fft2(im_cor) 
         # here do the fftw-2d
         # some shift might be necessary to 
 #          Cxy=ifft2(conj(FT_ref).*FT_shif);
 
         drift = self._shift_calculation()
         # shift back y first and x second 
-        self.im_cor = np.roll(self.im_cor, -drift[0], axis = 0)
-        self.im_cor = np.roll(self.im_cor, -drift[1], axis = 1)
+        im_cor = np.roll(im_cor, -drift[0], axis = 0)
+        im_cor = np.roll(im_cor, -drift[1], axis = 1)
+
+        return im_cor
         
     
     def _shift_calculation(self):
@@ -160,11 +164,12 @@ class Drift_correction(object):
         
         if(self.mfit == 0):
             drift = [dry, drx]
+            print("Drifted pixel:", drift)
             
         else: # mfit is the width of gaussian function
             # This should be tested. 
-            ncompy = np.round(self.idim[0]/4)
-            ncompx = np.round(self.idim[1]/4)
+            ncompy = np.round(self.idim[0]/4).astype('int64')
+            ncompx = np.round(self.idim[1]/4).astype('int64')
             
             # x part: 
             if(np.abs(drx)<ncompx):
@@ -199,44 +204,20 @@ class Drift_correction(object):
             drift = [dry,  drx] + np.round([cy, cx]) 
             
         return drift
-        
-        
+            
     
-    
-    
-    def drift_correct_linear(self):
-        self.im_ref = self.stack[0]
+    def drift_correct(self, offset = 1):
+        # offset = m: start from the mth slice  
+#         self.mfit = mfit
+        im_ref = self.stack[offset]
         for ii in np.arange(1,self.nslices):
-            self.im_cor = self.stack[ii]
-            self._pair_correct()
-            self.im_ref = self.im_cor
-        
-    
-    def drift_correct_gaussian(self):
-        pass    
-        
+            im_cor = self.stack[ii]
+            self.stack[ii]=self._pair_correct(im_ref,im_cor)
+            im_ref = self.stack[ii]
+            print(ii)
+            
+        return self.stack
 
-
-
-""" below are some shared functions
-"""        
-def circ_shift(matr, nshifts, overwrite = True):
-    # matr: the matrix that would be shifted
-    # nshifts: the number of pixels that should be shifted in each dimension
-    if overwrite == False:
-        m_shift = np.copy(matr)
-    else:
-        m_shift = matr
-        
-    
-    
-    for ii in len(nshifts):
-        ns = nshifts[ii]
-        print(ns)
-#         shift(matr, -ns)
-    return m_shift    
-         
-        
 
 
     

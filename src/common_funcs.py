@@ -10,7 +10,7 @@ def gaussian2D(am, cx, cy, dx, dy, ofst):
     # cx, cy: center x, y
     # dx, dy: width in x, y direction 
     # ofst: the offset constant 
-    return lambda(x,y): am*np.exp(-((x-cx)/dx)**2 -((y-cy)/dy)**2)+ofst
+    return lambda x,y: am*np.exp(-((x-cx)/dx)**2 -((y-cy)/dy)**2)+ofst
 
 
     
