@@ -8,7 +8,9 @@ import tifffunc
 import numpy as np
 from skimage import filters
 import scipy.fftpack as fftp
-from vtk.util.colors import indian_red
+from scipy import optimize
+from common_funcs import gaussian2D
+
 
 class Preprocess(object):
     def __init__(self, impath, sig = 25):
@@ -105,10 +107,16 @@ class Preprocess(object):
         
 
 class Drift_correction(object):
-    # updated on 08/01.    
-    def __init__(self, raw_stack):
+    '''
+    # updated on 08/02.  
+    mfit: 0 --- linear correction
+          1 --- Gaussian correction 
+          2 --- nonlinear correction?  
+    '''
+    def __init__(self, raw_stack, mfit = 0):
         self.stack = raw_stack
-        self.nslices = raw_stack.shape[0] # number of slices 
+        self.nslices = raw_stack.shape[0] # number of slices
+        self.mfit = mfit  
         # have a raw stack
    
    
@@ -121,11 +129,11 @@ class Drift_correction(object):
 #          Cxy=ifft2(conj(FT_ref).*FT_shif);
         idim = im1.shape
         F_prod = np.conj(ft_im1)*ft_im2
-        X_corr = fftp.ifft2(F_prod).astype('float')
+        self.X_corr = fftp.ifft2(F_prod).astype('float')
         
         # findout the maximum of X_corr and fit to the Gaussian 
-        Xmax = np.argmax(X_corr)
-        nrow, ncol = np.unravel_index(Xmax, X_corr.shape)
+        Xmax = np.argmax(self.X_corr)
+        nrow, ncol = np.unravel_index(Xmax, self.X_corr.shape)
         
         def res_ind(indi, hdim):
 #             hdim: the dimension of the array. If the indi is larger than half of hdim, then indi is replaced by indi-hdim.
@@ -133,14 +141,54 @@ class Drift_correction(object):
                 indo = indi - hdim
             else:
                 indo = indi
-            
             return indo
         
         dry=res_ind(nrow,idim[0])
         drx=res_ind(ncol,idim[1])
-    
+        
+        
+        if(self.mfit == 0):
+            drift = [dry, drx]
+            
+        else: # mfit is the width of gaussian function
+            # This should be tested. 
+            ncompy = np.round(idim[0]/4)
+            ncompx = np.round(idim[1]/4)
+            
+            # x part: 
+            if(np.abs(drx)<ncompx):
+                self.X_corr = np.roll(self.X_corr,ncompx*2, axis = 1)
+                Cnx = drx + ncompx*2
+            else:
+                Cnx = np.mod(drx, idim[1])  
+               
+            # y part:    
+                
+            if(np.abs(dry)<ncompy):
+                self.X_corr = np.roll(self.X_corr, ncompy*2, axis = 0)    
+                Cny = dry + ncompy*2
+            else:
+                Cny = np.mod(dry, idim[0])
 
-        return [nrow, ncol]   
+            xrange = np.arange(Cnx-self.mfit, Cnx+ self.mfit+1) # Again, this "+1" is due to the subtle differences between matlab and python. 
+            yrange = np.arange(Cny-self.mfit, Cny+ self.mfit+1)                
+            corr_profile = self.X_corr[yrange, xrange]
+            # next, let's determine the initial value of the arguments 
+            am_fit = np.max(self.X_corr)-np.min(self.X_corr)
+            cx_fit = self.mfit 
+            cy_fit = self.mfit
+            dx_fit = self.mfit*2 
+            dy_fit = self.mfit*2 # this is a random guess 
+            of_fit = np.min(self.X_corr)
+            args = (am_fit, cx_fit, cy_fit, dx_fit, dy_fit, of_fit)
+            
+            gfit = optimize.leastsq(gaussian2D, corr_profile, args)
+            cx = gfit[1]
+            cy = gfit[2]
+            drift = [dry,  drx] + np.round([cy, cx]) 
+            
+            
+        return drift
         
     def drift_correct_linear(self):
         im_ref = self.stack[0]
