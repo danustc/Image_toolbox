@@ -16,11 +16,13 @@ def main():
     # step 1: do the image deblurring 
     datapath = ''
     input_name = 'raw_image_deblur' # replace this with your image name.
-    new_stack = tifffunc.read_tiff(input_name)
+    new_stack = np.copy(tifffunc.read_tiff(input_name))
     
     
     
     Drift_C = Drift_correction(new_stack, mfit=0)
+    print(Drift_C.idim)
+    
     a_stack = Drift_C.drift_correct()
     
     output_name = datapath + input_name  + '_aligned'

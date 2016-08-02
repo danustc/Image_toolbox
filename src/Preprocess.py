@@ -121,26 +121,33 @@ class Drift_correction(object):
         # have a raw stack
    
    
-    def _pair_correct(self,im_ref, im_cor):
+    def pair_correct(self, im_ref = None, im_cor = None):
         # calculate the pixel shift between a pair of images (no correction is done at this moment!) 
         # no further argument tested.
+        
+        if(im_ref is None):
+            im_ref = self.im_ref
+        if(im_cor is None):
+            im_cor = self.im_cor
+        
         print("Image marks:")
         print(np.mean(im_ref), np.mean(im_cor))
-        self.ft_ref = fftp.fft2(im_ref) # fft of the reference image 
-        self.ft_cor = fftp.fft2(im_cor) 
+        ft_ref = fftp.fft2(im_ref) # fft of the reference image 
+        ft_cor = fftp.fft2(im_cor) 
         # here do the fftw-2d
         # some shift might be necessary to 
 #          Cxy=ifft2(conj(FT_ref).*FT_shif);
 
-        drift = self._shift_calculation()
+        drift = self._shift_calculation(ft_ref,ft_cor)
         # shift back y first and x second 
         im_cor = np.roll(im_cor, -drift[0], axis = 0)
         im_cor = np.roll(im_cor, -drift[1], axis = 1)
-
+        
+        return im_cor
     
-    def _shift_calculation(self):
+    def _shift_calculation(self, ft_ref,ft_cor):
          
-        F_prod = np.conj(self.ft_ref)*self.ft_cor
+        F_prod = np.conj(ft_ref)*ft_cor
         X_corr = fftp.ifft2(F_prod).astype('float')
         
         
@@ -207,8 +214,8 @@ class Drift_correction(object):
 #         self.mfit = mfit
         im_ref = self.stack[offset]
         for ii in np.arange(offset+1,self.nslices):
-            im_cor = self.stack[ii]
-            self.stack[ii] = np.copy(self._pair_correct(im_ref,im_cor))
+            im_cor = np.copy(self.stack[ii])
+            self.stack[ii]=self.pair_correct(im_ref,im_cor)
             im_ref = self.stack[ii]
             
         return self.stack
