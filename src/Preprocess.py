@@ -11,10 +11,11 @@ import scipy.fftpack as fftp
 from common_funcs import fitgaussian2D
 
 
-class Preprocess(object):
-    def __init__(self, impath, sig = 25):
+class Deblur(object):
+    def __init__(self, impath, sig = 30):
         # sig is the width of Gaussian filter 
-        self.raw_stack = tifffunc.read_tiff(impath).astype('float') # load a raw image and convert to float type 
+        self.raw_stack = np.copy(tifffunc.read_tiff(impath).astype('float')) # load a raw image and convert to float type
+        self.impath = impath
         self.cell_list = []
         self.current = 0 # just using an index
         self.new_stack = np.copy(self.raw_stack)
@@ -103,6 +104,14 @@ class Preprocess(object):
         
         self.new_stack = np.copy(self.raw_stack)
         return self.new_stack
+    
+    def write_stack(self, n_apdx = None):
+        if n_apdx is None:
+            # overwrite the original file
+            tifffunc.write_tiff(self.new_stack, self.impath)
+        else: # add some appendix 
+            tifffunc.write_tiff(self.new_stack, self.impath+n_apdx)
+    
         
 
 class Drift_correction(object):
@@ -196,16 +205,15 @@ class Drift_correction(object):
             corr_profile = X_corr[yrange,:][:,xrange]
             # next, let's determine the initial value of the arguments 
             
-            
-            print(corr_profile.shape)
-            
             popt = fitgaussian2D(corr_profile)
             cx = popt[1]
             cy = popt[2]
-            drift = [dry,  drx] + np.round([cy, cx]).astype('int64') 
-            print(drift)
-
             
+            print("center found at:", cx, cy)
+            drift = [dry,  drx] + np.round([cy, cx]).astype('int64')-self.mfit
+
+
+        print(drift)            
         return drift
             
     
