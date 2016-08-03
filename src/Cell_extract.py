@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import filters
+from mpl_toolkits.mplot3d import Axes3D
 from skimage.feature import blob_log
-from skimage.morphology import reconstruction
 from common_funcs import circ_mask
 
 
 OL_blob = 0.8
+magni_lateral = 0.295 # 0.295 micron per pixel
 
 class Cell_extract(object):
     # this class extracts 
@@ -26,6 +26,7 @@ class Cell_extract(object):
         nsig = self.blobset[2]
         th = np.min(im0) # threshold
         
+        print("Threshold found at:", th)
         self.c_list[n_frame] = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
         self.bl_flag[n_frame] = self.c_list[n_frame].shape[0]
@@ -33,9 +34,16 @@ class Cell_extract(object):
     
 
     def stack_blobs(self):
+        """
+        process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
+        """
         for n_frame in np.arange(self.n_slice):
+            print(n_frame)
             self.image_blobs(n_frame)
             
+        self.valid_frames = np.where(self.bl_flag>0)[0]
+        # end of the function stack_blobs 
+        
     
     def image_signal_integ(self, n_frame):    
         """
@@ -71,54 +79,68 @@ class Cell_extract(object):
         """
         Once all the frames are processed for cell extraction, let's concatenate all the blob informations as a big list. 
         """
+        # Let's find out all the slices that are processed.
+        valid_frames = self.valid_frames 
+        n_total = self.bl_flag[valid_frames].sum() # The total number of blobs
+        blobs_archive = np.empty([n_total, 5])
         
+        n_sta = 0 
+        for n_frame in valid_frames:
+            n_blobs = self.bl_flag[n_frame]
+            blobs_archive[n_sta:n_sta+n_blobs] = self.c_list[n_frame]
+            n_sta +=n_blobs
         
+        # should I save the blobs somewhere automatically?
+        self.blobs_archive = blobs_archive
+        return blobs_archive    
+            # so there's no need to have an if-elif structure 
+            
+    #----------------------- Next, let's think about data visulization -----------------------------------------
+    
+    def frame_display(self, n_frame):
+        """
+        This function display 
+        """
+        fig = plt.subplots(figsize = (12, 5.5))
         
-
-    
-
-def image_dilation_trunc(im0):
-    image = filters.gaussian(im0.astype('float'),1.0)
-    seed = np.copy(image)
-    seed[1:-1, 1:-1] = image.min()
-    mask = image
-    dilated = reconstruction(seed, mask, method= 'dilation')
-    return dilated
-
-    
-def image_blobs(im0, blob_set = [5,4,6], th = 50, OL = 1):
-    # edited on 07/25/26 
-    # added the adjacent 
-    
-    mx_sig = blob_set[0]
-    mi_sig = blob_set[1]
-    nsig = blob_set[2]
-    blobs_log = blob_log(im0, max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL)
-    
-    # let's plot the images
-    fig = plt.figure(figsize=(8,4))
-    ax1 = fig.add_subplot(121)
-    ax1.imshow(im0, cmap='Greys_r')
-    ax2 = fig.add_subplot(122)
-    ax2.imshow(im0, cmap='Greys_r')
-    
-    for blob in blobs_log:
-        y, x, r = blob
-        c = plt.Circle((x, y), np.sqrt(2)*r, color='g', linewidth=1, fill=True)
-        ax2.add_patch(c)
+        ax1 = fig.add_subplot(121)
+        ax2 = fig.add_subplot(122)
+        
+        im0 = self.stack[n_frame]
+        ax1.imshow(im0, cmap = 'Greys_r' )
+        ax2.imshow(im0, cmap = 'Greys_r' )
+        
+        blobs_list = self.c_list[n_frame]
+        for blob in blobs_list:
+            y, x, r = blob
+            c = plt.Circle((x, y), np.sqrt(2)*r, color='g', linewidth=1, fill=False)
+            ax2.add_patch(c)
         #         print(r)
-    plt.show()
-    return blobs_log # The list of traced blobs 
+        return fig
     
-    
-def stack_blobs(stack, blob_set = [5,4,6], th = 50, OL = 1):
-    # extract all the blobs 
-    # This is not done 
-    # Updated on 07/25/2016
-    blobs_stack = {} # change into a dictionary 
-    for nslice in np.arange(stack.shape[0]):
-        blobs_log = image_blobs(stack[nslice], blob_set, th, OL)
-        blobs_stack[nslice] = blobs_log
+
+    def volume_display(self, zstep = 3.00):
+        """
+        This is a daring attempt for 3-D plots of all the blobs in the brain. 
+        Prerequisites: self.blobs_archive are established.
+        The magnification of the microscope must be known.
+        """
+        fig3 = plt.figure(figsize = (10,6))
+        ax_3d = fig3.add_subplot(111, projection = '3d')
+        
+        for n_frame in self.valid_frames:
+            # below the coordinates of the cells are computed.
+            blobs_list = self.c_list[n_frame] 
+            ys = blobs_list[:,0]*magni_lateral
+            xs = blobs_list[:,1]*magni_lateral 
+            zs = n_frame*zstep 
+            ss = (np.sqrt(2)*blobs_list[:,2]*magni_lateral)**2*np.pi
+            Axes3D.scatter(xs,ys, zs, zdir = 'z', s=ss, c='g')        
         
         
-    return blobs_stack
+        
+        ax_3d.set_xlabel('x (micron)', fontsize = 12)
+        ax_3d.set_xlabel('y (micron)', fontsize = 12)
+        
+        return fig3
+        
