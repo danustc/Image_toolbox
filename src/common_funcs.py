@@ -40,4 +40,24 @@ def fitgaussian2D(data):
                                  data)
     p = optimize.leastsq(errorfunction, params)[0]
     return p
+
+
+
+def circ_integ(arr_2d, cr, dr):
+    """
+    integrate all the pixel values within a circle centered at cr with radius dr.
+    apply a mask on the array to sum up 
+    
+    """
+    cx = cr[0]
+    cy = cr[1]
+    
+    ly, lx = arr_2d.shape
+    
+    yg, xg = np.ogrid[-cy:ly-cy, -cx:lx-cx]
+    mask = yg*yg+xg*xg <= dr*dr
+    sig_integ = arr_2d[mask].sum() 
+    
+    return sig_integ
+    
     

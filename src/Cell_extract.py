@@ -42,7 +42,13 @@ class Cell_extract(object):
                 4 --- fluorescence 
         """
         n_blobs = self.c_list[n_slice].shape[0] # number of blobs in each slice 
+        data_slice = np.empty([n_blobs, 5])
         
+        # to fill the informations inbetween 
+        
+        
+        
+        return data_slice
         
     
 
