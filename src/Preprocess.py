@@ -14,11 +14,11 @@ from common_funcs import fitgaussian2D
 class Deblur(object):
     def __init__(self, impath, sig = 30):
         # sig is the width of Gaussian filter 
-        self.raw_stack = np.copy(tifffunc.read_tiff(impath).astype('float')) # load a raw image and convert to float type
+        self.raw_stack = tifffunc.read_tiff(impath).astype('float')# load a raw image and convert to float type
+        self.new_stack = np.copy(self.raw_stack)
         self.impath = impath
         self.cell_list = []
         self.current = 0 # just using an index
-        self.new_stack = np.copy(self.raw_stack)
         self.Nslice = self.raw_stack.shape[0] # number of slices 
         print("The number of slices:", self.Nslice)
         self.px_num = self.raw_stack.shape[1:] # the number of pixels in x and y for each slice
@@ -42,9 +42,9 @@ class Deblur(object):
     # sig: width of the Gaussian filter
         sig = self.sig
         if (nslice is None):
-            im0 = self.raw_stack[self.current]
+            im0 = self.new_stack[self.current]
         else:
-            im0 = self.raw_stack[nslice]
+            im0 = self.new_stack[nslice]
             
             
         ifilt = filters.gaussian(im0, sigma=sig)
@@ -55,7 +55,6 @@ class Deblur(object):
         print(sca)
         im0 -= (ifilt*sca*0.98) # update the background-corrected image
         return im0
-
 
 
 

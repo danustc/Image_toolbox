@@ -4,6 +4,38 @@ from skimage import filters
 from skimage.feature import blob_log
 from skimage.morphology import reconstruction
 
+OL_blob = 0.8
+
+class Cell_extract(object):
+    # this class extracts 
+    def __init__(self, im_stack, diam = 5):
+        self.stack = im_stack
+        self.diam = diam
+        self.c_list = {} # create an empty array 
+        self.n_slice = im_stack.shape[0]
+        self.blobset = [self.diam, self.diam-1, self.diam+1]
+        
+        
+    def image_blobs(self, n_frame):
+        im0 = self.stack[n_frame]
+        mx_sig = self.blobset[0]
+        mi_sig = self.blobset[1]
+        nsig = self.blobset[2]
+        th = np.min(im0) # threshold
+        
+        
+        self.c_list[n_frame] = blob_log(im0, 
+            max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
+        
+    
+    def stack_blobs(self):
+        for n_frame in np.arange(self.n_slice):
+            self.image_blobs(n_frame)
+            
+    
+    
+
+
 
 def image_dilation_trunc(im0):
     image = filters.gaussian(im0.astype('float'),1.0)

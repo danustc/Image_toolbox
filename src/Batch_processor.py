@@ -4,8 +4,9 @@ For group processing
 """
 import glob
 import tifffunc
-from Preprocess import Drift_correction, Deblur
 import numpy as np
+from Preprocess import Drift_correction, Deblur
+from Cell_extract import Cell_extract
 
 
 def group_alignment(datapath, nameflag = 'TS', ofst = 1, mfit = 7):
@@ -37,3 +38,12 @@ def group_deblur_inplane(datapath, nameflag = 'TS*', sig= 30, n_apdx = '_db', ov
 def group_deblur_cross():
     # to be filled later 
     pass
+
+
+def group_cell_extract(datapath, name_flag = 'TS*'):
+    stack_list = glob.glob(datapath+'*'+ name_flag + '*.tif')
+    for stk_name in stack_list:
+        n_base = stk_name[:-4]
+        im_stack = tifffunc.read_tiff(n_base)
+        CE = Cell_extract(im_stack)
+        CE.stack_blobs()
