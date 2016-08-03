@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from skimage import filters
 from skimage.feature import blob_log
 from skimage.morphology import reconstruction
+from common_funcs import circ_mask
+
 
 OL_blob = 0.8
 
@@ -11,8 +13,10 @@ class Cell_extract(object):
     def __init__(self, im_stack, diam = 5):
         self.stack = im_stack
         self.diam = diam
-        self.c_list = {} # create an empty array 
+        self.c_list = {} # create an empty array
         self.n_slice = im_stack.shape[0]
+        self.bl_flag = np.zeros(self.n_slice) # create an all-zero array for 
+        self.ny, self.nx = im_stack.shape[1:]
         self.blobset = [self.diam, self.diam-1, self.diam+1]
         
     def image_blobs(self, n_frame):
@@ -22,37 +26,56 @@ class Cell_extract(object):
         nsig = self.blobset[2]
         th = np.min(im0) # threshold
         
-        
         self.c_list[n_frame] = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
-        
+        self.bl_flag[n_frame] = self.c_list[n_frame].shape[0]
+        # end of the function image_blobs
     
+
     def stack_blobs(self):
         for n_frame in np.arange(self.n_slice):
             self.image_blobs(n_frame)
             
     
-    def image_signal_integ(self, n_slice):    
+    def image_signal_integ(self, n_frame):    
         """
         assume the blobs have been detected, now let's extract all the signals and save it in a huge array. 
-        Column: 0 --- x coordinate, unit pixel
-                1 --- y coordinate 
+        Column: 0 --- y coordinate, unit pixel
+                1 --- x coordinate 
                 2 --- z (number of slice)
                 3 --- radius 
                 4 --- fluorescence 
         """
-        n_blobs = self.c_list[n_slice].shape[0] # number of blobs in each slice 
-        data_slice = np.empty([n_blobs, 5])
+        im0 = self.stack[n_frame]
+        blbs = self.c_list[n_frame]
+        n_blobs = self.bl_flag[n_frame] # number of blobs in each slice
+        if(n_blobs == 0):
+            raise ValueError("This slice contains no blobs or has not been processed yet. ")
         
-        # to fill the informations inbetween 
-        
-        
-        
-        return data_slice
-        
+        else: 
+            data_slice = np.empty([n_blobs, 5]) # initialize an empty array
+            for ii in np.arange(n_blobs):
+                blob = blbs[ii]
+                # going through all blobs in list 
+                cr = blob[0:2]
+                dr = blob[-1]
+                mask = circ_mask([self.ny, self.nx], cr, dr)
+                signal_int = im0[mask].sum()
+                data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
+                
+            return data_slice
+            # finished of image_signal_integ
     
+        
+    def stack_signal_archive(self):
+        """
+        Once all the frames are processed for cell extraction, let's concatenate all the blob informations as a big list. 
+        """
+        
+        
+        
 
-
+    
 
 def image_dilation_trunc(im0):
     image = filters.gaussian(im0.astype('float'),1.0)

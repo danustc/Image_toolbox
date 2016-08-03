@@ -1,8 +1,13 @@
+"""
 # ----------- Author: Dan Xie ------------------------
-# ------------Last update: 07/22/2016 --------------------------
+# ------------Last update: 08/03/2016 --------------------------
+This file has two classes: 
+
+1. The class Deblur deblurrs the in-plane image and deblurrs each image from its adjacent stacks 
+2. The class Drift_correction corrects the drifts between adjacent slices based on cross-correlation function.
+
 """
-This file deblurrs the in-plane image and deblurrs each image from its adjacent stacks 
-"""
+
 
 import tifffunc
 import numpy as np
