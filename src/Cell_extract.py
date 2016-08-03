@@ -15,7 +15,6 @@ class Cell_extract(object):
         self.n_slice = im_stack.shape[0]
         self.blobset = [self.diam, self.diam-1, self.diam+1]
         
-        
     def image_blobs(self, n_frame):
         im0 = self.stack[n_frame]
         mx_sig = self.blobset[0]
@@ -33,6 +32,18 @@ class Cell_extract(object):
             self.image_blobs(n_frame)
             
     
+    def image_signal_integ(self, n_slice):    
+        """
+        assume the blobs have been detected, now let's extract all the signals and save it in a huge array. 
+        Column: 0 --- x coordinate, unit pixel
+                1 --- y coordinate 
+                2 --- z (number of slice)
+                3 --- radius 
+                4 --- fluorescence 
+        """
+        n_blobs = self.c_list[n_slice].shape[0] # number of blobs in each slice 
+        
+        
     
 
 
