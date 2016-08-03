@@ -37,7 +37,9 @@ def main():
     print(CE.bl_flag)
     n_frame = 10
     data_slice = CE.image_signal_integ(n_frame)
-    
+    print(data_slice)
+#     CE.stack_signal_archive()
+    CE.frame_display(n_frame)
     
     
     

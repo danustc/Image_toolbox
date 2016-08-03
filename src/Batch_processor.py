@@ -1,6 +1,7 @@
 """
 Created by Dan on 08/02/16
-For group processing 
+For group processing
+Last update: 08/03/16 
 """
 import glob
 import tifffunc
@@ -23,6 +24,7 @@ def group_alignment(datapath, nameflag = 'TS', ofst = 1, mfit = 7):
         
 
 def group_deblur_inplane(datapath, nameflag = 'TS*', sig= 30, n_apdx = '_db', overwrite = True):
+    
     
     raw_list = glob.glob(datapath + '*' + nameflag + '*.tif')
     for raw_name in raw_list:

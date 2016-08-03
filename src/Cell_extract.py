@@ -26,7 +26,6 @@ class Cell_extract(object):
         nsig = self.blobset[2]
         th = np.min(im0) # threshold
         
-        print("Threshold found at:", th)
         self.c_list[n_frame] = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
         self.bl_flag[n_frame] = self.c_list[n_frame].shape[0]
@@ -38,7 +37,6 @@ class Cell_extract(object):
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         """
         for n_frame in np.arange(self.n_slice):
-            print(n_frame)
             self.image_blobs(n_frame)
             
         self.valid_frames = np.where(self.bl_flag>0)[0]
