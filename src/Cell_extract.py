@@ -20,12 +20,16 @@ class Cell_extract(object):
     def __init__(self, im_stack):
         self.stack = im_stack
         self.c_list = {} # create an empty array
+        self.data_list = {}
         self.n_slice = im_stack.shape[0]
         self.bl_flag = np.zeros(self.n_slice) # create an all-zero array for 
         self.ny, self.nx = im_stack.shape[1:]
        
         
     def image_blobs(self, n_frame):
+        """
+        input: number of frame
+        """
         im0 = self.stack[n_frame]
         mx_sig = self.blobset[0]
         mi_sig = self.blobset[1]
@@ -60,7 +64,8 @@ class Cell_extract(object):
                 1 --- x coordinate 
                 2 --- z (number of slice)
                 3 --- radius 
-                4 --- fluorescence 
+                4 --- fluorescence
+        Update self.data_list 
         """
         im0 = self.stack[n_frame]
         blbs = self.c_list[n_frame]
@@ -78,7 +83,7 @@ class Cell_extract(object):
                 mask = circ_mask([self.ny, self.nx], cr, dr)
                 signal_int = im0[mask].sum()
                 data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
-                
+                self.data_list[ii] = data_slice
             return data_slice
             # finished of image_signal_integ
     
@@ -91,18 +96,43 @@ class Cell_extract(object):
         valid_frames = self.valid_frames 
         n_total = self.bl_flag[valid_frames].sum() # The total number of blobs
         blobs_archive = np.empty([n_total, 5])
-        
+
+        # archiving the blobs list         
         n_sta = 0 
         for n_frame in valid_frames:
             n_blobs = self.bl_flag[n_frame]
-            blobs_archive[n_sta:n_sta+n_blobs] = self.c_list[n_frame]
+            blobs_archive[n_sta:n_sta+n_blobs] = self.data_list[n_frame]
             n_sta +=n_blobs
         
         # should I save the blobs somewhere automatically?
+        # after archiving blobs list, clear the dictionary
         self.blobs_archive = blobs_archive
+        self.data_list.clear() 
         return blobs_archive    
-            # so there's no need to have an if-elif structure 
-            
+        # finished of stack_signal_archive 
+        
+        
+    def save_archive(self, dph):
+        """
+        dph: data path + file name 
+        """
+        np.save(dph, self.blobs_archive)
+        self.blobs_archive = []
+        print("The archive has been saved and the array cleaned.")
+        
+        
+    def stack_reload(self, new_stack):
+        """
+        Updates the image stack saved in the class, reset everything 
+        """
+        self.stack = new_stack 
+        self.n_slice, self.ny, self.nx = new_stack.shape
+        self.bl_flag = np.zeros(self.n_slice)
+        self.c_list.clear()
+        self.data_list.clear()
+        print("reload completed.")
+        # ----- reload the im_stack
+        
     #----------------------- Next, let's think about data visulization -----------------------------------------
     
     def frame_display(self, n_frame, pxl_cvt = False):
