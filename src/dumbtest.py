@@ -41,6 +41,7 @@ def main():
 #     CE.stack_signal_archive()
     CE.frame_display(n_frame)
     
+    plt.show()
     
     
 if __name__ == '__main__':

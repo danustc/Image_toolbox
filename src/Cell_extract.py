@@ -10,7 +10,7 @@ magni_lateral = 0.295 # 0.295 micron per pixel
 
 class Cell_extract(object):
     # this class extracts 
-    def __init__(self, im_stack, diam = 5):
+    def __init__(self, im_stack, diam = 6):
         self.stack = im_stack
         self.diam = diam
         self.c_list = {} # create an empty array
@@ -99,7 +99,7 @@ class Cell_extract(object):
         """
         This function display 
         """
-        fig = plt.subplots(figsize = (12, 5.5))
+        fig = plt.figure(figsize = (12, 5.5))
         
         ax1 = fig.add_subplot(121)
         ax2 = fig.add_subplot(122)
