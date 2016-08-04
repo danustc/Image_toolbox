@@ -1,3 +1,10 @@
+"""
+Created by Dan in July-2016
+Cell extraction based on the blobs_log in skimage package 
+
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -10,32 +17,35 @@ magni_lateral = 0.295 # 0.295 micron per pixel
 
 class Cell_extract(object):
     # this class extracts 
-    def __init__(self, im_stack, diam = 6):
+    def __init__(self, im_stack):
         self.stack = im_stack
-        self.diam = diam
         self.c_list = {} # create an empty array
         self.n_slice = im_stack.shape[0]
         self.bl_flag = np.zeros(self.n_slice) # create an all-zero array for 
         self.ny, self.nx = im_stack.shape[1:]
-        self.blobset = [self.diam, self.diam-1, self.diam+1]
+       
         
     def image_blobs(self, n_frame):
         im0 = self.stack[n_frame]
         mx_sig = self.blobset[0]
         mi_sig = self.blobset[1]
         nsig = self.blobset[2]
-        th = np.min(im0) # threshold
-        
+#         th = (np.max(im0)-np.min(im0))/10. # threshold
+        th = (np.mean(im0)-np.min(im0))/12.
+        print("threshold:", th)
         self.c_list[n_frame] = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
         self.bl_flag[n_frame] = self.c_list[n_frame].shape[0]
         # end of the function image_blobs
     
 
-    def stack_blobs(self):
+    def stack_blobs(self, diam = 6):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         """
+        self.diam = diam
+        self.blobset = [self.diam, self.diam-1, self.diam+1]
+            
         for n_frame in np.arange(self.n_slice):
             self.image_blobs(n_frame)
             
@@ -95,9 +105,9 @@ class Cell_extract(object):
             
     #----------------------- Next, let's think about data visulization -----------------------------------------
     
-    def frame_display(self, n_frame):
+    def frame_display(self, n_frame, pxl_cvt = False):
         """
-        This function display 
+        This function displays all the extracted cells from a selected slice. 
         """
         fig = plt.figure(figsize = (12, 5.5))
         

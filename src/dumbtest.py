@@ -20,7 +20,7 @@ def main():
         
     im_list = glob.glob(fd+ '/*TP_*.tif') # list all the tiff files in the folder 
     
-    ofst = 1
+    ofst = 1re 
     for im_name in im_list:
         name_base = im_name[:-4]
         new_stack = np.copy(tifffunc.read_tiff(name_base))
@@ -30,20 +30,30 @@ def main():
         tifffunc.write_tiff(a_stack[ofst:].astype('uint16'), name_out)
 
     """
-    raw_image = 'img_aligned'
-    im_stack = tifffunc.read_tiff(raw_image).astype('float64')
-    CE = Cell_extract(im_stack)
-    CE.stack_blobs()
-    print(CE.bl_flag)
+    raw_image = 'raw_image'
+    dbl_image = 'raw_image_deblur'
+    
+    
+    raw_stack = tifffunc.read_tiff(raw_image).astype('float64')
+    CE_raw = Cell_extract(raw_stack)
+    CE_raw.stack_blobs(diam = 6)
+    print(CE_raw.bl_flag)
+    
+    
+    dbl_stack = tifffunc.read_tiff(dbl_image).astype('float64')
+    CE_dbl = Cell_extract(dbl_stack)
+    CE_dbl.stack_blobs(diam = 6)
+    print(CE_dbl.bl_flag)
+    
     n_frame = 10
-    data_slice = CE.image_signal_integ(n_frame)
-    print(data_slice)
-#     CE.stack_signal_archive()
-    CE.frame_display(n_frame)
-    
-    plt.show()
-    
-    
+    data_slice_1 = CE_raw.image_signal_integ(n_frame)
+    print(data_slice_1.shape)
+    data_slice_2 = CE_dbl.image_signal_integ(n_frame)
+    print(data_slice_2.shape)
+    fig1 = CE_raw.frame_display(n_frame)
+    fig1.savefig('raw_s10')
+    fig2 = CE_dbl.frame_display(n_frame)
+    fig2.savefig('dbl_s10')
 if __name__ == '__main__':
     main()
 
