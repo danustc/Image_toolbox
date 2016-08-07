@@ -60,4 +60,10 @@ def circ_mask(n_size, cr, dr):
     
     return mask
     
+
+def groups_compare(dset1, dset2, tor = 1.0):
+    """
+    Comparing data set1 and data set2, yield the unison and differences 
+    """
+    
     

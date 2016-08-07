@@ -171,7 +171,7 @@ class Cell_extract(object):
             blobs_list = self.c_list[n_frame] 
             ys = blobs_list[:,0]*magni_lateral
             xs = blobs_list[:,1]*magni_lateral 
-            zs = n_frame*zstep 
+            zs = np.ones(len(blobs_list))*n_frame*zstep
             ss = (np.sqrt(2)*blobs_list[:,2]*magni_lateral)**2*np.pi
             Axes3D.scatter(xs,ys, zs, zdir = 'z', s=ss, c='g')        
         
