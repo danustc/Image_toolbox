@@ -40,15 +40,11 @@ def main():
     CE_dbl.stack_blobs(diam = 6)
     print(CE_dbl.bl_flag)
     CE_dbl.stack_signal_archive()
-    CE_dbl.save_archive('arc_img_dbl')
-    
-#     data_slice_1 = CE_raw.image_signal_integ(n_frame)
-#     print(data_slice_1.shape)
-#     data_slice_2 = CE_dbl.image_signal_integ(n_frame)
-#     print(data_slice_2.shape)
-#     fig1 = CE_raw.frame_display(n_frame)
-#     fig1.savefig('raw_s10')
-#     fig2.savefig('dbl_s10')
+#     CE_dbl.save_archive('arc_img_dbl')
+    n_frame = 11    
+    data_slice_2 = CE_dbl.image_signal_integ(n_frame)
+    fig2 = CE_dbl.frame_display(n_frame, False)
+    fig2.savefig('dbl_s10')
     fig3 = CE_dbl.volume_display(3.00)
     plt.show()
     
