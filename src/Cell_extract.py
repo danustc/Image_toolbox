@@ -48,13 +48,30 @@ class Cell_extract(object):
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         """
         self.diam = diam
-        self.blobset = [self.diam, self.diam-1, self.diam+1]
+        self.blobset = [self.diam-1, self.diam+1, self.diam]
             
         for n_frame in np.arange(self.n_slice):
             self.image_blobs(n_frame)
             
         self.valid_frames = np.where(self.bl_flag>0)[0]
         # end of the function stack_blobs 
+        
+    
+    def redundant_removal(self, n_spread = 3, p_thresh = 2 ):
+        """
+        remove the redundancy
+        idea: sort the blobs list according to the x,y position
+        Count every n_spread adjacent slices to remove the redundant ones 
+        criteria: z continued, center difference < p_thresh pixel
+        
+        """
+        # Qia tou qu wei! 
+        for n_frame in np.arange(1, self.n_slice-1):
+            self.data_list[n_frame]
+            
+        
+        
+        
         
     
     def image_signal_integ(self, n_frame):    
@@ -100,8 +117,11 @@ class Cell_extract(object):
         # archiving the blobs list         
         n_sta = 0 
         for n_frame in valid_frames:
-            n_blobs = self.bl_flag[n_frame]
+            n_blobs = self.bl_flag[n_frame].astype('int64')
+            self.data_list[n_frame] = self.image_signal_integ(n_frame)
             blobs_archive[n_sta:n_sta+n_blobs] = self.data_list[n_frame]
+            print(self.data_list[n_frame])
+            
             n_sta +=n_blobs
         
         # should I save the blobs somewhere automatically?
@@ -163,7 +183,7 @@ class Cell_extract(object):
         Prerequisites: self.blobs_archive are established.
         The magnification of the microscope must be known.
         """
-        fig3 = plt.figure(figsize = (10,6))
+        fig3 = plt.figure(figsize = (12, 9))
         ax_3d = fig3.add_subplot(111, projection = '3d')
         
         for n_frame in self.valid_frames:
@@ -172,13 +192,13 @@ class Cell_extract(object):
             ys = blobs_list[:,0]*magni_lateral
             xs = blobs_list[:,1]*magni_lateral 
             zs = np.ones(len(blobs_list))*n_frame*zstep
-            ss = (np.sqrt(2)*blobs_list[:,2]*magni_lateral)**2*np.pi
-            Axes3D.scatter(xs,ys, zs, zdir = 'z', s=ss, c='g')        
+            ss = (np.sqrt(2)*blobs_list[:,2]*magni_lateral)**2
+            ax_3d.scatter(xs,ys, zs, zdir = 'z', s=ss, c='g')        
         
         
         
         ax_3d.set_xlabel('x (micron)', fontsize = 12)
-        ax_3d.set_xlabel('y (micron)', fontsize = 12)
-        
+        ax_3d.set_ylabel('y (micron)', fontsize = 12)
+        ax_3d.set_zlabel('z (micron)', fontsize = 12)
         return fig3
         
