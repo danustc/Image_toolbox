@@ -1,8 +1,9 @@
 """
 Created by Dan on 08/02/16
 For group processing
-Last update: 08/03/16 
+Last update: 08/10/16
 """
+
 import glob
 import tifffunc
 import numpy as np
@@ -24,8 +25,9 @@ def group_alignment(datapath, nameflag = 'TS', ofst = 1, mfit = 7):
         
 
 def group_deblur_inplane(datapath, nameflag = 'TS*', sig= 30, n_apdx = '_db', overwrite = True):
-    
-    
+    """
+    group_deblur_inplane, regardless of aligned or not 
+    """
     raw_list = glob.glob(datapath + '*' + nameflag + '*.tif')
     for raw_name in raw_list:
         n_base = raw_name[:-4]
@@ -35,6 +37,9 @@ def group_deblur_inplane(datapath, nameflag = 'TS*', sig= 30, n_apdx = '_db', ov
             DB.write_stack(n_apdx)
         else:
             DB.write_stack(None)
+    print("The stack has been deblurred. ")        
+            
+            
             
             
 def group_deblur_cross():
@@ -49,3 +54,5 @@ def group_cell_extract(datapath, name_flag = 'TS*'):
         im_stack = tifffunc.read_tiff(n_base)
         CE = Cell_extract(im_stack)
         CE.stack_blobs()
+        
+        

@@ -1,6 +1,7 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package 
+Last update: 08/11/16
 
 """
 
@@ -29,6 +30,8 @@ class Cell_extract(object):
     def image_blobs(self, n_frame):
         """
         input: number of frame
+        process: recognize the blobs inside one plane (regardless of aligned)
+        updated: self.c_list (no fluorescent signal processed)
         """
         im0 = self.stack[n_frame]
         mx_sig = self.blobset[0]
@@ -98,19 +101,14 @@ class Cell_extract(object):
                 s1, s2 =  (temp_archive[z1, -1], temp_archive[z2, -1]) # the signals of the two measurements 
                 zm = (z1*s1+z2*s2)/(s1+s2) # the real z-position of the cell 
                 self.data_list[n_frame] = np.delete(self.data_list[n_frame], c1, 0)
-                self.data_list[n_frame+1][0] = 0
+                self.data_list[n_frame+1][c2-nr1, 2] = zm  # update the z-position in the 
                     
+            # This sounds really lousy.
             
-            
-            
-        
-        
-        
-        
     
     def image_signal_integ(self, n_frame):    
         """
-        assume the blobs have been detected, now let's extract all the signals and save it in a huge array. 
+        Prerequisite: assume the blobs have been detected, now let's extract all the signals and save it in a huge array. 
         Column: 0 --- y coordinate, unit pixel
                 1 --- x coordinate 
                 2 --- z (number of slice)
@@ -134,45 +132,35 @@ class Cell_extract(object):
                 mask = circ_mask([self.ny, self.nx], cr, dr)
                 signal_int = im0[mask].sum()
                 data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
-                self.data_list[ii] = data_slice
+            
             return data_slice
             # finished of image_signal_integ
     
         
-    def stack_signal_archive(self):
+    def stack_signal_integ(self):
         """
-        Once all the frames are processed for cell extraction, let's concatenate all the blob informations as a big list. 
+        08/10: no blobs archive needed.
+        Once all the frames are processed for cell extraction, save the integrated slice into an npz. 
         """
         # Let's find out all the slices that are processed.
         valid_frames = self.valid_frames 
-        n_total = self.bl_flag[valid_frames].sum() # The total number of blobs
-        blobs_archive = np.empty([n_total, 5])
 
         # archiving the blobs list         
-        n_sta = 0 
         for n_frame in valid_frames:
             n_blobs = self.bl_flag[n_frame].astype('int64')
-            self.data_list[n_frame] = self.image_signal_integ(n_frame)
-            blobs_archive[n_sta:n_sta+n_blobs] = self.data_list[n_frame]
-            print(self.data_list[n_frame])
+            kwd = 'z_'+ str(n_frame)
+            self.data_list[kwd] = self.image_signal_integ(n_frame)
+            print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
             
-            n_sta +=n_blobs
-        
-        # should I save the blobs somewhere automatically?
-        # after archiving blobs list, clear the dictionary
-        self.blobs_archive = blobs_archive
-        self.data_list.clear() 
-        return blobs_archive    
         # finished of stack_signal_archive 
         
         
-    def save_archive(self, dph):
+    def save_data_list(self, dph):
         """
+        Presumption: self.data_list has been fully updated 
         dph: data path + file name 
         """
-        np.save(dph, self.blobs_archive)
-        self.blobs_archive = []
-        print("The archive has been saved and the array cleaned.")
+        np.savez(dph, **self.data_list) # with keys saved 
         
         
     def stack_reload(self, new_stack):
@@ -211,7 +199,7 @@ class Cell_extract(object):
         return fig
     
 
-    def volume_display(self, zstep = 3.00):
+    def volume_display(self, zstep = 3.00, view_angle=None):
         """
         This is a daring attempt for 3-D plots of all the blobs in the brain. 
         Prerequisites: self.blobs_archive are established.

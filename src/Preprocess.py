@@ -1,11 +1,10 @@
 """
 # ----------- Author: Dan Xie ------------------------
-# ------------Last update: 08/03/2016 --------------------------
+# ------------Last update: 08/10/2016 --------------------------
 This file has two classes: 
 
 1. The class Deblur deblurrs the in-plane image and deblurrs each image from its adjacent stacks 
 2. The class Drift_correction corrects the drifts between adjacent slices based on cross-correlation function.
-
 """
 
 
@@ -58,8 +57,8 @@ class Deblur(object):
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
         sca =im0[gmin_ind]/(ifilt[gmin_ind])
         print(sca)
-        im0 -= (ifilt*sca*0.98) # update the background-corrected image
-        return im0
+        im0 -= (ifilt*sca*0.99) # update the background-corrected image
+        return im0, ifilt
 
 
 
