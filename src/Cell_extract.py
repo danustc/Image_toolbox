@@ -2,9 +2,7 @@
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package 
 Last update: 08/11/16
-
 """
-
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -62,6 +60,7 @@ class Cell_extract(object):
     
     def redundant_removal(self, p_thresh = 2. ):
         """
+        This chunk of code is kinda useless. Do not look into it! --- 08/11
         remove the redundancy
         idea: sort the blobs list according to the x,y position, compare every two adjacent frame
         Count every n_spread adjacent slices to remove the redundant ones 
@@ -151,7 +150,6 @@ class Cell_extract(object):
             kwd = 'z_'+ str(n_frame)
             self.data_list[kwd] = self.image_signal_integ(n_frame)
             print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
-            
         # finished of stack_signal_archive 
         
         
