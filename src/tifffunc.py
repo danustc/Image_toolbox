@@ -3,7 +3,6 @@ A wrapper designed for Dan's image processing.
 Based on Christoph Gohlke (UCI)'s tifffile module.
 """
 
-
 from tifffile import TiffFile
 from tifffile import imsave
 import numpy as np
