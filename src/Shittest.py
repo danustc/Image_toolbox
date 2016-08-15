@@ -7,7 +7,7 @@ main function under Linux.
 
 import glob 
 import os 
-
+from Pipeline import pipeline_zstacks
 
 
 def main():
@@ -17,16 +17,18 @@ def main():
     """ 
     hroot = 'X:\Zebrafish_ispim/'
     abspath = os.path.abspath(hroot)
-    print(abspath)
     aq_date = '/2016-05-18\\'
     fd = abspath + aq_date
-    
-    print(fd)
-        
     fd_list = glob.glob(fd+'*') # list all the tiff files in the folder  
+    work_folder = fd_list[0] + '\\'
+    print(work_folder)
     
-    for fd in fd_list:
-        print(fd) 
+    tpflags = 'TP'
+    pz = pipeline_zstacks(work_folder, tpflags)
+#     pz.zstack_prepro(0)
+    pz.zstack_tseries()
+
+    
     
     
    

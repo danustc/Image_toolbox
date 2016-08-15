@@ -94,8 +94,8 @@ class pipeline_zstacks(object):
         
         """
         for iflag in np.arange(self.n_TP):
-            self.zstack_prepro(iflag) # process all the 
-    
+            postfix_num = self.zstack_prepro(iflag) # process all the 
+            print("Processed time point:", postfix_num)
             
         
         print("All done.")

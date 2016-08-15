@@ -23,7 +23,7 @@ class Cell_extract(object):
         self.c_list = {} # create an empty array
         self.data_list = {}
         self.n_slice = im_stack.shape[0]
-        self.bl_flag = np.zeros(self.n_slice) # create an all-zero array for 
+        self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for 
         self.ny, self.nx = im_stack.shape[1:]
        
         
@@ -39,7 +39,7 @@ class Cell_extract(object):
         nsig = self.blobset[2]
 #         th = (np.max(im0)-np.min(im0))/10. # threshold
         th = (np.mean(im0)-np.min(im0))/12.
-        print("threshold:", th)
+#         print("threshold:", th)
         self.c_list[n_frame] = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
         self.bl_flag[n_frame] = self.c_list[n_frame].shape[0]

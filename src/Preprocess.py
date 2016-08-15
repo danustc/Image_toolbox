@@ -56,7 +56,7 @@ class Deblur(object):
         nmin = np.argmin(iratio) 
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
         sca =im0[gmin_ind]/(ifilt[gmin_ind])
-        print(sca)
+#         print(sca)
         im0 -= (ifilt*sca*0.99) # update the background-corrected image
         return im0, ifilt
 
