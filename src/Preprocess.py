@@ -6,8 +6,6 @@ This file has two classes:
 1. The class Deblur deblurrs the in-plane image and deblurrs each image from its adjacent stacks 
 2. The class Drift_correction corrects the drifts between adjacent slices based on cross-correlation function.
 """
-
-
 import tifffunc
 import numpy as np
 from skimage import filters

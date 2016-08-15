@@ -10,3 +10,23 @@ import os
 
 
 
+def main():
+    hroot = 'X:\Zebrafish_ispim/'
+    abspath = os.path.abspath(hroot)
+    print(abspath)
+    aq_date = '/2016-05-18\\'
+    fd = abspath + aq_date
+    
+    print(fd)
+        
+    fd_list = glob.glob(fd+'*') # list all the tiff files in the folder  
+    
+    for fd in fd_list:
+        print(fd) 
+    
+    
+   
+
+if __name__ == '__main__':
+    main()
+

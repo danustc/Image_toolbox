@@ -7,7 +7,6 @@ Adapted from Scipy cookbook.
 import numpy as np
 from scipy import optimize
 
-
 def gaussian2D(height, center_x, center_y, width_x, width_y, ofst=0.):
     """Returns a gaussian function with the given parameters"""
     width_x = float(width_x)
