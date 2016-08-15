@@ -5,12 +5,12 @@ import ntpath
 import os
 import glob
 import numpy as np
-import tifffunc
 
 
 from Cell_extract import Cell_extract
 from Preprocess import Deblur, Drift_correction
-from sqlalchemy.testing.plugin.plugin_base import post_begin
+from common_funcs import circs_reconstruct
+#------------------------------------------Small functions----------------------------------
 
 def path_leaf(path):
     """
@@ -18,6 +18,8 @@ def path_leaf(path):
     """
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
+    # done with path_leaf.
+
 
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -37,7 +39,7 @@ class pipeline_zstacks(object):
         self.tif_list = glob.glob(self.work_folder+ '*'+ tpflags +'*.tif')
         self.tif_list.sort(key = os.path.getmtime)
         self.tp_flag = -np.ones(len(self.tif_list)).astype('uint16') # all zero, if any time point is converted, then the element is set to True.
-            
+        self.dims = None  
         name_base = path_leaf(self.tif_list[0])[:-4] 
         parse_name = name_base.split('_') # get an array of list that 
         self.prefix_z = ''.join(parse_name[:-1]) + '_' # the prefix of the filename 
@@ -71,7 +73,8 @@ class pipeline_zstacks(object):
         
         z_DB = Deblur(zs_name, sig = 30) # deblur
         z_dbstack = z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
-
+        if(self.dims is None):
+            self.dims = z_DB.px_num # here we get self.dims 
 
         z_CE = Cell_extract(z_dbstack) 
         z_CE.stack_blobs(diam = 6)
@@ -92,11 +95,18 @@ class pipeline_zstacks(object):
         """
         for iflag in np.arange(self.n_TP):
             self.zstack_prepro(iflag) # process all the 
+    
+            
         
         print("All done.")
-        
-        
+
+
+    
+    def z2t_construct(self):
+        """
+        test test.
+        """
 #         zb_list = glob.glob(self.work_folder+self.prefix_z + '*.npz') # list all the ''
-        
+            
         
         

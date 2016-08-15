@@ -148,10 +148,10 @@ class Cell_extract(object):
 
         # archiving the blobs list         
         for n_frame in valid_frames:
-            n_blobs = self.bl_flag[n_frame].astype('int64')
             kwd = 'z_'+ str(n_frame).zfill(2)
             self.data_list[kwd] = self.image_signal_integ(n_frame)
-            print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
+#             n_blobs = self.bl_flag[n_frame].astype('int64')
+#             print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
         # finished of stack_signal_archive 
         
         

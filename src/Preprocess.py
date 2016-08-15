@@ -25,7 +25,7 @@ class Deblur(object):
         self.current = 0 # just using an index
         self.Nslice = self.raw_stack.shape[0] # number of slices 
         print("The number of slices:", self.Nslice)
-        self.px_num = self.raw_stack.shape[1:] # the number of pixels in x and y for each slice
+        self.px_num = self.raw_stack.shape[1:] # the number of pixels in y and x for each slice
         print("The shape of images:", self.px_num)
         self.status = -1* np.ones(self.Nslice) # the status 
         self.sig = sig
