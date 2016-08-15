@@ -16,7 +16,11 @@ def dumb1():
     """
     This program tests pipeline_zstacks 
     """
-    
+    dph = '/home/sillycat/Documents/Zebrafish/Exp_figures/'
+    tpflags = 'TP'
+    pz = pipeline_zstacks(dph, tpflags)
+    pz.zstack_prepro(0)
+    pz.zstack_tseries()
 
 
 def dumb2():

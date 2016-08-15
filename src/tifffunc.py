@@ -1,6 +1,7 @@
 """
 A wrapper designed for Dan's image processing. 
 Based on Christoph Gohlke (UCI)'s tifffile module.
+Last modification: 08/15/16
 """
 
 from tifffile import TiffFile
@@ -9,8 +10,8 @@ import numpy as np
 
 # read a tiff stack
 def read_tiff(fname):
-    # the fname should include the absolute path.
-    with TiffFile(fname + '.tif') as tif:
+    # the fname should include the absolute path and extension name
+    with TiffFile(fname) as tif:
         istack = tif.asarray()
     return istack
 
