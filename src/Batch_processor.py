@@ -1,14 +1,17 @@
 """
 Created by Dan on 08/02/16
 For group processing
-Last update: 08/10/16
+Last update: 08/15/16
 """
 
 import glob
+import ntpath
 import tifffunc
 import numpy as np
 from Preprocess import Drift_correction, Deblur
 from Cell_extract import Cell_extract
+
+
 
 
 def group_alignment(datapath, nameflag = 'TS', ofst = 1, mfit = 7):
@@ -56,3 +59,16 @@ def group_cell_extract(datapath, name_flag = 'TS*'):
         CE.stack_blobs()
         
         
+# class working_folder(object):
+#     """
+#     provide a folder wrapper for the working_folder, which allows batch processing
+#     created on 08/15/16. 
+#     """
+#     def __init__(self, dph):
+#         self.dph = dph
+#         self.wfolder = path_leaf(self.dph)
+#           
+#     """
+#     More to be filled here.
+#     """    
+#     

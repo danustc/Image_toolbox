@@ -1,9 +1,10 @@
 '''
-Created by Dan on 08/02/16
+Created by Dan on 08/15/16
 This file contains several small functions shared among all the classes.
 Adapted from Scipy cookbook. 
 '''
 
+import os
 import numpy as np
 from scipy import optimize
 
@@ -41,7 +42,6 @@ def fitgaussian2D(data):
     return p
 
 
-
 def circ_mask(n_size, cr, dr):
     """
     integrate all the pixel values within a circle centered at cr with radius dr.
@@ -58,11 +58,33 @@ def circ_mask(n_size, cr, dr):
     mask = yg*yg+xg*xg <= dr*dr
     
     return mask
+    # end of circ_mask
     
+def circs_reconstruct(dims, blob_list):
+    """
+    Reconstruct an image (a 2d array) with a list of blobs marked on it.
+    dims: (ny, nx)
+    blob_list: a 2-d array  
+    """
+    new_frame = np.zeros(dims)
+    for blob in blob_list:
+        # [blob[0], blob[1], n_frame, dr, signal_int]
+        cr = [blob[0], blob[1]] # the center of blob in the unit of pixel
+        dr = blob[3]
+        sigs = blob[-1]
+        
+        mask = circ_mask(dims, cr, dr)
+        new_frame[mask] = sigs
+        
 
-def groups_compare(dset1, dset2, tor = 1.0):
-    """
-    Comparing data set1 and data set2, yield the unison and differences 
-    """
+    return new_frame 
+    # done with circs_reconstruct
+        
+
+
+
+
+
+
     
     

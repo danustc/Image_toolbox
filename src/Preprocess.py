@@ -1,6 +1,8 @@
 """
 # ----------- Author: Dan Xie ------------------------
-# ------------Last update: 08/10/2016 --------------------------
+# ------------Last update: 08/15/2016 --------------------------
+
+for pre-processing (actually pre-preprocessing.)
 This file has two classes: 
 
 1. The class Deblur deblurrs the in-plane image and deblurrs each image from its adjacent stacks 
@@ -214,7 +216,7 @@ class Drift_correction(object):
             drift = [dry,  drx] + np.round([cy, cx]).astype('int64')-self.mfit
 
 
-        print(drift)            
+        print("drift:", drift)            
         return drift
             
     
@@ -231,5 +233,4 @@ class Drift_correction(object):
 
 
 
-    
     

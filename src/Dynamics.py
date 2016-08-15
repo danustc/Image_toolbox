@@ -1,41 +1,41 @@
 """
-Created by Dan Xie on 08/10/2016 
+Created by Dan Xie on 08/15/2016 
 Dynamics.py: takes the extracted cell information, calculate dynamics in it. 
 """
 
-import os 
+import ntpath
 import glob
 import numpy as np
 from scipy import linalg
+from Preprocess import Drift_correction
 from scipy.linalg import svd as SVD # import SVD algorithm
+from common_funcs import circs_reconstruct
 
 
 
-def z2t_convert(dph, file_flag, z_frame, fmt = '03d'):
+def z2t_convert(dph, file_flag, dims, z_frame, fmt = '02d'):
     """
     input: data path, file_flags for identification, 
-    Convert selected z_frame of z-stacks into t-stacks. 
+    Convert selected z_frame of z-stacks into t-stacks
+    dims: the ny, nx dimensions 
     tp_data: npz, with key names 'z_<number of frame>'
     """
+    
     TP_list = sorted(glob.glob(dph, + '*file_flag'+ '*.npz')) # sorted by name
+    NT = len(TP_list)
+    clean_stack = np.zeros(dims, NT) # creat a zero-stack 
     for tp_name in TP_list:
+        strip_name = ntpath.split(tp_name)[-1][:-4]  # the stripped name of the file
+        strip_number = int(strip_name.split('_')[-1]) # get the time point number 
         tp_data = np.load(tp_name)
         key_z = 'z_'+ format(z_frame, fmt) # construct key_z for cellular te 
-        blobs_zframe = tp_data[key_z] # take out the stac
-    
-    
-    
-    
-
-
-def TS_construction(dph, ts_flag, r_flag):
+        blobs_zframe = tp_data[key_z] # take out the frame from the list 
+        clean_stack[strip_number] = circs_reconstruct(dims, blobs_zframe) 
     """
-    This is a pre-pre-processing program for dynamics extraction 
-    Updates: constructe a time series of certain cells with r_flag
-
-    """
+    So, here we get a stack of reconstructed blobs. Let's check whether there are any empty frames: 
     
-    pass
+    """
+    return clean_stack
 
  
 

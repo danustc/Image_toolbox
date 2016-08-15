@@ -11,6 +11,10 @@ import os
 
 
 def main():
+    
+    """
+    OK this part already works. 
+    """ 
     hroot = 'X:\Zebrafish_ispim/'
     abspath = os.path.abspath(hroot)
     print(abspath)

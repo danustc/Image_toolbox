@@ -1,7 +1,9 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package 
-Last update: 08/11/16
+Last update: 08/15/16
+The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
+
 """
 
 import numpy as np
@@ -138,7 +140,7 @@ class Cell_extract(object):
         
     def stack_signal_integ(self):
         """
-        08/10: no blobs archive needed.
+        08/15: pad the frame name so the key-value sorting is easier. 
         Once all the frames are processed for cell extraction, save the integrated slice into an npz. 
         """
         # Let's find out all the slices that are processed.
@@ -147,7 +149,7 @@ class Cell_extract(object):
         # archiving the blobs list         
         for n_frame in valid_frames:
             n_blobs = self.bl_flag[n_frame].astype('int64')
-            kwd = 'z_'+ str(n_frame)
+            kwd = 'z_'+ str(n_frame).zfill(2)
             self.data_list[kwd] = self.image_signal_integ(n_frame)
             print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
         # finished of stack_signal_archive 
@@ -159,6 +161,7 @@ class Cell_extract(object):
         dph: data path + file name 
         """
         np.savez(dph, **self.data_list) # with keys saved 
+    
         
         
     def stack_reload(self, new_stack):
@@ -194,6 +197,8 @@ class Cell_extract(object):
             c = plt.Circle((x, y), np.sqrt(2)*r, color='g', linewidth=1, fill=False)
             ax2.add_patch(c)
         #         print(r)
+        
+        plt.tight_layout() # add a tight layout 
         return fig
     
 
@@ -221,4 +226,5 @@ class Cell_extract(object):
         ax_3d.set_ylabel('y (micron)', fontsize = 12)
         ax_3d.set_zlabel('z (micron)', fontsize = 12)
         return fig3
+        
         
