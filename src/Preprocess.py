@@ -7,6 +7,9 @@ This file has two classes:
 
 1. The class Deblur deblurrs the in-plane image and deblurrs each image from its adjacent stacks 
 2. The class Drift_correction corrects the drifts between adjacent slices based on cross-correlation function.
+To be updated: replace all the global variables with local variables.
+
+
 """
 import tifffunc
 import numpy as np
@@ -17,7 +20,10 @@ from common_funcs import fitgaussian2D
 
 class Deblur(object):
     def __init__(self, impath, sig = 30):
-        # sig is the width of Gaussian filter 
+        """
+        Update on 0
+        sig is the width of Gaussian filter
+        """
         self.raw_stack = tifffunc.read_tiff(impath).astype('float')# load a raw image and convert to float type
         self.new_stack = np.copy(self.raw_stack)
         self.impath = impath
@@ -38,7 +44,7 @@ class Deblur(object):
         """
     
     
-    def image_high_trunc_inplane(self, nslice = None):
+    def image_high_trunc_inplane(self, nslice = None, ofst = 1.00):
     # the idea comes from Nature-scientific reports,  3:2266.
     # im0: image 0 
     # method: filter method
@@ -50,13 +56,14 @@ class Deblur(object):
         else:
             im0 = self.new_stack[nslice]
             
+        im0[im0 ==0] = ofst # remove all the zero pixels 
             
         ifilt = filters.gaussian(im0, sigma=sig)
         iratio = im0/ifilt
         nmin = np.argmin(iratio) 
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
         sca =im0[gmin_ind]/(ifilt[gmin_ind])
-#         print(sca)
+        print("scale:",sca)
         im0 -= (ifilt*sca*0.99) # update the background-corrected image
         return im0, ifilt
 
@@ -65,11 +72,12 @@ class Deblur(object):
 
     def image_high_trunc_adjacent(self, wt = 0.40, sca = 3.0):
         sig = sca*self.sig # the Gaussian filter width of the adjacent slice 
-        # Should this be done after the in-plane deblurring is accomplished, or before that? 
-        if self.current > 0 and self.current < (self.Nslice-1):
-            i_mid = self.raw_stack[self.current]
-            i_up = self.raw_stack[self.current-1] # the previous slice 
-            i_down = self.raw_stack[self.current+1] # the next slice 
+        # Should this be done after the in-plane deblurring is accomplished, or before that?
+        n_current = self.current 
+        if n_current > 0 and n_current < (self.Nslice-1):
+            i_mid = self.raw_stack[n_current]
+            i_up = self.raw_stack[n_current-1] # the previous slice 
+            i_down = self.raw_stack[n_current+1] # the next slice 
             ifilt_up = filters.gaussian(i_up, sigma = sig)
             ifilt_down = filters.gaussian(i_down, sigma = sig)
             
@@ -105,15 +113,17 @@ class Deblur(object):
             self.image_high_trunc_inplane()  # in-plane correction
             
         
-        self.new_stack = np.copy(self.raw_stack)
+#         self.new_stack = np.copy(self.raw_stack)
         return self.new_stack
     
-    def write_stack(self, n_apdx = None):
-        if n_apdx is None:
-            # overwrite the original file
-            tifffunc.write_tiff(self.new_stack, self.impath)
-        else: # add some appendix 
-            tifffunc.write_tiff(self.new_stack, self.impath+n_apdx)
+    def write_stack(self, n_apdx):
+        """
+        Update on 08/15: 
+        the tifffile module does not allow overwriting so we are going to write it ourselves
+        
+        """
+        fext = self.impath[:-4]
+        tifffunc.write_tiff(self.new_stack, fext+n_apdx+'.tif')
     
         
 
@@ -142,8 +152,8 @@ class Drift_correction(object):
         if(im_cor is None):
             im_cor = self.im_cor
         
-        print("Image marks:")
-        print(np.mean(im_ref), np.mean(im_cor))
+#         print("Image marks:")
+#         print(np.mean(im_ref), np.mean(im_cor))
         ft_ref = fftp.fft2(im_ref) # fft of the reference image 
         ft_cor = fftp.fft2(im_cor) 
         # here do the fftw-2d
@@ -181,7 +191,7 @@ class Drift_correction(object):
         
         if(self.mfit == 0):
             drift = [dry, drx]
-            print("Drifted pixel:", drift)
+#             print("Drifted pixel:", drift)
             
         else: # mfit is the width of gaussian function
             # This should be tested. 
@@ -212,7 +222,7 @@ class Drift_correction(object):
             cx = popt[1]
             cy = popt[2]
             
-            print("center found at:", cx, cy)
+#             print("center found at:", cx, cy)
             drift = [dry,  drx] + np.round([cy, cx]).astype('int64')-self.mfit
 
 
@@ -220,14 +230,20 @@ class Drift_correction(object):
         return drift
             
     
-    def drift_correct(self, offset = 1):
+    def drift_correct(self, offset = 1, ref_first = 'False'):
         # offset = m: start from the mth slice  
 #         self.mfit = mfit
         im_ref = self.stack[offset]
-        for ii in np.arange(offset+1,self.nslices):
-            im_cor = np.copy(self.stack[ii])
-            self.stack[ii]=self.pair_correct(im_ref,im_cor)
-            im_ref = self.stack[ii]
+        if (ref_first == False):
+            for ii in np.arange(offset+1,self.nslices):
+                im_cor = np.copy(self.stack[ii])
+                self.stack[ii]=self.pair_correct(im_ref,im_cor)
+                im_ref = self.stack[ii]
+        else:
+            # take the first slice as the reference
+            for ii in np.arange(offset+1,self.nslices):
+                im_cor = np.copy(self.stack[ii])
+                self.stack[ii]=self.pair_correct(im_ref,im_cor)
             
         return self.stack
 

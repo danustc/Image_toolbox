@@ -36,16 +36,43 @@ def dumb2():
     aq_date = '/2016-03-21\\'
     fd = abspath + aq_date
     fd_list = glob.glob(fd+'*') # list all the tiff files in the folder  
+    
+    tpflags = 'ZP'
+    
+    for work_folder in fd_list:
+        work_folder = work_folder + '\\'
+        print(work_folder)
+    
+        TS_list = glob.glob(work_folder+'*'+tpflags+'*.tif')
+        for tfile in TS_list:
+            print(tfile)
+            ZP_DB = Deblur(tfile,sig=30)
+            z_new = ZP_DB.stack_high_trunc(adjacent=False)
+            ZP_DC = Drift_correction(z_new, mfit = 0)
+            z_dc = ZP_DC.drift_correct(offset=0, ref_first=True)
+            tifffunc.write_tiff(z_dc, tfile[:-4]+'_pp.tif')
+        
+        
+        
+def dumb3():
+    """
+    corrects drift.
+    """
+    hroot = 'D:\Data/'
+    abspath = os.path.abspath(hroot)
+    aq_date = '/2016-03-21\\'
+    fd = abspath + aq_date
+    fd_list = glob.glob(fd+'*') # list all the tiff files in the folder  
     work_folder = fd_list[0] + '\\'
     print(work_folder)
     
-    tpflags = 'ZP_a'
+    tpflags = 'pp'
     TS_list = glob.glob(work_folder+'*'+tpflags+'*.tif')
-    for tfile in TS_list[0:1]:
+    for tfile in TS_list:
         print(tfile)
-        ZP_DB = Deblur(tfile)
+        ZP_DB = Drift_correction(tfile)
         ZP_DB.stack_high_trunc(adjacent=False)
-        ZP_DB.write_stack()
+        ZP_DB.write_stack('_db')
 #     pz.zstack_prepro(0)
 
 #     CE_dbl.stack_signal_archive()
