@@ -41,7 +41,7 @@ class Cell_extract(object):
 #         print("threshold:", th)
         cblobs = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
-        self.bl_flag[n_frame] = self.c_list[n_frame].shape[0]
+        self.bl_flag[n_frame] = cblobs.shape[0]
         # end of the function image_blobs
         self.c_list[n_frame] = cblobs
     
@@ -152,19 +152,52 @@ class Cell_extract(object):
         
     def stack_signal_integ(self):
         """
-        08/15: pad the frame name so the key-value sorting is easier. 
-        Once all the frames are processed for cell extraction, save the integrated slice into an npz. 
+        08/16: replace the key number with 's' instead of 'z'. 
+        Once all the frames are processed for cell extraction, save the integrated slice 
+        signals into an npz.
+        As a comparison, I added another function stack_signal_propagate, which could be useful in t-stacks. 
         """
         # Let's find out all the slices that are processed.
         valid_frames = self.valid_frames 
 
         # archiving the blobs list         
         for n_frame in valid_frames:
-            kwd = 'z_'+ str(n_frame).zfill(2)
+            kwd = 's_'+ str(n_frame).zfill(3)
             self.data_list[kwd] = self.image_signal_integ(n_frame)
-#             n_blobs = self.bl_flag[n_frame].astype('int64')
-#             print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
+            n_blobs = self.bl_flag[n_frame].astype('int64')
+            print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
+            
         # finished of stack_signal_archive 
+
+    def stack_signal_propagate(self, n_frame):
+        """
+        Assume that all the slices are aligned and morphologically the same. We only extract cells 
+        from one slice (usually the first one), and integrate the values at the same sites at the rest
+        slices.This method should not be used in z-stacks.
+        Procedures:
+        0 --- calculate the blobs in the first slice
+        1 --- replace the radius with the mininum radius
+        2 --- assign cblobs to the clists 
+        3 --- image_signal_integ
+        output: a 3-D nparray. dim0: # stack; dim1,2: 2d array with y, x, signal intensity.
+        """
+        cblobs = self.image_blobs(n_frame) # extract blobs from the selected frame first
+        dr_min = np.min(cblobs[:,-1]) # get an uniform dr. 
+        cblobs[:,-1] = dr_min # replace the blob radius with the mininum value 
+        
+        n_blobs = len(cblobs)
+        train_signal = np.zeros(self.n_slice, n_blobs, 3)
+        
+        
+        for z_frame in np.arange(self.n_slice):
+            
+            self.c_list[z_frame] = cblobs
+            z_signal = self.image_signal_integ(z_frame)
+            train_signal[z_frame] = z_signal
+            
+            
+        return train_signal 
+    # done with stack_signal_propagate
         
         
     def save_data_list(self, dph):
@@ -187,9 +220,10 @@ class Cell_extract(object):
         self.data_list.clear()
         print("reload completed.")
         # ----- reload the im_stack
-        
-    #----------------------- Next, let's think about data visulization -----------------------------------------
     
+    
+    #----------------------- Next, let's think about data visulization -----------------------------------------
+    # ------------------------This is still a dumb version.--------------------------------
     def frame_display(self, n_frame, pxl_cvt = False):
         """
         This function displays all the extracted cells from a selected slice. 

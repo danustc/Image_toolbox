@@ -1,6 +1,7 @@
 """
 Created by Dan Xie on 08/15/2016 
-Dynamics.py: takes the extracted cell information, calculate dynamics in it. 
+Dynamics.py: takes the extracted cell information, calculate dynamics in it.
+Updated by Dan on 08/16/2016 
 """
 
 import ntpath
@@ -11,37 +12,32 @@ from Preprocess import Drift_correction
 from scipy.linalg import svd as SVD # import SVD algorithm
 from common_funcs import circs_reconstruct
 
-
-
-def z2t_convert(dph, file_flag, dims, z_frame, fmt = '02d'):
-    """
-    input: data path, file_flags for identification, 
-    Convert selected z_frame of z-stacks into t-stacks
-    dims: the ny, nx dimensions 
-    tp_data: npz, with key names 'z_<number of frame>'
-    """
-    
-    TP_list = sorted(glob.glob(dph, + '*file_flag'+ '*.npz')) # sorted by name
-    NT = len(TP_list)
-    clean_stack = np.zeros(dims, NT) # creat a zero-stack 
-    for tp_name in TP_list:
-        strip_name = ntpath.split(tp_name)[-1][:-4]  # the stripped name of the file
-        strip_number = int(strip_name.split('_')[-1]) # get the time point number 
-        tp_data = np.load(tp_name)
-        key_z = 'z_'+ format(z_frame, fmt) # construct key_z for cellular te 
-        blobs_zframe = tp_data[key_z] # take out the frame from the list 
-        clean_stack[strip_number] = circs_reconstruct(dims, blobs_zframe) 
-    """
-    So, here we get a stack of reconstructed blobs. Let's check whether there are any empty frames: 
-    
-    """
-    return clean_stack
-
  
 
 class Dynamics(object):
-    def __init__(self, TS_data):
-        self.ts_data = TS_data # Is it OK to always keep the time series inside the memory? 
+    """
+    Purpose: load one slice-all the time points
+    No image operation, all based on .npz operations.   
+    Recognize all the cell in the same position, extract its time train
+    
+    """
+
+    def __init__(self, TS_data, dims):
+        """
+        TS_data: the blob values of 
+        """
+        self.ts_data = TS_data 
+        self.dims = dims# Is it OK to always keep the time series inside the memory? 
+        
+        
+        
+    def ts_refs(self):
+        """
+        This one calculates all 
+        
+        
+        """
+        
         
         
     def subset_TS_construction(self, subset):

@@ -9,7 +9,6 @@ import numpy as np
 
 from Cell_extract import Cell_extract
 from Preprocess import Deblur, Drift_correction
-from common_funcs import circs_reconstruct
 import tifffunc
 #------------------------------------------Small functions----------------------------------
 
@@ -25,17 +24,18 @@ def path_leaf(path):
 def number_strip(name_str, delim = '_', ext = True):
     """
     Strip the number from the filename string.
-    Unfinished.
+    Untested.
     """
     if(ext):
-        khead, kext = name_str.split('.')
+        khead = name_str.split('.')[0]
     else:
         khead = name_str
     klist = khead.split(delim) 
-    
+    knum = [km for km in klist if km.isdigit()]
+    korder =knum[-1] # usually the last one represent 
     # how tor
     
-    return klist
+    return korder
 
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -81,6 +81,9 @@ class pipeline_zstacks(object):
         """
         preprocess single zstack.
         list_num: the number in the tif_list  
+        deblur: non-positive --- no deblur; >0 --- use as the Gaussian filter width
+        align: drift align or not?
+       
         """
         zs_name = self.tif_list[list_num]
         print(self.tp_flag[list_num])
@@ -177,19 +180,20 @@ class pipeline_tstacks(object):
       
     
     
-    def tstack_prepro(self, list_num = 0, deblur = 30, align = True):
+    def tstack_prepro(self, list_num = 0, deblur = 30, align = True, ext_all=True):
         """
         This part is similar to the zstack_prepro one in the first class.
         list_num: the number in the tif-list 
         deblur: whether background subtraction should be performed first? If deblur > 0, yes. 
-        align: whether drift correction should be performed?  
+        align: whether drift correction should be performed? 
+        ext_all: do cell extraction from only the first slice or all the slices? 
         """
         ts_name = self.tif_list[list_num]
         print(self.zp_flag[list_num])
         postfix_num = format(self.zp_flag[list_num], '03d') # take out the time point number 
         
         if(deblur>0):
-            prefix = 'db'
+            prefix = 'db_'
             t_DB = Deblur(ts_name, sig = deblur) # deblur
             t_dbstack = t_DB.stack_high_trunc() 
             if(self.dims is None):
@@ -199,19 +203,30 @@ class pipeline_tstacks(object):
             t_dbstack = np.copy(tifffunc.read_tiff(ts_name)).astype('float64')
             # directly load
         if(align):
-            prefix += '-al'
+            prefix += 'al_'
             t_DC = Drift_correction(t_dbstack)
             t_newstack = t_DC.drift_correct(offset=0, ref_first=True)
         else:
             t_newstack = t_dbstack
-            
+        
+        print(type(t_newstack))
+        if(prefix != ''):
+            t_writename = self.work_folder + self.prefix_t+prefix + postfix_num+'.tif'
+            tifffunc.write_tiff(t_newstack,t_writename)
+        
+        # ---------------Time for cell extraction! --------------------
         t_CE = Cell_extract(t_newstack) 
-        t_CE.stack_blobs(diam = 6)
-        t_CE.stack_signal_integ()
+        if(ext_all):
+            t_CE.stack_blobs(diam = 6)
+            t_CE.stack_signal_integ()
+        else: # only extract cells in the first slice and assume that they persist in the rest
+            pass # to be filled later 
+            
+            
         t_CE.save_data_list(self.work_folder+self.prefix_t+postfix_num) # save as npz
         self.pro_flag[list_num] = True
         
-        return t_newstack, postfix_num # just for information, this returning is useless.
+        return postfix_num # just for information, this returning is useless.
         # done with zstack_prepro 
     
 
@@ -225,10 +240,7 @@ class pipeline_tstacks(object):
         
         """
         for iflag in np.arange(self.n_ZP):
-            t_newstack, postfix_num = self.tstack_prepro(iflag, deblur, align)
-            
-             
-            tifffunc.imsave(t_newstack)# process all the 
+            postfix_num = self.tstack_prepro(iflag, deblur, align)
             print("Processed time point:", postfix_num)
             
         
