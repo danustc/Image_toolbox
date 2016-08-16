@@ -10,6 +10,7 @@ import numpy as np
 from Cell_extract import Cell_extract
 from Preprocess import Deblur, Drift_correction
 from common_funcs import circs_reconstruct
+import tifffunc
 #------------------------------------------Small functions----------------------------------
 
 def path_leaf(path):
@@ -20,6 +21,21 @@ def path_leaf(path):
     return tail or ntpath.basename(head)
     # done with path_leaf.
 
+
+def number_strip(name_str, delim = '_', ext = True):
+    """
+    Strip the number from the filename string.
+    Unfinished.
+    """
+    if(ext):
+        khead, kext = name_str.split('.')
+    else:
+        khead = name_str
+    klist = khead.split(delim) 
+    
+    # how tor
+    
+    return klist
 
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -34,7 +50,7 @@ class pipeline_zstacks(object):
     3. Perform Cell extraction on the deblurred z-stack, save as 'npz' (completed)
     4. reconstruct t-stacks from z-stacks (can be run from outside)
     """
-    def __init__(self, folder_path, tpflags = 'TP'):
+    def __init__(self, folder_path, tpflags = 'TP', offset = 1):
         self.work_folder = folder_path # folder path should be a folder
         self.tif_list = glob.glob(self.work_folder+ '*'+ tpflags +'*.tif')
         self.tif_list.sort(key = os.path.getmtime)
@@ -43,7 +59,7 @@ class pipeline_zstacks(object):
         name_base = path_leaf(self.tif_list[0])[:-4] 
         parse_name = name_base.split('_') # get an array of list that 
         self.prefix_z = ''.join(parse_name[:-1]) + '_' # the prefix of the filename 
-        
+        self.offset = offset 
         # OK, time to extract all the flags
         iflag = 0     
         for zs_name in self.tif_list:
@@ -61,7 +77,7 @@ class pipeline_zstacks(object):
             self.pro_flag = np.zeros(self.n_TP).astype('bool') # an all-false array to mark t
     
     
-    def zstack_prepro(self, list_num = 0): 
+    def zstack_prepro(self, list_num = 0, deblur = 30, align = False): 
         """
         preprocess single zstack.
         list_num: the number in the tif_list  
@@ -70,13 +86,22 @@ class pipeline_zstacks(object):
         print(self.tp_flag[list_num])
         postfix_num = format(self.tp_flag[list_num], '03d') # take out the time point number 
         
-        
-        z_DB = Deblur(zs_name, sig = 30) # deblur
-        z_dbstack = z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
-        if(self.dims is None):
-            self.dims = z_DB.px_num # here we get self.dims 
+        if(deblur > 0):
+            z_DB = Deblur(zs_name, sig = 30) # deblur
+            z_dbstack = z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
+            if(self.dims is None):
+                self.dims = z_DB.px_num # here we get self.dims 
+        else:
+            z_dbstack = np.copy(tifffunc.read_tiff(zs_name)).astype('float64')
 
-        z_CE = Cell_extract(z_dbstack) 
+        if(align):
+            ofst = self.offset
+            z_DC = Drift_correction(z_dbstack)
+            z_newstack = z_DC.drift_correct(offset=ofst, ref_first = False)
+        else:
+            z_newstack = z_dbstack
+
+        z_CE = Cell_extract(z_newstack) 
         z_CE.stack_blobs(diam = 6)
         z_CE.stack_signal_integ()
         z_CE.save_data_list(self.work_folder+self.prefix_z+postfix_num) # save as npz
@@ -109,27 +134,115 @@ class pipeline_zstacks(object):
         pass 
     
     
-    def zp_align(self, zp_flag = '_ZP_'):
-        """
-        Assume the hyperstacks have been splitted into ZP stacks instead of TP stacks, but still 
-        raw. 
-        This can be run independently once work_folder is well-set.
-        """
-        status = -1
-        zp_list = glob.glob(self.work_folder+ '*'+zp_flag + '*.tif') # list all the 'T-stacks within the working folder'
-        if(not zp_list):
-            print("The folder has no files with the required flag.")
-            return status
+    
+    
+    
+    
+    
+class pipeline_tstacks(object):
+    """
+    Still not quite sure if I should merge the two pipeline classes into one.
+    """
+    def __init__(self, folder_path, zp_flags = 'ZP'):
+        self.work_folder = folder_path # folder path should be a folder
         
-        for zp_file in zp_list:
-            print(zp_file)
-            ZP_DB = Deblur(zp_file,sig=30)
-            z_new = ZP_DB.stack_high_trunc(adjacent=False)
-            ZP_DC = Drift_correction(z_new, mfit = 0)
-            z_dc = ZP_DC.drift_correct(offset=0, ref_first=True)
-            # Next, without saving it as a huge stack, let's directly perform cell extraction from it.
+        tif_list = glob.glob(self.work_folder+ '*'+ zp_flags +'*.tif')
+        if(not tif_list):
+            print("Error! The selected folder has no required files.")
+        else:
+            # This part is almost parallel to the z-stack preprocessing case.
             
+            tif_list.sort(key = os.path.getmtime)
+            self.zp_flag = -np.ones(len(tif_list)).astype('uint16') # all zero, if any time point is converted, then the element is set to True.
+            self.dims = None  
+            name_base = path_leaf(tif_list[0])[:-4] 
+            parse_name = name_base.split('_') # get an array of list that 
+            self.prefix_t = ''.join(parse_name[:-1]) + '_' 
+            self.tif_list = tif_list
             
+            iflag = 0     
+            for ts_name in self.tif_list:
+                ts_tail = path_leaf(ts_name)[:-4] 
+                ZP_number = int(ts_tail.split('_')[-1]) # get the time point number 
+                self.zp_flag[iflag] = ZP_number
+                iflag += 1 
+                
+            if(np.any(self.zp_flag<0) == True): 
+                print("File name mistake. please check! ")
+            else:
+                print("Initialization completed! All the time-point numbers are extracted.")
+                print("t-stack orders:", self.zp_flag) 
+                self.n_ZP = len(self.zp_flag) # number of time points
+                self.pro_flag = np.zeros(self.n_ZP).astype('bool') 
+      
+    
+    
+    def tstack_prepro(self, list_num = 0, deblur = 30, align = True):
+        """
+        This part is similar to the zstack_prepro one in the first class.
+        list_num: the number in the tif-list 
+        deblur: whether background subtraction should be performed first? If deblur > 0, yes. 
+        align: whether drift correction should be performed?  
+        """
+        ts_name = self.tif_list[list_num]
+        print(self.zp_flag[list_num])
+        postfix_num = format(self.zp_flag[list_num], '03d') # take out the time point number 
+        
+        if(deblur>0):
+            t_DB = Deblur(ts_name, sig = deblur) # deblur
+            t_dbstack = t_DB.stack_high_trunc() 
+            if(self.dims is None):
+                self.dims = t_DB.px_num # he
+        else:
+            t_dbstack = np.copy(tifffunc.read_tiff(ts_name)).astype('float64')
+            # directly load
+        if(align):
+            t_DC = Drift_correction(t_dbstack)
+            t_newstack = t_DC.drift_correct(offset=0, ref_first=True)
+        else:
+            t_newstack = t_dbstack
+            
+        t_CE = Cell_extract(t_newstack) 
+        t_CE.stack_blobs(diam = 6)
+        t_CE.stack_signal_integ()
+        t_CE.save_data_list(self.work_folder+self.prefix_t+postfix_num) # save as npz
+        self.pro_flag[list_num] = True
+        
+        return postfix_num # just for information, this returning is useless.
+        # done with zstack_prepro 
+    
+#             ZP_DB = Deblur(zp_file,sig=30)
+#             z_new = ZP_DB.stack_high_trunc(adjacent=False)
+#             ZP_DC = Drift_correction(z_new, mfit = 0)
+#             z_dc = ZP_DC.drift_correct(offset=0, ref_first=True)
+#             # Next, without saving it as a huge stack, let's directly perform cell extraction from it.
+#             ZP_CE = Cell_extract(z_dc) # Initialize the cell extraction task
+#             dr_min = ZP_CE.stack_blobs()
+#             print("minimum radius:", dr_min)
+#             ZP_CE.stack_signal_integ()
+#             ZP_CE.save_data_list(ce_file)
+            
+
+"""
+             zs_name = self.tif_list[list_num]
+        print(self.tp_flag[list_num])
+        postfix_num = format(self.tp_flag[list_num], '03d') # take out the time point number 
+        
+        
+        z_DB = Deblur(zs_name, sig = 30) # deblur
+        z_dbstack = z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
+        if(self.dims is None):
+            self.dims = z_DB.px_num # here we get self.dims 
+
+        z_CE = Cell_extract(z_dbstack) 
+        z_CE.stack_blobs(diam = 6)
+        z_CE.stack_signal_integ()
+        z_CE.save_data_list(self.work_folder+self.prefix_z+postfix_num) # save as npz
+        self.pro_flag[list_num] = True
+        
+        return postfix_num # just for information, this returning is useless.
+        # done with zstack_prepro
+   """         
             
             
             

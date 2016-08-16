@@ -8,7 +8,6 @@ The class is supposed to have nothing to do with file name issue. I need to addr
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from skimage.feature import blob_log
 from common_funcs import circ_mask
 
@@ -66,6 +65,7 @@ class Cell_extract(object):
         self.dr_min = np.min(dr_min)
         self.valid_frames = np.where(self.bl_flag>0)[0]
         
+        return self.dr_min
         # end of the function stack_blobs 
         
     
