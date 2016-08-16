@@ -1,7 +1,7 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package 
-Last update: 08/15/16
+Last update: 08/16/16
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 
 """
@@ -25,7 +25,7 @@ class Cell_extract(object):
         self.n_slice = im_stack.shape[0]
         self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for 
         self.ny, self.nx = im_stack.shape[1:]
-       
+        
         
     def image_blobs(self, n_frame):
         """
@@ -40,23 +40,32 @@ class Cell_extract(object):
 #         th = (np.max(im0)-np.min(im0))/10. # threshold
         th = (np.mean(im0)-np.min(im0))/12.
 #         print("threshold:", th)
-        self.c_list[n_frame] = blob_log(im0, 
+        cblobs = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
         self.bl_flag[n_frame] = self.c_list[n_frame].shape[0]
         # end of the function image_blobs
+        self.c_list[n_frame] = cblobs
     
+        return cblobs
+
+
 
     def stack_blobs(self, diam = 6):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
+        Update on 08/16: make the radius of blobs uniform. 
         """
         self.diam = diam
         self.blobset = [self.diam-1, self.diam+1, self.diam]
-            
+        dr_min = np.zeros(self.n_slice)
+        
         for n_frame in np.arange(self.n_slice):
-            self.image_blobs(n_frame)
+            cblobs = self.image_blobs(n_frame)
+            dr_min[n_frame] = np.min(cblobs[:,2])
             
+        self.dr_min = np.min(dr_min)
         self.valid_frames = np.where(self.bl_flag>0)[0]
+        
         # end of the function stack_blobs 
         
     
@@ -115,11 +124,13 @@ class Cell_extract(object):
                 2 --- z (number of slice)
                 3 --- radius 
                 4 --- fluorescence
-        Update self.data_list 
+        Update on 08/16: replace dr with dr_min which is calculated in stack_blobs.
+        However, when saving the blob information, the original dr is saved.
         """
         im0 = self.stack[n_frame]
         blbs = self.c_list[n_frame]
         n_blobs = self.bl_flag[n_frame] # number of blobs in each slice
+        dr_min = self.dr_min 
         if(n_blobs == 0):
             raise ValueError("This slice contains no blobs or has not been processed yet. ")
         
@@ -130,7 +141,8 @@ class Cell_extract(object):
                 # going through all blobs in list 
                 cr = blob[0:2]
                 dr = blob[-1]
-                mask = circ_mask([self.ny, self.nx], cr, dr)
+#                 mask = circ_mask([self.ny, self.nx], cr, dr)
+                mask = circ_mask([self.ny, self.nx], cr, dr_min)
                 signal_int = im0[mask].sum()
                 data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
             

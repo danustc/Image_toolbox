@@ -106,7 +106,34 @@ class pipeline_zstacks(object):
         """
         test test.
         """
-#         zb_list = glob.glob(self.work_folder+self.prefix_z + '*.npz') # list all the ''
+        pass 
+    
+    
+    def zp_align(self, zp_flag = '_ZP_'):
+        """
+        Assume the hyperstacks have been splitted into ZP stacks instead of TP stacks, but still 
+        raw. 
+        This can be run independently once work_folder is well-set.
+        """
+        status = -1
+        zp_list = glob.glob(self.work_folder+ '*'+zp_flag + '*.tif') # list all the 'T-stacks within the working folder'
+        if(not zp_list):
+            print("The folder has no files with the required flag.")
+            return status
+        
+        for zp_file in zp_list:
+            print(zp_file)
+            ZP_DB = Deblur(zp_file,sig=30)
+            z_new = ZP_DB.stack_high_trunc(adjacent=False)
+            ZP_DC = Drift_correction(z_new, mfit = 0)
+            z_dc = ZP_DC.drift_correct(offset=0, ref_first=True)
+            # Next, without saving it as a huge stack, let's directly perform cell extraction from it.
             
+            
+            
+            
+            
+            
+#             tifffunc.write_tiff(z_dc, zp_file[:-4]+'_pp.tif')    
         
         

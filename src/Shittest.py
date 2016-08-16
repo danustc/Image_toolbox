@@ -28,7 +28,20 @@ def main():
      
         pz = pipeline_zstacks(work_folder, tpflags)
         pz.zstack_tseries()
-
+        
+def shit1():
+    """
+    Correct a stack of shift
+    How to add argc, argv like what we do in c/c++ ?
+    """
+    hroot = 'D:\Data/'
+    abspath = os.path.abspath(hroot)
+    aq_date = '/2016-06-14'
+    fd = abspath + aq_date
+    
+    
+    
+    
     
 
 if __name__ == '__main__':
