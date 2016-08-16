@@ -1,5 +1,5 @@
 """
-Updated by Dan on 08/15/2016.
+Updated by Dan on 08/16/2016.
 """
 import sys
 sys.path.insert(0, '../src')
@@ -10,7 +10,7 @@ import os
 import glob
 from Preprocess import Deblur, Drift_correction
 from Cell_extract import Cell_extract
-from Pipeline import pipeline_zstacks
+from Pipeline import pipeline_zstacks, pipeline_tstacks
 
 
 
@@ -56,23 +56,20 @@ def dumb2():
         
 def dumb3():
     """
-    corrects drift.
+    suppose drift already corrected. Now time for real cell extraction! 
+    The first part is almost identical to dumb2().
+    
     """
     hroot = 'D:\Data/'
     abspath = os.path.abspath(hroot)
-    aq_date = '/2016-03-21\\'
-    fd = abspath + aq_date
-    fd_list = glob.glob(fd+'*') # list all the tiff files in the folder  
-    work_folder = fd_list[0] + '\\'
-    print(work_folder)
+    aq_date = '/2016-03-21/zp_A2_4_TS1\\'
+    work_folder = abspath + aq_date+'\\'
     
-    tpflags = 'pp'
-    TS_list = glob.glob(work_folder+'*'+tpflags+'*.tif')
-    for tfile in TS_list:
-        print(tfile)
-        ZP_DB = Drift_correction(tfile)
-        ZP_DB.stack_high_trunc(adjacent=False)
-        ZP_DB.write_stack('_db')
+    
+    
+    print(work_folder)
+    t_pipeline = pipeline_tstacks(work_folder)
+    t_pipeline.tstack_zseries(deblur=30, align = True)
 #     pz.zstack_prepro(0)
 
 #     CE_dbl.stack_signal_archive()
@@ -85,5 +82,5 @@ def dumb3():
 #     fig3.savefig('stack_reconstruction')
 
 if __name__ == '__main__':
-    dumb2()
+    dumb3()
 

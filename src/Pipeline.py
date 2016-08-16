@@ -135,7 +135,7 @@ class pipeline_zstacks(object):
     
     
     
-    
+#--------------------------------the counterpart for tstacks---------------------------------    
     
     
     
@@ -211,41 +211,25 @@ class pipeline_tstacks(object):
         return postfix_num # just for information, this returning is useless.
         # done with zstack_prepro 
     
-#             ZP_DB = Deblur(zp_file,sig=30)
-#             z_new = ZP_DB.stack_high_trunc(adjacent=False)
-#             ZP_DC = Drift_correction(z_new, mfit = 0)
-#             z_dc = ZP_DC.drift_correct(offset=0, ref_first=True)
-#             # Next, without saving it as a huge stack, let's directly perform cell extraction from it.
-#             ZP_CE = Cell_extract(z_dc) # Initialize the cell extraction task
-#             dr_min = ZP_CE.stack_blobs()
-#             print("minimum radius:", dr_min)
-#             ZP_CE.stack_signal_integ()
-#             ZP_CE.save_data_list(ce_file)
-            
 
-"""
-             zs_name = self.tif_list[list_num]
-        print(self.tp_flag[list_num])
-        postfix_num = format(self.tp_flag[list_num], '03d') # take out the time point number 
-        
-        
-        z_DB = Deblur(zs_name, sig = 30) # deblur
-        z_dbstack = z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
-        if(self.dims is None):
-            self.dims = z_DB.px_num # here we get self.dims 
-
-        z_CE = Cell_extract(z_dbstack) 
-        z_CE.stack_blobs(diam = 6)
-        z_CE.stack_signal_integ()
-        z_CE.save_data_list(self.work_folder+self.prefix_z+postfix_num) # save as npz
-        self.pro_flag[list_num] = True
-        
-        return postfix_num # just for information, this returning is useless.
-        # done with zstack_prepro
-   """         
             
+    def tstack_zseries(self, deblur = 30, align = True):
+        """
+        preprocess all the single zstacks. Should t-alignment be carried out here?
+        0. Regardless of the orders in self.tp_flag prepreocess all the zstacks
+        1. Reconstruct t-stacks based on the TP number, do the drift correction, realign as t-stacks. (must save the number of drifts.)
+        2. Correct the cell positions accordingly, resave as '.npz'. (That part is kinda tricky.) 
+        
+        """
+        for iflag in np.arange(self.n_ZP):
+            postfix_num = self.tstack_prepro(iflag, deblur, align) # process all the 
+            print("Processed time point:", postfix_num)
             
-            
+        
+        print("All done.")
+    
+                
+                
             
 #             tifffunc.write_tiff(z_dc, zp_file[:-4]+'_pp.tif')    
         
