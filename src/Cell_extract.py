@@ -17,14 +17,14 @@ magni_lateral = 0.295 # 0.295 micron per pixel
 
 class Cell_extract(object):
     # this class extracts 
-    def __init__(self, im_stack):
+    def __init__(self, im_stack, diam = 6):
         self.stack = im_stack
         self.c_list = {} # create an empty array
         self.data_list = {}
         self.n_slice = im_stack.shape[0]
         self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for 
         self.ny, self.nx = im_stack.shape[1:]
-        
+        self.blobset = [diam-1, diam+1, diam]
         
     def image_blobs(self, n_frame):
         """
@@ -130,7 +130,6 @@ class Cell_extract(object):
         im0 = self.stack[n_frame]
         blbs = self.c_list[n_frame]
         n_blobs = self.bl_flag[n_frame] # number of blobs in each slice
-        dr_min = self.dr_min 
         if(n_blobs == 0):
             raise ValueError("This slice contains no blobs or has not been processed yet. ")
         
@@ -142,7 +141,7 @@ class Cell_extract(object):
                 cr = blob[0:2]
                 dr = blob[-1]
 #                 mask = circ_mask([self.ny, self.nx], cr, dr)
-                mask = circ_mask([self.ny, self.nx], cr, dr_min)
+                mask = circ_mask([self.ny, self.nx], cr, dr)
                 signal_int = im0[mask].sum()
                 data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
             
@@ -186,14 +185,16 @@ class Cell_extract(object):
         cblobs[:,-1] = dr_min # replace the blob radius with the mininum value 
         
         n_blobs = len(cblobs)
-        train_signal = np.zeros(self.n_slice, n_blobs, 3)
+        train_signal = np.zeros((self.n_slice, n_blobs, 3))
         
         
         for z_frame in np.arange(self.n_slice):
             
             self.c_list[z_frame] = cblobs
+            self.bl_flag[z_frame] = n_blobs
             z_signal = self.image_signal_integ(z_frame)
-            train_signal[z_frame] = z_signal
+            train_signal[z_frame] = z_signal[:,[0,1,-1]]
+            print("Processed for frame", z_frame)
             
             
         return train_signal 

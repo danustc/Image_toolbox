@@ -215,15 +215,16 @@ class pipeline_tstacks(object):
             tifffunc.write_tiff(t_newstack,t_writename)
         
         # ---------------Time for cell extraction! --------------------
+        np_fname = self.work_folder+self.prefix_t+postfix_num
         t_CE = Cell_extract(t_newstack) 
         if(ext_all):
             t_CE.stack_blobs(diam = 6)
             t_CE.stack_signal_integ()
+            t_CE.save_data_list(np_fname) 
         else: # only extract cells in the first slice and assume that they persist in the rest
-            pass # to be filled later 
-            
-            
-        t_CE.save_data_list(self.work_folder+self.prefix_t+postfix_num) # save as npz
+            blob_time_stack = t_CE.stack_signal_propagate(0)
+            np.save(np_fname,blob_time_stack)
+        # save as npz
         self.pro_flag[list_num] = True
         
         return postfix_num # just for information, this returning is useless.
@@ -231,7 +232,7 @@ class pipeline_tstacks(object):
     
 
             
-    def tstack_zseries(self, deblur = 30, align = True):
+    def tstack_zseries(self, deblur = 30, align = True, ext_all = False):
         """
         preprocess all the single zstacks. Should t-alignment be carried out here?
         0. Regardless of the orders in self.tp_flag prepreocess all the zstacks
@@ -240,7 +241,7 @@ class pipeline_tstacks(object):
         
         """
         for iflag in np.arange(self.n_ZP):
-            postfix_num = self.tstack_prepro(iflag, deblur, align)
+            postfix_num = self.tstack_prepro(iflag, deblur, align, ext_all)
             print("Processed time point:", postfix_num)
             
         
