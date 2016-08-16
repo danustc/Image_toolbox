@@ -1,7 +1,8 @@
 """
 Updated by Dan on 08/15/2016.
 """
-
+import sys
+sys.path.insert(0, '../src')
 import matplotlib.pyplot as plt
 import tifffunc
 import numpy as np
@@ -10,6 +11,8 @@ import glob
 from Preprocess import Deblur, Drift_correction
 from Cell_extract import Cell_extract
 from Pipeline import pipeline_zstacks
+
+
 
 
 def dumb1():
@@ -25,15 +28,26 @@ def dumb1():
 
 def dumb2():
 
-    dbl_image = 'raw_image_deblur'
+    """
+    OK this part already works. 
+    """ 
+    hroot = 'D:\Data/'
+    abspath = os.path.abspath(hroot)
+    aq_date = '/2016-03-21\\'
+    fd = abspath + aq_date
+    fd_list = glob.glob(fd+'*') # list all the tiff files in the folder  
+    work_folder = fd_list[0] + '\\'
+    print(work_folder)
     
-    dbl_stack = tifffunc.read_tiff(dbl_image).astype('float64')
-    CE_dbl = Cell_extract(dbl_stack)
-    CE_dbl.stack_blobs(diam = 6)
-    CE_dbl.stack_signal_integ()
-    CE_dbl.save_data_list('blobs_list')
-    print(CE_dbl.bl_flag)
-    
+    tpflags = 'ZP_a'
+    TS_list = glob.glob(work_folder+'*'+tpflags+'*.tif')
+    for tfile in TS_list[0:1]:
+        print(tfile)
+        ZP_DB = Deblur(tfile)
+        ZP_DB.stack_high_trunc(adjacent=False)
+        ZP_DB.write_stack()
+#     pz.zstack_prepro(0)
+
 #     CE_dbl.stack_signal_archive()
 #     CE_dbl.save_archive('arc_img_dbl')
 #     n_frame = 10    
@@ -44,5 +58,5 @@ def dumb2():
 #     fig3.savefig('stack_reconstruction')
 
 if __name__ == '__main__':
-    dumb1()
+    dumb2()
 

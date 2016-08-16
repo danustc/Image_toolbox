@@ -24,5 +24,5 @@ def intp_tiff(istack, ns1, ns2, nint = 1):
     return int_stack.astype('uint16')  # return as unint16, tiff
 
 def write_tiff(imstack, fname):
-    imsave(fname+'.tif', imstack)
+    imsave(fname, imstack.astype('uint16'))
     
