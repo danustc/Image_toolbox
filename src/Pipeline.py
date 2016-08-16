@@ -215,7 +215,7 @@ class pipeline_tstacks(object):
             tifffunc.write_tiff(t_newstack,t_writename)
         
         # ---------------Time for cell extraction! --------------------
-        np_fname = self.work_folder+self.prefix_t+postfix_num
+        np_fname = self.work_folder+self.prefix_t+ prefix + postfix_num
         t_CE = Cell_extract(t_newstack) 
         if(ext_all):
             t_CE.stack_blobs(diam = 6)
