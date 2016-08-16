@@ -189,14 +189,17 @@ class pipeline_tstacks(object):
         postfix_num = format(self.zp_flag[list_num], '03d') # take out the time point number 
         
         if(deblur>0):
+            prefix = 'db'
             t_DB = Deblur(ts_name, sig = deblur) # deblur
             t_dbstack = t_DB.stack_high_trunc() 
             if(self.dims is None):
                 self.dims = t_DB.px_num # he
         else:
+            prefix = ''
             t_dbstack = np.copy(tifffunc.read_tiff(ts_name)).astype('float64')
             # directly load
         if(align):
+            prefix += '-al'
             t_DC = Drift_correction(t_dbstack)
             t_newstack = t_DC.drift_correct(offset=0, ref_first=True)
         else:
@@ -208,7 +211,7 @@ class pipeline_tstacks(object):
         t_CE.save_data_list(self.work_folder+self.prefix_t+postfix_num) # save as npz
         self.pro_flag[list_num] = True
         
-        return postfix_num # just for information, this returning is useless.
+        return t_newstack, postfix_num # just for information, this returning is useless.
         # done with zstack_prepro 
     
 
@@ -222,7 +225,10 @@ class pipeline_tstacks(object):
         
         """
         for iflag in np.arange(self.n_ZP):
-            postfix_num = self.tstack_prepro(iflag, deblur, align) # process all the 
+            t_newstack, postfix_num = self.tstack_prepro(iflag, deblur, align)
+            
+             
+            tifffunc.imsave(t_newstack)# process all the 
             print("Processed time point:", postfix_num)
             
         
