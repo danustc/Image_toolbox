@@ -41,7 +41,7 @@ class Temporal_analysis(object):
             self.data_type = 'a'
             
         self.n_time = n_time
-        
+        self.fig_d = None
         
         
     def signal_profile_single(self, marker, rad = 20):
@@ -66,10 +66,32 @@ class Temporal_analysis(object):
         # done with signal_profile_single
         
     
-    def cell_show(self):
+    def cell_show(self, dr = 6, ref_img = None):
         """
         A simple display of cell distributions.
         """
+        slice_0 = self.ts_data[0, :, 0:-1] # taking out the first slice 
+        if(self.fig_d is None):
+            fig = plt.figure(figsize = (7,6))
+        else:
+            fig = self.fig_d    
+            fig.clf()
+        
+        ax = fig.add_subplot(1,1,1)
+        if(ref_img):
+            ax.imshow(ref_img, cmap = 'Greys')
+        else:
+            ax.imshow(np.zeros(self.dims), cmap = 'Greys')
+        
+        for blob in slice_0:
+            # plot all the blobs in the figure 
+            y, x = blob
+            c = plt.Circle((x, y), dr, color='g', linewidth=1, fill=True)
+            ax.add_patch(c)
+
+        
+        self.fig_d = fig
+        return fig
     
     
     

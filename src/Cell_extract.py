@@ -24,7 +24,7 @@ class Cell_extract(object):
         self.n_slice = im_stack.shape[0]
         self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for 
         self.ny, self.nx = im_stack.shape[1:]
-        self.blobset = [diam-1, diam+1, diam]
+        self.blobset = [diam, diam+1, diam]
         
     def image_blobs(self, n_frame):
         """
@@ -55,7 +55,7 @@ class Cell_extract(object):
         Update on 08/16: make the radius of blobs uniform. 
         """
         self.diam = diam
-        self.blobset = [self.diam-1, self.diam+1, self.diam]
+        self.blobset = [self.diam-0.5, self.diam+0.5, self.diam]
         dr_min = np.zeros(self.n_slice)
         
         for n_frame in np.arange(self.n_slice):
@@ -225,7 +225,7 @@ class Cell_extract(object):
     
     #----------------------- Next, let's think about data visulization -----------------------------------------
     # ------------------------This is still a dumb version.--------------------------------
-    def frame_display(self, n_frame, pxl_cvt = False):
+    def frame_display(self, n_frame):
         """
         This function displays all the extracted cells from a selected slice. 
         """
@@ -241,7 +241,7 @@ class Cell_extract(object):
         blobs_list = self.c_list[n_frame]
         for blob in blobs_list:
             y, x, r = blob
-            c = plt.Circle((x, y), np.sqrt(2)*r, color='g', linewidth=1, fill=False)
+            c = plt.Circle((x, y), 1.4*r, color='g', linewidth=1, fill=False)
             ax2.add_patch(c)
         #         print(r)
         
