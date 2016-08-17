@@ -3,12 +3,12 @@ Created by Dan on 08/15/16
 This file contains several small functions shared among all the classes.
 This one has Numerical functions. For graphic functions, see graph_funcs.py
 Adapted from Scipy cookbook.
-Last update: 08/16/16 
+Last update: 08/17/16 
 '''
 
-import os
 import numpy as np
 from scipy import optimize
+from scipy import fftpack 
 
 def gaussian2D(height, center_x, center_y, width_x, width_y, ofst=0.):
     """Returns a gaussian function with the given parameters"""
@@ -49,7 +49,6 @@ def circ_mask(n_size, cr, dr):
     apply a mask on the array to sum up 
     Update: no need to pass the whole arr_2d to the function. 
     """
-
     cy = cr[0]
     cx = cr[1]
     
@@ -96,3 +95,17 @@ def rect_mask(n_size, c_nw, c_se):
     mask = [ly,lx]
     
     return mask 
+
+
+def freq_feature(arr, ax = 0, sfreq = 1.25):
+    """
+    Extract frequency features in the given arr. 
+    Suppose the given array is 2-d.
+    """
+    ndims = np.array(arr.shape)
+    ft_arr = fftpack.fft(arr, axis = ax)
+    N = ndims[ax]
+    kk = np.arange(N)*sfreq*0.5/N # the k-axis 
+    
+    
+    

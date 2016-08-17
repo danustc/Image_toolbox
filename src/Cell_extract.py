@@ -1,9 +1,9 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package 
-Last update: 08/16/16
+Last update: 08/17/16 
+Now it really feels lousy. :( Try to use as few for loops as you can!
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
-
 """
 
 import numpy as np
@@ -141,7 +141,7 @@ class Cell_extract(object):
                 cr = blob[0:2]
                 dr = blob[-1]
 #                 mask = circ_mask([self.ny, self.nx], cr, dr)
-                mask = circ_mask([self.ny, self.nx], cr, dr)
+                mask = circ_mask([self.ny, self.nx], cr, dr) # This is way tooooooo inefficient! try to reduce the size. 
                 signal_int = im0[mask].sum()
                 data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
             

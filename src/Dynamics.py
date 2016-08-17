@@ -6,7 +6,7 @@ Yay! Wire together, fire together.
 """
 
 import numpy as np
-from scipy import linalg
+from scipy import fftpack
 from scipy.linalg import svd as SVD # import SVD algorithm
 from numeric_funcs import circs_reconstruct
 from graphic_funcs import coord_click
@@ -50,7 +50,8 @@ class Temporal_analysis(object):
         self.sweet_list = np.array([]) # create an empty list to save the good cells. This really requires a GUI.
         # done with initialization. This is kinda long.
         
-    def baseline(self, method = 'min'):
+    
+    def baseline(self, method = 'min', correct = False):
         """
         Creation date: 08/17
         This one calculates the baseline signal of each cell
@@ -68,6 +69,24 @@ class Temporal_analysis(object):
             pass 
         else: 
             self.base = np.mean(signal_all, axis = 0)
+            
+        # done with baseline
+        
+
+    def firing_analysis(self, sfreq = 1.25, kfrac = 0.20):
+        """
+        Analyzes the firing pattern of all the neurons
+        fft-based. Feature the frequency components larger than kfrac* kmax 
+        """
+        N = self.n_time
+        signal_all = self.ts_data[:,:,2]
+        ft_signal = np.abs(fftpack.fft(signal_all, axis = 0)) # Fourier transform of the original data 
+        k_max = sfreq*0.5 # The maximum resolvable frequency (Nyquist frequency)
+        ks = np.array([(np.arange(N)-0.5*N)*sfreq/N]) # the range of frequency 
+        ks_data = np.concatenate((ks.T, ft_signal), axis = 1)
+        
+        return ks_data
+        
         
         
     def signal_profile_single(self, marker, rad = 20, sel = 1):
@@ -83,18 +102,16 @@ class Temporal_analysis(object):
         yc, xc = marker
         
         r2 = (yy-yc)**2 + (xx-xc)**2
-        
         c_select = (r2 <= rad*rad)  # the selected cells
         if(np.any(c_select)):
             r_in = r2[c_select]
             n_sel = np.min([len(r_in), sel])
             st_int = np.argsort(r_in) # sort to have the 
-            data_preselect = self.ts_data[:,c_select, 2]
-            coord_preselect = self.ts_data[0, c_select, :-1] # y and x coordinates
-            f_select = data_preselect[:,st_int[:n_sel]]
-            coords = coord_preselect[st_int[:n_sel],:]
-#             f_select = self.ts_data[:,c_select[st_int[:n_sel]], 2]
-            return f_select, coords
+            
+            cflag_preselect = np.arange(self.n_cell)[c_select]
+            cflag = cflag_preselect[st_int[:n_sel]]
+            return cflag 
+
         else:
             print('No cell within the range.')
         # done with signal_profile_single
