@@ -1,7 +1,7 @@
 """
 Created by Dan Xie on 08/15/2016 
 Dynamics.py: takes the extracted cell information, calculate dynamics in it.
-Updated by Dan on 08/16/2016 
+Updated by Dan on 08/17/2016 
 Yay! Wire together, fire together. 
 """
 
@@ -9,6 +9,9 @@ import numpy as np
 from scipy import linalg
 from scipy.linalg import svd as SVD # import SVD algorithm
 from numeric_funcs import circs_reconstruct
+from graphic_funcs import coord_click
+
+
 import matplotlib.pyplot as plt
  
 
@@ -42,6 +45,8 @@ class Temporal_analysis(object):
             
         self.n_time = n_time
         self.fig_d = None
+        self.sweet_list = np.array([]) # create an empty list to save the good cells. This really requires a GUI.
+        
         
         
     def signal_profile_single(self, marker, rad = 20):
@@ -69,6 +74,7 @@ class Temporal_analysis(object):
     def cell_show(self, dr = 6, ref_img = None):
         """
         A simple display of cell distributions.
+        OK this kinda works. How to return the coordinates upon mouse clicking?
         """
         slice_0 = self.ts_data[0, :, 0:-1] # taking out the first slice 
         if(self.fig_d is None):
@@ -79,9 +85,9 @@ class Temporal_analysis(object):
         
         ax = fig.add_subplot(1,1,1)
         if(ref_img):
-            ax.imshow(ref_img, cmap = 'Greys')
+            distr = ax.imshow(ref_img, cmap = 'Greys')
         else:
-            ax.imshow(np.zeros(self.dims), cmap = 'Greys')
+            distr = ax.imshow(np.zeros(self.dims), cmap = 'Greys')
         
         for blob in slice_0:
             # plot all the blobs in the figure 
@@ -89,9 +95,10 @@ class Temporal_analysis(object):
             c = plt.Circle((x, y), dr, color='g', linewidth=1, fill=True)
             ax.add_patch(c)
 
-        
+        self.distr = distr
         self.fig_d = fig
-        return fig
+        
+        return distr 
     
     
     
