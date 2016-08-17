@@ -3,7 +3,10 @@ Created by Dan on 08/16/16.
 This one contains all the plt-based graphic functions shared among all the functions.
 """
 
+from PyQt4 import QtGui, QtCore
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+
 import numpy as np
 # ---------------------------------Some tiny functions -------------------------------------
 
@@ -30,11 +33,12 @@ def onclick_coord(event):
 class coord_click():
     """
     Purpose: return the coordinates of mouse click, given an axes.
-    OMG this works!!!! :D
+    OMG this works!!!! :D But how can I return self.xc and self.yc? 
     """
     def __init__(self, plt_draw):
         self.plt_draw = plt_draw
         self.cid = plt_draw.figure.canvas.mpl_connect('button_press_event', self)
+        self.coord_list = []
         
         
     def __call__(self, event):
@@ -46,3 +50,17 @@ class coord_click():
         
         self.xc = event.xdata
         self.yc = event.ydata
+        self.coord_list.append([self.yc, self.xc])
+        
+    def catch_values(self):
+        """
+        give the value in self.xc, yc to the outside handle.
+        """
+        coord = np.array(self.coord_list)
+        # ---- clear
+        self.xc = None
+        self.yc = None
+        return coord
+#--------------------------------------Done with coord click 
+
+

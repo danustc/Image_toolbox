@@ -1,7 +1,7 @@
 """
 Created by Dan Xie on 08/15/2016 
 Dynamics.py: takes the extracted cell information, calculate dynamics in it.
-Updated by Dan on 08/17/2016 
+Updated by Dan on 08/17/2016: try to insert GUI. This would be very messy. Should I use layered design like Ryan's inControl package? 
 Yay! Wire together, fire together. 
 """
 
@@ -37,7 +37,9 @@ class Temporal_analysis(object):
             
             
         elif(type(TS_data) == np.ndarray):
-            # OK! We got an python numpy array 
+            # OK! We got an python numpy array
+            
+            self.ref_img = np.zeros(dims)
             n_time, n_cell = TS_data.shape[:-1]
             self.coord = TS_data[0,:,:-1] # the coordinates of all the cells 
             self.n_cell = n_cell
@@ -46,15 +48,35 @@ class Temporal_analysis(object):
         self.n_time = n_time
         self.fig_d = None
         self.sweet_list = np.array([]) # create an empty list to save the good cells. This really requires a GUI.
+        # done with initialization. This is kinda long.
+        
+    def baseline(self, method = 'min'):
+        """
+        Creation date: 08/17
+        This one calculates the baseline signal of each cell
+        method options: 
+        'min': simply select the minimum of each time-train. 
+        'exp': fit the time-train with exponential function. 
+        'avg': take the average of the time-train.
+        ... Others to be added.
+        """
+        signal_all = self.ts_data[:,:,2] # take out the fluorescent signal 
+        if(method == 'min'):
+            self.base = np.min(signal_all, axis = 0) # minimum across time-train
+        elif(method == 'exp'):
+            # this is a bit tricky. To be filled up later.
+            pass 
+        else: 
+            self.base = np.mean(signal_all, axis = 0)
         
         
-        
-    def signal_profile_single(self, marker, rad = 20):
+    def signal_profile_single(self, marker, rad = 20, sel = 1):
         """
         only works for nd_array data type.
         input: cell coordinate in the order of [y, x] in pixels
         rad: radius of selection
-        output: The time_sercell_selectio 
+        output: The time_sercell_selection 
+        Update on 08/17: allows one or multiple selections. (defined by sel)
         """
         yy = self.coord[:,0]
         xx = self.coord[:,1]
@@ -64,8 +86,15 @@ class Temporal_analysis(object):
         
         c_select = (r2 <= rad*rad)  # the selected cells
         if(np.any(c_select)):
-            f_select = self.ts_data[:,c_select, 2]
-            return f_select
+            r_in = r2[c_select]
+            n_sel = np.min([len(r_in), sel])
+            st_int = np.argsort(r_in) # sort to have the 
+            data_preselect = self.ts_data[:,c_select, 2]
+            coord_preselect = self.ts_data[0, c_select, :-1] # y and x coordinates
+            f_select = data_preselect[:,st_int[:n_sel]]
+            coords = coord_preselect[st_int[:n_sel],:]
+#             f_select = self.ts_data[:,c_select[st_int[:n_sel]], 2]
+            return f_select, coords
         else:
             print('No cell within the range.')
         # done with signal_profile_single
@@ -75,6 +104,7 @@ class Temporal_analysis(object):
         """
         A simple display of cell distributions.
         OK this kinda works. How to return the coordinates upon mouse clicking?
+        Update: have a saved cell-distribution
         """
         slice_0 = self.ts_data[0, :, 0:-1] # taking out the first slice 
         if(self.fig_d is None):
@@ -101,6 +131,22 @@ class Temporal_analysis(object):
         return distr 
     
     
+    def sweet_list_build(self):
+        """
+        Build a sweet list using the image 
+        """
+        if self.sweet_list: # sweet list is empty
+            self.sweet_list = np.array([]) # clear it  
+            
+        distr = self.distr
+        sweet_cc = coord_click(distr)
+        plt.figure(self.fig_d.number)
+        plt.show()
+        sweet_list = sweet_cc.catch_values()
+        self.sweet_list = sweet_list
+        return sweet_list
+    
+        
     
     def feature_extract(self, t_level = 3):
         """
