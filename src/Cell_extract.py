@@ -9,7 +9,7 @@ The class is supposed to have nothing to do with file name issue. I need to addr
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.feature import blob_log
-from common_funcs import circ_mask
+from numeric_funcs import circ_mask
 
 
 OL_blob = 0.8

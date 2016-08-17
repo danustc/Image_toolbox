@@ -2,19 +2,17 @@
 Created by Dan Xie on 08/15/2016 
 Dynamics.py: takes the extracted cell information, calculate dynamics in it.
 Updated by Dan on 08/16/2016 
+Yay! Wire together, fire together. 
 """
 
-import ntpath
-import glob
 import numpy as np
 from scipy import linalg
-from Preprocess import Drift_correction
 from scipy.linalg import svd as SVD # import SVD algorithm
-from common_funcs import circs_reconstruct
-
+from numeric_funcs import circs_reconstruct
+import matplotlib.pyplot as plt
  
 
-class Dynamics(object):
+class Temporal_analysis(object):
     """
     Purpose: load one slice-all the time points
     No image operation, all based on .npz operations.   
@@ -28,33 +26,51 @@ class Dynamics(object):
         """
         self.ts_data = TS_data 
         self.dims = dims# Is it OK to always keep the time series inside the memory? 
+        if(type(TS_data) == type(dict())):
+            # each frame has its own cell extractions
+            self.data_type = 'd' 
+            n_time = len(TS_data)
+            self.n_cell = None # to be assigned later
+            
+            
+        elif(type(TS_data) == np.ndarray):
+            # OK! We got an python numpy array 
+            n_time, n_cell = TS_data.shape[:-1]
+            self.coord = TS_data[0,:,:-1] # the coordinates of all the cells 
+            self.n_cell = n_cell
+            self.data_type = 'a'
+            
+        self.n_time = n_time
         
         
         
-    def ts_refs(self):
+    def signal_profile_single(self, marker, rad = 20):
         """
-        This one calculates all 
-        
-        
+        only works for nd_array data type.
+        input: cell coordinate in the order of [y, x] in pixels
+        rad: radius of selection
+        output: The time_sercell_selectio 
         """
+        yy = self.coord[:,0]
+        xx = self.coord[:,1]
+        yc, xc = marker
         
+        r2 = (yy-yc)**2 + (xx-xc)**2
         
+        c_select = (r2 <= rad*rad)  # the selected cells
+        if(np.any(c_select)):
+            f_select = self.ts_data[:,c_select, 2]
+            return f_select
+        else:
+            print('No cell within the range.')
+        # done with signal_profile_single
         
-    def subset_TS_construction(self, subset):
+    
+    def cell_show(self):
         """
-        input: a subset of the cell (represented by their coordinates or indices? )
-        question: How to take out the subset?  
+        A simple display of cell distributions.
         """
-        self.current_set = subset
-        self.set_dynamics = self.ts_data[subset,:]
-        
-        
-    def cell_selection(self):
-        """
-        input: cell coordinate in the order of [z, y, x] 
-        output: The time_series 
-        """
-        pass
+    
     
     
     def feature_extract(self, t_level = 3):

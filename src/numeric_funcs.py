@@ -1,7 +1,9 @@
 '''
 Created by Dan on 08/15/16
 This file contains several small functions shared among all the classes.
-Adapted from Scipy cookbook. 
+This one has Numerical functions. For graphic functions, see graph_funcs.py
+Adapted from Scipy cookbook.
+Last update: 08/16/16 
 '''
 
 import os
@@ -44,11 +46,10 @@ def fitgaussian2D(data):
 
 def circ_mask(n_size, cr, dr):
     """
-    integrate all the pixel values within a circle centered at cr with radius dr.
     apply a mask on the array to sum up 
     Update: no need to pass the whole arr_2d to the function. 
-    
     """
+
     cy = cr[0]
     cx = cr[1]
     
@@ -81,10 +82,17 @@ def circs_reconstruct(dims, blob_list):
     # done with circs_reconstruct
         
 
+def rect_mask(n_size, c_nw, c_se):
+    """
+    Return indices of a rectangular mask on a 2d-array. 
+    Input: northwest and southeast corner coordinates. 
+    output: mask, boolean array
+    Unfinished >_< 
+    """
 
-
-
-
-
+    ly = n_size[0]
+    lx = n_size[1]
     
+    mask = [ly,lx]
     
+    return mask 

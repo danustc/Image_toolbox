@@ -77,7 +77,7 @@ class pipeline_zstacks(object):
             self.pro_flag = np.zeros(self.n_TP).astype('bool') # an all-false array to mark t
     
     
-    def zstack_prepro(self, list_num = 0, deblur = 30, align = False): 
+    def zstack_prepro(self, list_num = 0, deblur = 30, align = True): 
         """
         preprocess single zstack.
         list_num: the number in the tif_list  
@@ -90,19 +90,27 @@ class pipeline_zstacks(object):
         postfix_num = format(self.tp_flag[list_num], '03d') # take out the time point number 
         
         if(deblur > 0):
+            prefix = 'db_'
             z_DB = Deblur(zs_name, sig = 30) # deblur
             z_dbstack = z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
             if(self.dims is None):
                 self.dims = z_DB.px_num # here we get self.dims 
         else:
+            prefix = ''
             z_dbstack = np.copy(tifffunc.read_tiff(zs_name)).astype('float64')
 
         if(align):
+            prefix += 'al_'
             ofst = self.offset
             z_DC = Drift_correction(z_dbstack)
             z_newstack = z_DC.drift_correct(offset=ofst, ref_first = False)
         else:
             z_newstack = z_dbstack
+
+
+        if(prefix != ''):
+            z_writename = self.work_folder + self.prefix_z+prefix + postfix_num+'.tif'
+            tifffunc.write_tiff(z_newstack,z_writename)
 
         z_CE = Cell_extract(z_newstack) 
         z_CE.stack_blobs(diam = 6)
@@ -113,7 +121,7 @@ class pipeline_zstacks(object):
         return postfix_num # just for information, this returning is useless.
         # done with zstack_prepro
         
-    def zstack_tseries(self):
+    def zstack_tseries(self, deblur = 30, align = True):
         """
         preprocess all the single zstacks. Should t-alignment be carried out here?
         0. Regardless of the orders in self.tp_flag prepreocess all the zstacks
@@ -122,7 +130,7 @@ class pipeline_zstacks(object):
         
         """
         for iflag in np.arange(self.n_TP):
-            postfix_num = self.zstack_prepro(iflag) # process all the 
+            postfix_num = self.zstack_prepro(iflag, deblur, align) # process all the 
             print("Processed time point:", postfix_num)
             
         
