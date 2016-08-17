@@ -15,7 +15,7 @@ import tifffunc
 import numpy as np
 from skimage import filters
 import scipy.fftpack as fftp
-from common_funcs import fitgaussian2D
+from numeric_funcs import fitgaussian2D
 
 
 class Deblur(object):
