@@ -73,19 +73,40 @@ class Temporal_analysis(object):
         # done with baseline
         
 
-    def firing_analysis(self, sfreq = 1.25, kfrac = 0.20):
+    def firing_analysis(self, sfreq = 1.25, kfrac = 0.20, k_threshold = 0.80):
         """
         Analyzes the firing pattern of all the neurons
         fft-based. Feature the frequency components larger than kfrac* kmax 
+        Because the fourier-transformed data is symmetric w.r.t. center, the final version is truncated to half
+        Then, set a threshold of the frequency domain component. Any cell that have k-components above the threshold is selected 
+        as active neurons, while others are discarded. 
         """
+        # -------------Part 1: prepare the data in the fourier domain, set the criteria for cell selection
         N = self.n_time
-        signal_all = self.ts_data[:,:,2]
-        ft_signal = np.abs(fftpack.fft(signal_all, axis = 0)) # Fourier transform of the original data 
+        N2 = int(N/2)+1
         k_max = sfreq*0.5 # The maximum resolvable frequency (Nyquist frequency)
-        ks = np.array([(np.arange(N)-0.5*N)*sfreq/N]) # the range of frequency 
-        ks_data = np.concatenate((ks.T, ft_signal), axis = 1)
+        dk = sfreq/N # the frequency resolution
+        N_cut = int(k_max*kfrac/dk) # the cutoff frequency 
         
-        return ks_data
+        signal_all = self.ts_data[:,:,2]
+        ft_signal = np.abs(fftpack.fft(signal_all, axis = 0)) # Fourier transform of the original data
+        ft_signal = ft_signal[N_cut:N2,:] # truncate the ft_data 
+        ks = np.array([np.arange(N_cut, N2)*sfreq/N]) # the range of frequency 
+        
+        # -------------Part 2: select the neurons that fit the maximum
+        # for any cell, if it totally falls below k_cut, then it is discarded.  
+        k_floor = np.mean(np.min(ft_signal,axis = 0))
+        k_max = np.max(ft_signal,axis = 0)
+        k_mean = np.mean(ft_signal,axis = 0)
+        k_ceil = np.mean(k_max) 
+        k_cut = k_ceil*k_threshold+k_floor*(1.-k_threshold)
+        
+        k_ind = k_mean > k_cut # this is a very rough selection
+        k_select = np.arange(self.n_cell)[k_ind]
+        
+        kpros = np.concatenate((ks.T, ft_signal[:,k_select]), axis = 1)
+        
+        return kpros, k_select
         
         
         
