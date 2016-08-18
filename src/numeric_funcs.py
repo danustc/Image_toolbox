@@ -56,8 +56,32 @@ def circ_mask(n_size, cr, dr):
     lx = n_size[1]
     yg, xg = np.ogrid[-cy:ly-cy, -cx:lx-cx]
     mask = yg*yg+xg*xg <= dr*dr
+
+    ind_mask = np.where(mask)
+    return ind_mask # instead of returning a huge boolean matrix, just return a few indices  
+# -------------done with circ_mask 
+
+
+def circ_mask_patch(frame_size, cr, dr):
+    """
+    Caution! This is untested.
+    To find the mask of a small patch on a big frame. 
+    frame_size: ny, nx
+    patch_size: scalar, at least 2* dr 
+    How to pass the cr information? # subtract a certain amount of INTEGER. 
+    Where is the offset? This is a tricky issue.  
+    """
+    c_lbound = int(np.floor(cr - dr))  # Where the patch is cut off.
+    c_ubound = int(np.ceil(cr + dr))
+    c_patch = frame_size - c_lbound
+    f_patch = c_ubound - c_lbound
+    ind_patch = circ_mask(f_patch, c_patch, dr)
+    my = ind_patch[0] + c_lbound[0]
+    mx = ind_patch[1] + c_lbound[1]
     
-    return mask
+    ind_mask = (my,mx)
+    return ind_mask
+    
     # end of circ_mask
     
 def circs_reconstruct(dims, blob_list):
