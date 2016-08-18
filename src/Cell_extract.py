@@ -1,7 +1,7 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package 
-Last update: 08/17/16 
+Last update: 08/18/16 
 Now it really feels lousy. :( Try to use as few for loops as you can!
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 """
@@ -9,7 +9,7 @@ The class is supposed to have nothing to do with file name issue. I need to addr
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.feature import blob_log
-from numeric_funcs import circ_mask
+from numeric_funcs import circ_mask_patch
 
 
 OL_blob = 0.8
@@ -22,7 +22,7 @@ class Cell_extract(object):
         self.data_list = {}
         self.n_slice = im_stack.shape[0]
         self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for 
-        self.ny, self.nx = im_stack.shape[1:]
+        self.frame_size = np.array(im_stack.shape[1:])
         self.blobset = [diam, diam+1, diam]
         
     def image_blobs(self, n_frame):
@@ -49,6 +49,7 @@ class Cell_extract(object):
             self.bl_flag[n_frame] = -1
             return
         else:
+            frame_size = self.frame_size
             self.bl_flag[n_frame] = n_blobs 
             data_slice = np.empty([n_blobs, 5]) # initialize an empty array
             for ii in np.arange(n_blobs):
@@ -57,7 +58,7 @@ class Cell_extract(object):
                 cr = blob[0:2]
                 dr = blob[-1]
 #                 mask = circ_mask([self.ny, self.nx], cr, dr)
-                mask = circ_mask([self.ny, self.nx], cr, dr) # This is way tooooooo inefficient! try to reduce the size. 
+                mask = circ_mask_patch(frame_size, cr, dr) # This is way tooooooo inefficient! try to reduce the size. 
                 signal_int = im0[mask].mean() # replace sum() with mean()
                 data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
                 
@@ -158,7 +159,8 @@ class Cell_extract(object):
         for z_frame in np.arange(self.n_slice):
             self.bl_flag[z_frame] = n_blobs
             z_signal = self.image_signal_propagate(z_frame, maps, dr_min)
-            train_signal[z_frame] = z_signal[:,[0,1,-1]]
+            train_signal[z_frame, :2] = maps
+            train_signal[z_frame, 2] = z_signal
             print("Processed for frame", z_frame)
             
         return train_signal 
@@ -169,12 +171,20 @@ class Cell_extract(object):
         """
         Added on 08/18 to replace image_signal_integ.
         The idea is similar to that in the image_blobs
+        maps: the (y,x) coordinates
+        return: only fluorescence instead of coordinate and fluorescence. 
         """ 
-        im0 = self.stack[z_frame]
+        im0 = self.stack[z_frame] 
+        frame_size = self.frame_size
+        nblobs = maps.shape[0]
+        f_slice = np.zeros(nblobs)
+        ii = 0
+        for coord in maps:
+            mask = circ_mask_patch(frame_size, coord, dr)
+            f_slice[ii] = im0[mask].mean()
+            ii += 1
         
-        
-        
-
+        return f_slice 
         
         
     def save_data_list(self, dph):
@@ -191,9 +201,9 @@ class Cell_extract(object):
         Updates the image stack saved in the class, reset everything 
         """
         self.stack = new_stack 
-        self.n_slice, self.ny, self.nx = new_stack.shape
+        self.n_slice, ny, nx = new_stack.shape
+        self.frame_size = np.array([ny,nx])
         self.bl_flag = np.zeros(self.n_slice)
-        self.c_list.clear()
         self.data_list.clear()
         print("reload completed.")
         # ----- reload the im_stack

@@ -64,17 +64,18 @@ def circ_mask(n_size, cr, dr):
 
 def circ_mask_patch(frame_size, cr, dr):
     """
-    Caution! This is untested.
+    pass the test for 10x10, 120x 120 arrays. 
     To find the mask of a small patch on a big frame. 
     frame_size: ny, nx
     patch_size: scalar, at least 2* dr 
     How to pass the cr information? # subtract a certain amount of INTEGER. 
     Where is the offset? This is a tricky issue.  
     """
-    c_lbound = int(np.floor(cr - dr))  # Where the patch is cut off.
-    c_ubound = int(np.ceil(cr + dr))
-    c_patch = frame_size - c_lbound
-    f_patch = c_ubound - c_lbound
+    c_lbound = np.floor(np.array(cr) - dr).astype('uint16')  # Where the patch is cut off.
+    c_ubound = np.ceil(np.array(cr) + dr).astype('uint16')
+    c_patch = cr - c_lbound
+    f_patch = c_ubound - c_lbound 
+    print(f_patch)
     ind_patch = circ_mask(f_patch, c_patch, dr)
     my = ind_patch[0] + c_lbound[0]
     mx = ind_patch[1] + c_lbound[1]
