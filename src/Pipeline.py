@@ -1,5 +1,6 @@
 """
 Created by Dan on 08/15/2016, a test of data processing pipeline
+Last update: 08/19/2016
 """
 import ntpath
 import os
@@ -131,7 +132,7 @@ class pipeline_zstacks(object):
         """
         for iflag in np.arange(self.n_TP):
             postfix_num = self.zstack_prepro(iflag, deblur, align) # process all the 
-            print("Processed time point:", postfix_num)
+            print("Processed z point:", postfix_num)
             
         
         print("All done.")
@@ -217,7 +218,6 @@ class pipeline_tstacks(object):
         else:
             t_newstack = t_dbstack
         
-        print(type(t_newstack))
         if(prefix != ''):
             t_writename = self.work_folder + self.prefix_t+prefix + postfix_num+'.tif'
             tifffunc.write_tiff(t_newstack,t_writename)
@@ -230,8 +230,10 @@ class pipeline_tstacks(object):
             t_CE.stack_signal_integ()
             t_CE.save_data_list(np_fname) 
         else: # only extract cells in the first slice and assume that they persist in the rest
+            # update on 08/19: save npz instead of npy.
+            
             blob_time_stack = t_CE.stack_signal_propagate(0)
-            np.save(np_fname,blob_time_stack)
+            np.savez(np_fname, **blob_time_stack)
         # save as npz
         self.pro_flag[list_num] = True
         

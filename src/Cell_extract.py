@@ -62,7 +62,6 @@ class Cell_extract(object):
 #                 mask = circ_mask([self.ny, self.nx], cr, dr)
                 mask = circ_mask_patch(frame_size, cr, dr) 
                 signal_int = im0[mask].mean() # replace sum() with mean()
-                print(signal_int)
                 data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
                 
         # also, update self.data_list here instead of in stack_blobs, so you can use it right after single-frame processing!
@@ -135,7 +134,7 @@ class Cell_extract(object):
                     
             # This sounds really lousy.
 
-    def stack_signal_propagate(self, n_frame):
+    def stack_signal_propagate(self, n_frame = 0):
         """
         Assume that all the slices are aligned and morphologically the same. We only extract cells 
         from one slice (usually the first one), and integrate the values at the same sites at the rest
@@ -145,28 +144,33 @@ class Cell_extract(object):
         1 --- replace the radius with the mininum radius
         2 --- assign cblobs to the clists 
         3 --- image_signal_integ
-        output: a 3-D nparray. dim0: # stack; dim1,2: 2d array with y, x, signal intensity.
+        Update on 08/19. Output: a dict. ['xy']: coordinates; ['data']: fluorescence signal.
         """
-        if self.bl_flag[n_frame]>0: # if the 
-            kwd = 's_'+ str(n_frame).zfill(3)
-            data_slice = self.data_list[kwd]
+        if(np.isscalar(n_frame)):
+            if self.bl_flag[n_frame]>0: # if the 
+                kwd = 's_'+ str(n_frame).zfill(3)
+                data_slice = self.data_list[kwd]
+            else:
+                data_slice = self.image_blobs(n_frame) # extract blobs from the selected frame first
+            n_blobs = self.bl_flag[n_frame]
         else:
-            data_slice = self.image_blobs(n_frame) # extract blobs from the selected frame first
-            
-        n_blobs = self.bl_flag[n_frame]
-        maps = data_slice[:,:2] # takenout the y and x coordinates as maps
+            # n_frame is a list 
+            pass
+        
+        blob_time_stack = dict()
+        coords = data_slice[:,:2] # takenout the y and x coordinates as maps
+        blob_time_stack['xy'] = coords
         dr_min = np.min(data_slice[:,3]) # get an uniform dr. 
-    
-        train_signal = np.zeros((self.n_slice, n_blobs, 3))
+        train_signal = np.zeros((self.n_slice, n_blobs))
         
         for z_frame in np.arange(self.n_slice):
             self.bl_flag[z_frame] = n_blobs
-            z_signal = self.image_signal_propagate(z_frame, maps, dr_min)
-            train_signal[z_frame, :2] = maps
-            train_signal[z_frame, 2] = z_signal
-            print("Processed for frame", z_frame)
+            z_signal = self.image_signal_propagate(z_frame, coords, dr_min)
+            train_signal[z_frame, :] = z_signal
             
-        return train_signal 
+        blob_time_stack['data'] = train_signal
+        
+        return blob_time_stack
     # done with stack_signal_propagate
 
 
