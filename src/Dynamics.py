@@ -1,16 +1,14 @@
 """
 Created by Dan Xie on 08/15/2016 
 Dynamics.py: takes the extracted cell information, calculate dynamics in it.
-Last update: 08/18/16: calculate all the df_f. 
+Last update: 08/19/16: calculate all the df_f. Remove the function "sweet_build". 
 Yay! Wire together, fire together. 
 """
 
 import numpy as np
 from scipy import fftpack
 from scipy.linalg import svd as SVD # import SVD algorithm
-from numeric_funcs import circs_reconstruct
-from graphic_funcs import coord_click
-
+from df_f import dff_raw
 import matplotlib.pyplot as plt
  
 
@@ -19,7 +17,6 @@ class Temporal_analysis(object):
     Purpose: load one slice-all the time points
     No image operation, all based on .npz operations.   
     Recognize all the cell in the same position, extract its time train
-    
     """
 
     def __init__(self, TS_data, dims, ref_im = None):
@@ -56,48 +53,46 @@ class Temporal_analysis(object):
         self.sweet_list = np.array([]) # create an empty list to save the good cells. This really requires a GUI.
         # done with initialization. This is kinda long.
         
-    
-    def baseline(self, method = 'min', correct = False):
+        
+    def dff_calculation(self, ft_width = 10): 
+        """ 
+        calculate df/f for all the identified cells.
+        OK this works.
         """
-        Creation date: 08/17
-        This one calculates the baseline signal of each cell
-        method options: 
-        'min': simply select the minimum of each time-train. 
-        'exp': fit the time-train with exponential function. 
-        'avg': take the average of the time-train.
-        ... Others to be added.
-        """
-        signal_all = self.ts_data[:,:,2] # take out the fluorescent signal 
-        if(method == 'min'):
-            self.base = np.min(signal_all, axis = 0) # minimum across time-train
-        elif(method == 'exp'):
-            # this is a bit tricky. To be filled up later.
-            pass 
-        else: 
-            self.base = np.mean(signal_all, axis = 0)
-            
-        # done with baseline
+        nc = self.n_cell
+        dff = np.zeros([self.n_time, nc]) 
+        f0 = np.zeros_like(dff)
+        f_raw = self.ts_data[:,:,2] # taking out the signal part 
+       
+        for ic in np.arange(nc):
+            # calculate the dff for each cell
+            dff[:,ic], f0[:,ic] = dff_raw(f_raw[:,ic], ft_width)
+        
+        self.dff = dff 
+        self.f_base = f0
+        return dff
+        # done with dff_calculation
+        
         
 
     def firing_analysis(self, sfreq = 1.25, kfrac = 0.20, k_threshold = 0.80):
         """
-        Analyzes the firing pattern of all the neurons
-        fft-based. Feature the frequency components larger than kfrac* kmax 
+        Update on 08/19: replacing the raw data with dff. 
+        Analyzes the firing pattern of all the neurons fft-based. Feature the frequency components larger than kfrac* kmax 
         Because the fourier-transformed data is symmetric w.r.t. center, the final version is truncated to half
         Then, set a threshold of the frequency domain component. Any cell that have k-components above the threshold is selected 
         as active neurons, while others are discarded. 
         """
         # -------------Part 1: prepare the data in the fourier domain, set the criteria for cell selection
         N = self.n_time
-        N2 = int(N/2)+1
         k_max = sfreq*0.5 # The maximum resolvable frequency (Nyquist frequency)
         dk = sfreq/N # the frequency resolution
-        N_cut = int(k_max*kfrac/dk) # the cutoff frequency 
+        N_cut = (k_max*kfrac/dk).astype('uint16') # the cutoff frequency 
         
-        signal_all = self.ts_data[:,:,2]
+        signal_all = self.dff
         ft_signal = np.abs(fftpack.fft(signal_all, axis = 0)) # Fourier transform of the original data
-        ft_signal = ft_signal[N_cut:N2,:] # truncate the ft_data 
-        ks = np.array([np.arange(N_cut, N2)*sfreq/N]) # the range of frequency 
+        ft_signal = ft_signal[N_cut[0]:N_cut[1],:] # truncate the ft_data 
+        ks = np.array([np.arange(N_cut[0], N_cut[1])*sfreq/N]) # the range of frequency 
         
         # -------------Part 2: select the neurons that fit the maximum
         # for any cell, if it totally falls below k_cut, then it is discarded.  
@@ -192,22 +187,6 @@ class Temporal_analysis(object):
         return fig
         # done with cell_mark
         
-        
-    def sweet_list_build(self):
-        """
-        Build a sweet list using the image 
-        """
-        if self.sweet_list: # sweet list is empty
-            self.sweet_list = np.array([]) # clear it  
-            
-        distr = self.distr
-        sweet_cc = coord_click(distr)
-        plt.figure(self.fig_d.number)
-        plt.show()
-        sweet_list = sweet_cc.catch_values()
-        self.sweet_list = sweet_list
-        return sweet_list
-    
         
     
     def feature_extract(self, t_level = 3):

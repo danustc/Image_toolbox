@@ -1,10 +1,12 @@
 """
 This is df/f calculation based on the paper: Nature protocols, 6, 28–35, 2011
-Created by Dan on 08/18/15
+Created by Dan on 08/18/16
+Last update: 08/19/16 ---- I love scipy!!! 
 """
 
 import numpy as np
 from numeric_funcs import smooth_lpf
+from scipy.signal import exponential, fftconvolve
 import matplotlib.pyplot as plt
 
 def min_window(shit_data, wd_width = 10):
@@ -21,16 +23,35 @@ def min_window(shit_data, wd_width = 10):
 # this is a good baseline calculation. 
 
 
-def dff(shit_data, ft_width):
+def dff_raw(shit_data, ft_width):
     """
     calculate df_f for shit_sig.
+    Get both F0 and df_f.
     """
     s_filt = smooth_lpf(shit_data, ft_width)[1]
     
-    f_base = min_window(s_filt, 3*ft_width)
-    dff_raw = (shit_data-f_base)/f_base
+    f_base = min_window(s_filt, 4*ft_width)
+    dff_r = (shit_data-f_base)/f_base
     
-    return dff_raw
+    return dff_r, f_base 
+    # done with dff_raw 
+    
+def dff_expfilt(dff_r, dt = 0.80, t_width = 2.0):
+    """
+    Exponentially weighted moving average filter
+    OK this also works.   
+    """    
+    M = int(t_width/dt+1)*8 + 1 # the number of window 
+    wd = exponential(M, center=None, tau = t_width) # Symmetric = True
+    NT = len(dff_r)
+    
+    tt = np.arange(1,NT+1)*dt 
+    denom_filter = (1-np.exp(-tt/t_width))*t_width # the denominator 
+    numer_filter = fftconvolve(dff_r, wd, mode='same')
+    
+    dff_expf = numer_filter/denom_filter
+    return dff_expf, wd
+    # done with dff_expf
     
 
 def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
@@ -63,11 +84,6 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
  
     return fig
         
-    
-    
-    
-
-
 
     
     
