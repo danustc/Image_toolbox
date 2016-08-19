@@ -186,8 +186,17 @@ class Temporal_analysis(object):
 
         return fig
         # done with cell_mark
+    
+    def dff_save(self, dph):
+        """
+        save df/f data (raw) as well as the cell coordinates as an .npz file. 
+        """
+        data_struct = dict()
+        data_struct['xy'] = self.coord
+        data_struct['data'] = self.dff
         
-        
+        np.savez(dph, **data_struct)
+        # done with dff_save
     
     def feature_extract(self, t_level = 3):
         """
@@ -204,7 +213,4 @@ class Temporal_analysis(object):
         C_principal = np.dot(U_principal, np.diag(s_principal))
         
         return C_principal, V_principal # return the coefficients and singular vectors.
-
         
-        
-    

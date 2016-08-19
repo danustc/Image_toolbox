@@ -5,7 +5,6 @@ Last update: 08/19/16
 """
 
 import matplotlib.pyplot as plt
-
 import numpy as np
 # ---------------------------------Some tiny functions -------------------------------------
 
