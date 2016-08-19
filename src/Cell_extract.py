@@ -1,15 +1,15 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package 
-Last update: 08/16/16
+Last update: 08/18/16 
+Now it really feels lousy. :( Try to use as few for loops as you can!
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
-
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.feature import blob_log
-from numeric_funcs import circ_mask
+from numeric_funcs import circ_mask_patch
 
 
 OL_blob = 0.8
@@ -19,53 +19,73 @@ class Cell_extract(object):
     # this class extracts 
     def __init__(self, im_stack, diam = 6):
         self.stack = im_stack
-        self.c_list = {} # create an empty array
         self.data_list = {}
         self.n_slice = im_stack.shape[0]
         self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for 
-        self.ny, self.nx = im_stack.shape[1:]
+        self.frame_size = np.array(im_stack.shape[1:])
         self.blobset = [diam, diam+1, diam]
         
     def image_blobs(self, n_frame):
         """
         input: number of frame
-        process: recognize the blobs inside one plane (regardless of aligned)
-        updated: self.c_list (no fluorescent signal processed)
+        process: 
+        0 -- recognize the blobs inside one plane (regardless of alignment)
+        1 -- calculate the mean signal intensity inside the detected blobs using the 
+        updated on 08/18: merge with image_signal_integ.
+        
         """
         im0 = self.stack[n_frame]
         mx_sig = self.blobset[0]
         mi_sig = self.blobset[1]
         nsig = self.blobset[2]
-#         th = (np.max(im0)-np.min(im0))/10. # threshold
-        th = (np.mean(im0)-np.min(im0))/12.
+        th = (np.mean(im0)-np.min(im0))/12.2
 #         print("threshold:", th)
         cblobs = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
-        self.bl_flag[n_frame] = cblobs.shape[0]
-        # end of the function image_blobs
-        self.c_list[n_frame] = cblobs
+
+        n_blobs = cblobs.shape[0]
+        if(n_blobs == 0):
+            raise ValueError("This slice contains no blobs or has not been processed yet. ")
+            self.bl_flag[n_frame] = -1
+            return
+        else:
+            frame_size = self.frame_size
+            self.bl_flag[n_frame] = n_blobs 
+            data_slice = np.empty([n_blobs, 5]) # initialize an empty array
+            # also, remove blobs that are on the margin
+            
+            for ii in np.arange(n_blobs):
+                blob = cblobs[ii]
+                # going through all blobs in list 
+                cr = blob[0:2]
+                dr = blob[-1]
+#                 mask = circ_mask([self.ny, self.nx], cr, dr)
+                mask = circ_mask_patch(frame_size, cr, dr) 
+                signal_int = im0[mask].mean() # replace sum() with mean()
+                print(signal_int)
+                data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
+                
+        # also, update self.data_list here instead of in stack_blobs, so you can use it right after single-frame processing!
+        kwd = 's_'+ str(n_frame).zfill(3)
+        self.data_list[kwd] = data_slice
+        return data_slice
+        # done with image_blobs
     
-        return cblobs
 
-
-
-    def stack_blobs(self, diam = 6):
+    def stack_blobs(self, msg = False):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
-        Update on 08/16: make the radius of blobs uniform. 
+        Update on 08/16: make the radius of blobs uniform.
+        Update on 08/18: merge with the stack_signal_integ 
         """
-        self.diam = diam
-        self.blobset = [self.diam-0.5, self.diam+0.5, self.diam]
-        dr_min = np.zeros(self.n_slice)
         
         for n_frame in np.arange(self.n_slice):
-            cblobs = self.image_blobs(n_frame)
-            dr_min[n_frame] = np.min(cblobs[:,2])
+            self.image_blobs(n_frame)
+        if msg:
+            n_blobs = self.bl_flag[n_frame].astype('int64')
+            print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
             
-        self.dr_min = np.min(dr_min)
         self.valid_frames = np.where(self.bl_flag>0)[0]
-        
-        return self.dr_min
         # end of the function stack_blobs 
         
     
@@ -114,59 +134,6 @@ class Cell_extract(object):
                 self.data_list[n_frame+1][c2-nr1, 2] = zm  # update the z-position in the 
                     
             # This sounds really lousy.
-            
-    
-    def image_signal_integ(self, n_frame):    
-        """
-        Prerequisite: assume the blobs have been detected, now let's extract all the signals and save it in a huge array. 
-        Column: 0 --- y coordinate, unit pixel
-                1 --- x coordinate 
-                2 --- z (number of slice)
-                3 --- radius 
-                4 --- fluorescence
-        Update on 08/16: replace dr with dr_min which is calculated in stack_blobs.
-        However, when saving the blob information, the original dr is saved.
-        """
-        im0 = self.stack[n_frame]
-        blbs = self.c_list[n_frame]
-        n_blobs = self.bl_flag[n_frame] # number of blobs in each slice
-        if(n_blobs == 0):
-            raise ValueError("This slice contains no blobs or has not been processed yet. ")
-        
-        else: 
-            data_slice = np.empty([n_blobs, 5]) # initialize an empty array
-            for ii in np.arange(n_blobs):
-                blob = blbs[ii]
-                # going through all blobs in list 
-                cr = blob[0:2]
-                dr = blob[-1]
-#                 mask = circ_mask([self.ny, self.nx], cr, dr)
-                mask = circ_mask([self.ny, self.nx], cr, dr)
-                signal_int = im0[mask].sum()
-                data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
-            
-            return data_slice
-            # finished of image_signal_integ
-    
-        
-    def stack_signal_integ(self):
-        """
-        08/16: replace the key number with 's' instead of 'z'. 
-        Once all the frames are processed for cell extraction, save the integrated slice 
-        signals into an npz.
-        As a comparison, I added another function stack_signal_propagate, which could be useful in t-stacks. 
-        """
-        # Let's find out all the slices that are processed.
-        valid_frames = self.valid_frames 
-
-        # archiving the blobs list         
-        for n_frame in valid_frames:
-            kwd = 's_'+ str(n_frame).zfill(3)
-            self.data_list[kwd] = self.image_signal_integ(n_frame)
-            n_blobs = self.bl_flag[n_frame].astype('int64')
-            print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
-            
-        # finished of stack_signal_archive 
 
     def stack_signal_propagate(self, n_frame):
         """
@@ -180,25 +147,47 @@ class Cell_extract(object):
         3 --- image_signal_integ
         output: a 3-D nparray. dim0: # stack; dim1,2: 2d array with y, x, signal intensity.
         """
-        cblobs = self.image_blobs(n_frame) # extract blobs from the selected frame first
-        dr_min = np.min(cblobs[:,-1]) # get an uniform dr. 
-        cblobs[:,-1] = dr_min # replace the blob radius with the mininum value 
-        
-        n_blobs = len(cblobs)
+        if self.bl_flag[n_frame]>0: # if the 
+            kwd = 's_'+ str(n_frame).zfill(3)
+            data_slice = self.data_list[kwd]
+        else:
+            data_slice = self.image_blobs(n_frame) # extract blobs from the selected frame first
+            
+        n_blobs = self.bl_flag[n_frame]
+        maps = data_slice[:,:2] # takenout the y and x coordinates as maps
+        dr_min = np.min(data_slice[:,3]) # get an uniform dr. 
+    
         train_signal = np.zeros((self.n_slice, n_blobs, 3))
         
-        
         for z_frame in np.arange(self.n_slice):
-            
-            self.c_list[z_frame] = cblobs
             self.bl_flag[z_frame] = n_blobs
-            z_signal = self.image_signal_integ(z_frame)
-            train_signal[z_frame] = z_signal[:,[0,1,-1]]
+            z_signal = self.image_signal_propagate(z_frame, maps, dr_min)
+            train_signal[z_frame, :2] = maps
+            train_signal[z_frame, 2] = z_signal
             print("Processed for frame", z_frame)
-            
             
         return train_signal 
     # done with stack_signal_propagate
+
+
+    def image_signal_propagate(self,z_frame, maps, dr):
+        """
+        Added on 08/18 to replace image_signal_integ.
+        The idea is similar to that in the image_blobs
+        maps: the (y,x) coordinates
+        return: only fluorescence instead of coordinate and fluorescence. 
+        """ 
+        im0 = self.stack[z_frame] 
+        frame_size = self.frame_size
+        nblobs = maps.shape[0]
+        f_slice = np.zeros(nblobs)
+        ii = 0
+        for coord in maps:
+            mask = circ_mask_patch(frame_size, coord, dr)
+            f_slice[ii] = im0[mask].mean()
+            ii += 1
+        
+        return f_slice 
         
         
     def save_data_list(self, dph):
@@ -215,9 +204,9 @@ class Cell_extract(object):
         Updates the image stack saved in the class, reset everything 
         """
         self.stack = new_stack 
-        self.n_slice, self.ny, self.nx = new_stack.shape
+        self.n_slice, ny, nx = new_stack.shape
+        self.frame_size = np.array([ny,nx])
         self.bl_flag = np.zeros(self.n_slice)
-        self.c_list.clear()
         self.data_list.clear()
         print("reload completed.")
         # ----- reload the im_stack
@@ -238,9 +227,12 @@ class Cell_extract(object):
         ax1.imshow(im0, cmap = 'Greys_r' )
         ax2.imshow(im0, cmap = 'Greys_r' )
         
-        blobs_list = self.c_list[n_frame]
+        kwd = 's_'+ str(n_frame).zfill(3)
+        blobs_list = self.data_list[kwd]
         for blob in blobs_list:
-            y, x, r = blob
+            y = blob[0]
+            x = blob[1]
+            r = blob[3]
             c = plt.Circle((x, y), 1.4*r, color='g', linewidth=1, fill=False)
             ax2.add_patch(c)
         #         print(r)

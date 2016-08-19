@@ -45,11 +45,13 @@ class Deblur(object):
     
     
     def image_high_trunc_inplane(self, nslice = None, ofst = 1.00):
-    # the idea comes from Nature-scientific reports,  3:2266.
-    # im0: image 0 
-    # method: filter method
-    # ext: extension of the filter 
-    # sig: width of the Gaussian filter
+        """
+        # the idea comes from Nature-scientific reports,  3:2266.
+        # im0: image 0 
+        # method: filter method
+        # ext: extension of the filter 
+        # sig: width of the Gaussian filter
+        """
         sig = self.sig
         if (nslice is None):
             im0 = self.new_stack[self.current]
@@ -63,10 +65,9 @@ class Deblur(object):
         nmin = np.argmin(iratio) 
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
         sca =im0[gmin_ind]/(ifilt[gmin_ind])
-        print("scale:",sca)
+#         print("scale:",sca)
         im0 -= (ifilt*sca*0.99) # update the background-corrected image
         return im0, ifilt
-
 
 
 
@@ -100,7 +101,6 @@ class Deblur(object):
             pass    
             # only the slices not on the border are corrected  
         
-        
         # truncate image from neighbors
 
     def stack_high_trunc(self, adjacent = False, wt = 0.40):
@@ -111,10 +111,10 @@ class Deblur(object):
             if(adjacent):
                 self.image_high_trunc_adjacent(wt) # subtract the adjacent plane values first 
             self.image_high_trunc_inplane()  # in-plane correction
-            
-        
-#         self.new_stack = np.copy(self.raw_stack)
+
         return self.new_stack
+        # done with stack_high_trunc
+
     
     def write_stack(self, n_apdx):
         """
