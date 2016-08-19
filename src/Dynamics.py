@@ -1,7 +1,7 @@
 """
 Created by Dan Xie on 08/15/2016 
 Dynamics.py: takes the extracted cell information, calculate dynamics in it.
-Updated by Dan on 08/17/2016: try to insert GUI. This would be very messy. Should I use layered design like Ryan's inControl package? 
+Last update: 08/18/16: calculate all the df_f. 
 Yay! Wire together, fire together. 
 """
 
@@ -10,7 +10,6 @@ from scipy import fftpack
 from scipy.linalg import svd as SVD # import SVD algorithm
 from numeric_funcs import circs_reconstruct
 from graphic_funcs import coord_click
-
 
 import matplotlib.pyplot as plt
  
@@ -23,7 +22,7 @@ class Temporal_analysis(object):
     
     """
 
-    def __init__(self, TS_data, dims):
+    def __init__(self, TS_data, dims, ref_im = None):
         """
         TS_data: the blob values of 
         """
@@ -34,17 +33,24 @@ class Temporal_analysis(object):
             self.data_type = 'd' 
             n_time = len(TS_data)
             self.n_cell = None # to be assigned later
-            
-            
+        
         elif(type(TS_data) == np.ndarray):
             # OK! We got an python numpy array
             
-            self.ref_img = np.zeros(dims)
+            self.ref_im = np.zeros(dims)
             n_time, n_cell = TS_data.shape[:-1]
             self.coord = TS_data[0,:,:-1] # the coordinates of all the cells 
             self.n_cell = n_cell
             self.data_type = 'a'
             
+        if(ref_im is None):
+            # create a reference image 
+            self.ref_im = None
+        else:
+            self.ref_im = ref_im
+            
+            
+        
         self.n_time = n_time
         self.fig_d = None
         self.sweet_list = np.array([]) # create an empty list to save the good cells. This really requires a GUI.
@@ -138,7 +144,7 @@ class Temporal_analysis(object):
         # done with signal_profile_single
         
     
-    def cell_show(self, dr = 6, ref_img = None):
+    def cell_show(self, dr = 6):
         """
         A simple display of cell distributions.
         OK this kinda works. How to return the coordinates upon mouse clicking?
@@ -152,10 +158,10 @@ class Temporal_analysis(object):
             fig.clf()
         
         ax = fig.add_subplot(1,1,1)
-        if(ref_img):
-            distr = ax.imshow(ref_img, cmap = 'Greys')
+        if(self.ref_im is not None):
+            distr = ax.imshow(self.ref_im, cmap = 'Greys_r', interpolation = 'none')
         else:
-            distr = ax.imshow(np.zeros(self.dims), cmap = 'Greys')
+            distr = ax.imshow(np.zeros(self.dims), cmap = 'Greys_r')
         
         for blob in slice_0:
             # plot all the blobs in the figure 
@@ -163,12 +169,30 @@ class Temporal_analysis(object):
             c = plt.Circle((x, y), dr, color='g', linewidth=1, fill=True)
             ax.add_patch(c)
 
+        ax.axis('off')
+
         self.distr = distr
         self.fig_d = fig
         
         return distr 
     
     
+    def cell_mark(self, mark, tx, dr = 6.5, cl = 'r'):
+        """
+        mark the selected cells from the figure 
+        """
+        fig = self.fig_d
+        ax = fig.get_axes()[0] 
+        
+        y, x = mark
+        c = plt.Circle((x, y), dr+1, color=cl, linewidth=1, fill=True)
+        ax.add_patch(c)
+        ax.text(mark[1], mark[0]+20, tx, color = 'w')
+
+        return fig
+        # done with cell_mark
+        
+        
     def sweet_list_build(self):
         """
         Build a sweet list using the image 

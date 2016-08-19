@@ -52,14 +52,17 @@ class Cell_extract(object):
             frame_size = self.frame_size
             self.bl_flag[n_frame] = n_blobs 
             data_slice = np.empty([n_blobs, 5]) # initialize an empty array
+            # also, remove blobs that are on the margin
+            
             for ii in np.arange(n_blobs):
                 blob = cblobs[ii]
                 # going through all blobs in list 
                 cr = blob[0:2]
                 dr = blob[-1]
 #                 mask = circ_mask([self.ny, self.nx], cr, dr)
-                mask = circ_mask_patch(frame_size, cr, dr) # This is way tooooooo inefficient! try to reduce the size. 
+                mask = circ_mask_patch(frame_size, cr, dr) 
                 signal_int = im0[mask].mean() # replace sum() with mean()
+                print(signal_int)
                 data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
                 
         # also, update self.data_list here instead of in stack_blobs, so you can use it right after single-frame processing!
@@ -224,9 +227,12 @@ class Cell_extract(object):
         ax1.imshow(im0, cmap = 'Greys_r' )
         ax2.imshow(im0, cmap = 'Greys_r' )
         
-        blobs_list = self.c_list[n_frame]
+        kwd = 's_'+ str(n_frame).zfill(3)
+        blobs_list = self.data_list[kwd]
         for blob in blobs_list:
-            y, x, r = blob
+            y = blob[0]
+            x = blob[1]
+            r = blob[3]
             c = plt.Circle((x, y), 1.4*r, color='g', linewidth=1, fill=False)
             ax2.add_patch(c)
         #         print(r)

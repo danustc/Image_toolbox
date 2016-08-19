@@ -3,12 +3,28 @@ Created by Dan on 08/15/16
 This file contains several small functions shared among all the classes.
 This one has Numerical functions. For graphic functions, see graph_funcs.py
 Adapted from Scipy cookbook.
-Last update: 08/17/16 
+Last update: 08/19/16 
 '''
 
 import numpy as np
 from scipy import optimize
-from scipy import fftpack 
+from scipy.ndimage import gaussian_filter1d
+
+
+
+def smooth_lpf(shit_data, ft_width = 3):
+    """
+    shit_data: the noisy data that should be smoothed.
+    ft_width: The filter width 
+    """
+    s_filt = gaussian_filter1d(shit_data, ft_width)
+    sca = np.min(shit_data/s_filt) 
+    s_final = shit_data - sca*s_filt
+    
+    return s_final, s_filt
+    # done with smooth_lpf
+
+
 
 def gaussian2D(height, center_x, center_y, width_x, width_y, ofst=0.):
     """Returns a gaussian function with the given parameters"""
@@ -64,24 +80,30 @@ def circ_mask(n_size, cr, dr):
 
 def circ_mask_patch(frame_size, cr, dr):
     """
-    pass the test for 10x10, 120x 120 arrays. 
+    pass the test for 10x10, 120x 120 arrays.
+    but failed for  
     To find the mask of a small patch on a big frame. 
     frame_size: ny, nx
     patch_size: scalar, at least 2* dr 
-    How to pass the cr information? # subtract a certain amount of INTEGER. 
-    Where is the offset? This is a tricky issue.  
+    OK finally this is debugged. 
     """
-    c_lbound = np.floor(np.array(cr) - dr).astype('uint16')  # Where the patch is cut off.
-    c_ubound = np.ceil(np.array(cr) + dr).astype('uint16')
+
+    c_lbound = np.floor(np.array(cr) - dr).astype('int16')  # Where the patch is cut off.
+    c_ubound = np.floor(np.array(cr) + dr).astype('int16') +1 
     c_patch = cr - c_lbound
-    f_patch = c_ubound - c_lbound 
-    print(f_patch)
+    f_patch = c_ubound - c_lbound
     ind_patch = circ_mask(f_patch, c_patch, dr)
-    my = ind_patch[0] + c_lbound[0]
-    mx = ind_patch[1] + c_lbound[1]
     
-    ind_mask = (my,mx)
-    return ind_mask
+    if(ind_patch[0].size == 0):
+        return ind_patch
+    else:
+        my = ind_patch[0] + c_lbound[0]
+        mx = ind_patch[1] + c_lbound[1]
+        msel_1 = np.logical_and(my >=0, mx>=0)
+        msel_2 = np.logical_and(my< frame_size[0], mx < frame_size[1])
+        msel = np.logical_and(msel_1, msel_2)
+        ind_mask = (my[msel],mx[msel])
+        return ind_mask
     
     # end of circ_mask
     
@@ -122,15 +144,5 @@ def rect_mask(n_size, c_nw, c_se):
     return mask 
 
 
-def freq_feature(arr, ax = 0, sfreq = 1.25):
-    """
-    Extract frequency features in the given arr. 
-    Suppose the given array is 2-d.
-    """
-    ndims = np.array(arr.shape)
-    ft_arr = fftpack.fft(arr, axis = ax)
-    N = ndims[ax]
-    kk = np.arange(N)*sfreq*0.5/N # the k-axis 
-    
     
     
