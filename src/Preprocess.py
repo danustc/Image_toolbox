@@ -16,7 +16,50 @@ import numpy as np
 from skimage import filters
 import scipy.fftpack as fftp
 from numeric_funcs import fitgaussian2D
+import ntpath
 
+# --------------------------------------Functions ----------------------------------------
+
+def crop_stack(dph, c_nw, c_se, post_fix = 'cr'):
+    """
+    c_nw: northwest corner 
+    c_se: southeast corner 
+    dph: the raw stack path, contains the absolute path and the filename.
+    """
+    stack = tifffunc.read_tiff(dph)
+    head, tail = ntpath.split(dph)
+    cr_name  = tail[:-4]
+    
+    if(cr_name[-1].isdigit()):
+        ii = -2
+        while(cr_name[ii].isdigit()):
+            ii-=1
+        cr_name_h = cr_name[:(ii+1)]
+        cr_name_t = cr_name[(ii+1):]
+        fname = ''.join([head, cr_name_h, post_fix, cr_name_t, tail[-4:]])
+        
+    else:
+        fname = ''.join([head, cr_name, post_fix, tail[-4:]])
+    
+    y1, x1 = c_nw
+    y2, x2 = c_se 
+
+    try:
+        cr_stack = stack[:,y1:y2, x1:x2]
+    except IndexError:
+        cr_stack = 'null'
+        
+    tifffunc.write_tiff(cr_stack, fname)
+    return cr_stack
+        
+# ----------------------------Done with crop    
+    
+    
+    
+    # if the last 
+
+
+# --------------------------------------Below are classes for deblur and drift correction 
 
 class Deblur(object):
     def __init__(self, impath, sig = 30):
@@ -248,5 +291,4 @@ class Drift_correction(object):
         return self.stack
 
 
-
-    
+#-----------------------------------------------------------------------------------------
