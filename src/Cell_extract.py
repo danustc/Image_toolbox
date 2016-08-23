@@ -88,50 +88,7 @@ class Cell_extract(object):
         # end of the function stack_blobs 
         
     
-    def redundant_removal(self, p_thresh = 2. ):
-        """
-        This chunk of code is kinda useless. Do not look into it! --- 08/11
-        remove the redundancy
-        idea: sort the blobs list according to the x,y position, compare every two adjacent frame
-        Count every n_spread adjacent slices to remove the redundant ones 
-        criteria: z continued, center difference < p_thresh pixel
-        Alert: the new z-position is always saved in the frame with larger n_frame number! 
-        """
-        # Qia tou qu wei! 
-        for n_frame in np.arange(self.n_slice-1):
-            # column: 
-            temp_archive = np.vstack((self.data_list[n_frame], self.data_list[n_frame+1]))
-            nr1 = self.data_list[n_frame].shape[0]
-            nr2 = self.data_list[n_frame+1].shape[0]
-            
-            
-            r_position = np.sqrt(temp_archive[:,0]**2 + temp_archive[:,1]**2)
-            nr = len(r_position)
-            temp_rz = np.zeros([nr, 2])
-            r_sort = np.argsort(r_position)
-            cell_flags = np.arange(nr)[r_sort] # mark the cell_flags
-            temp_rz[:,0] = r_position[r_sort] ## the sorted r position 
-            temp_rz[:,1] = temp_archive[r_sort,2] ## the sorted z position
-            
-            diff_trz = np.diff(temp_rz,axis = 0)
-            # identify the redundant cells: location divided 
-            temp_redund = np.logical_and(diff_trz[:,0]<= p_thresh, np.abs(diff_trz[:,1]) < 2) 
-            redund_marks = np.arange(nr-1)[temp_redund] # redundancy marks
-            
-            for irm in redund_marks: 
-                # go through the redundant marks
-                if diff_trz[irm] > 0: # the first frame lose the cell
-                    z1, z2 = (temp_rz[irm, 1], temp_rz[irm+1, 1])
-                    c1, c2 = (cell_flags[irm, 1], cell_flags[irm+1, 1])
-                else: # the second frame lose the cell
-                    z1, z2 = (temp_rz[irm+1, 1], temp_rz[irm, 1])
-                    c1, c2 = (cell_flags[irm+1, 1], cell_flags[irm, 1])
-                
-                s1, s2 =  (temp_archive[z1, -1], temp_archive[z2, -1]) # the signals of the two measurements 
-                zm = (z1*s1+z2*s2)/(s1+s2) # the real z-position of the cell 
-                self.data_list[n_frame] = np.delete(self.data_list[n_frame], c1, 0)
-                self.data_list[n_frame+1][c2-nr1, 2] = zm  # update the z-position in the 
-                    
+    
             # This sounds really lousy.
 
     def stack_signal_propagate(self, n_frame = 0):

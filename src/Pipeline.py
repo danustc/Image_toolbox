@@ -2,41 +2,17 @@
 Created by Dan on 08/15/2016, a test of data processing pipeline
 Last update: 08/19/2016
 """
-import ntpath
 import os
 import glob
 import numpy as np
-
+from string_funcs import path_leaf
 
 from Cell_extract import Cell_extract
 from Preprocess import Deblur, Drift_correction
 import tifffunc
 #------------------------------------------Small functions----------------------------------
 
-def path_leaf(path):
-    """
-    A tiny function for splitting filename from a long path, always the last layer, folder or not
-    """
-    head, tail = ntpath.split(path)
-    return tail or ntpath.basename(head)
-    # done with path_leaf.
 
-
-def number_strip(name_str, delim = '_', ext = True):
-    """
-    Strip the number from the filename string.
-    Untested.
-    """
-    if(ext):
-        khead = name_str.split('.')[0]
-    else:
-        khead = name_str
-    klist = khead.split(delim) 
-    knum = [km for km in klist if km.isdigit()]
-    korder =knum[-1] # usually the last one represent 
-    # how tor
-    
-    return korder
 
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -257,7 +233,6 @@ class pipeline_tstacks(object):
         
         print("All done.")
     
-                
                 
             
 #             tifffunc.write_tiff(z_dc, zp_file[:-4]+'_pp.tif')    

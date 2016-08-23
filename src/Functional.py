@@ -4,8 +4,8 @@ Calculates correlations between individual cells, create the connectivity map
 """
 import numpy as np
 import scipy.linalg.svd as SVD
-import sklearn
-
+import glob
+from string_funcs import *
 
 
 class functional():
@@ -14,9 +14,26 @@ class functional():
     """
     def __init__(self, dph):
         self.dph = dph
-        self.dff_data = np.load(dph)
+        self.ts_data  = dict()
+        self.coord = dict()
     
-        
+    def __load__(self):
+        """
+        load all the k-value data into the 
+        """
+        f_list = glob.glob(self.dph+'*') 
+        for zs_file in f_list:
+            pl = path_leaf(zs_file)
+            znum = number_strip(pl, delim = '_', ext = False)
+            kwd = 'z_'+str(znum).zfill(3)
+            data_z = np.load(zs_file)
+            self.coord[kwd] = data_z['xy']
+            self.ts_data[kwd] = data_z['data']
+        # done with loading data.        
+    
+    
+    def correlation_map(self):    
+        pass
 
 
     def feature_extract(self, t_level = 3):

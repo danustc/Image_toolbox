@@ -54,10 +54,6 @@ def crop_stack(dph, c_nw, c_se, post_fix = 'cr'):
         
 # ----------------------------Done with crop    
     
-    
-    
-    # if the last 
-
 
 # --------------------------------------Below are classes for deblur and drift correction 
 
