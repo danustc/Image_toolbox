@@ -20,6 +20,17 @@ import ntpath
 
 # --------------------------------------Functions ----------------------------------------
 
+def res_ind(indi, hdim):
+#   hdim: the dimension of the array. If the indi is larger than half of hdim, then indi is replaced by indi-hdim.
+    if(indi>hdim/2):
+        indo = indi - hdim
+    else:
+        indo = indi
+    return indo
+
+
+
+
 def crop_stack(dph, c_nw, c_se, post_fix = 'cr'):
     """
     c_nw: northwest corner 
@@ -105,7 +116,7 @@ class Deblur(object):
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
         sca =im0[gmin_ind]/(ifilt[gmin_ind])
 #         print("scale:",sca)
-        im0 -= (ifilt*sca*0.99) # update the background-corrected image
+        im0 -= (ifilt*sca*0.999) # update the background-corrected image
         return im0, ifilt
 
 
@@ -168,7 +179,7 @@ class Deblur(object):
 
 class Drift_correction(object):
     '''
-    # updated on 08/02.  
+    # updated on 08/30.  
     mfit: 0 --- linear correction
           1 --- Gaussian correction 
           2 --- nonlinear correction?  
@@ -178,7 +189,9 @@ class Drift_correction(object):
         self.nslices = raw_stack.shape[0] # number of slices
         self.idim = np.array(raw_stack.shape[1:])
         self.mfit = mfit 
-         
+        self.drift = np.zeros([self.nslices,2])
+#         self.ft_stack = fftp.fft2(raw_stack, axes=(-2,-1))
+        
         # have a raw stack
    
    
@@ -200,6 +213,7 @@ class Drift_correction(object):
 #          Cxy=ifft2(conj(FT_ref).*FT_shif);
 
         drift = self._shift_calculation(ft_ref,ft_cor)
+#         print(drift)
         # shift back y first and x second 
         im_cor = np.roll(im_cor, -drift[0], axis = 0)
         im_cor = np.roll(im_cor, -drift[1], axis = 1)
@@ -216,13 +230,7 @@ class Drift_correction(object):
         Xmax = np.argmax(X_corr)
         nrow, ncol = np.unravel_index(Xmax, X_corr.shape)
         
-        def res_ind(indi, hdim):
-#             hdim: the dimension of the array. If the indi is larger than half of hdim, then indi is replaced by indi-hdim.
-            if(indi>hdim/2):
-                indo = indi - hdim
-            else:
-                indo = indi
-            return indo
+        
         
         dry=res_ind(nrow,self.idim[0])
         drx=res_ind(ncol,self.idim[1])
@@ -264,12 +272,11 @@ class Drift_correction(object):
 #             print("center found at:", cx, cy)
             drift = [dry,  drx] + np.round([cy, cx]).astype('int64')-self.mfit
 
-
-        print("drift:", drift)            
+#         print("drift:", drift)            
         return drift
             
     
-    def drift_correct(self, offset = 1, ref_first = 'False'):
+    def drift_correct(self, offset = 1, ref_first = False):
         # offset = m: start from the mth slice  
 #         self.mfit = mfit
         im_ref = self.stack[offset]
@@ -285,6 +292,47 @@ class Drift_correction(object):
                 self.stack[ii]=self.pair_correct(im_ref,im_cor)
             
         return self.stack
+    
+    
+    def drift_correct_lite(self, offset = 1, ref_first = False):
+        """
+        Only write down the positions. 
+        """
+        
+        im_ref = self.stack[offset]
+        ns = self.nslices
+        drift_list = self.drift
+        
+        
+        if (ref_first == False):
+            for ii in np.arange(offset+1,ns):
+                im_cor = self.stack[ii]
+                ft_ref = fftp.fft2(im_ref) # fft of the reference image 
+                ft_cor = fftp.fft2(im_cor) 
+                drift_list[ii] = self._shift_calculation(ft_ref, ft_cor)
+                im_ref = self.stack[ii]
+        else:
+            # take the first slice as the reference
+            ft_ref = fftp.fft2(im_ref)
+            for ii in np.arange(offset+1,ns):
+                im_cor = self.stack[ii]
+                ft_cor = fftp.fft2(im_cor) 
+                drift_list[ii] = self._shift_calculation(ft_ref, ft_cor)
+            
+        
+        for ii in np.arange(offset+1, ns):
+            drift_pxl = (-drift_list[ii]).astype('int')
+            print(drift_pxl)
+            new_slice = np.roll(self.stack[ii], drift_pxl[0], axis = 0)
+            new_slice = np.roll(new_slice, drift_pxl[1], axis = 1)
+            self.stack[ii] = new_slice
+        
+        
+        
+        return self.stack
+        
+        
+        
 
 
 #-----------------------------------------------------------------------------------------
