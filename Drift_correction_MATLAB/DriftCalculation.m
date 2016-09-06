@@ -21,7 +21,7 @@ function [drift, Ccorr_map]=DriftCalculation(Im_ref, Im_shif, mfit)
     [~, nind] = max(Cxy(:));
     
     [Shy, Shx] = ind2sub(idim, nind); 
-  
+  args, Dfun, full_output, col_deriv, ftol, xtol, gtol, maxfev, epsfcn, factor, diag
     function indo=res_ind(indi, hdim)
         % hdim: the dimension of the array. If the indi is larger than half of hdim, then indi is replaced by indi-hdim.
         if(indi > hdim/2)
