@@ -38,7 +38,8 @@ class Cell_extract(object):
         mx_sig = self.blobset[0]
         mi_sig = self.blobset[1]
         nsig = self.blobset[2]
-        th = (np.mean(im0)-np.min(im0))/12.2
+        # comment on 09/05: we need a smarter way to do the threshold setting.
+        th = (np.mean(im0)-np.min(im0))/15.0
 #         print("threshold:", th)
         cblobs = blob_log(im0, 
             max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
@@ -117,7 +118,7 @@ class Cell_extract(object):
         blob_time_stack = dict()
         coords = data_slice[:,:2] # takenout the y and x coordinates as maps
         blob_time_stack['xy'] = coords
-        dr_min = np.min(data_slice[:,3]) # get an uniform dr. 
+        dr_min = np.min(data_slice[:,3])-0.5 # get an uniform dr. 
         train_signal = np.zeros((self.n_slice, n_blobs))
         
         for z_frame in np.arange(self.n_slice):

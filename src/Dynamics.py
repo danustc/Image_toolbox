@@ -22,22 +22,26 @@ class Temporal_analysis(object):
         """
         TS_data: the blob values of 
         """
-        self.ts_data = TS_data 
+       
         self.dims = dims# Is it OK to always keep the time series inside the memory? 
-        if(type(TS_data) == type(dict())):
-            # each frame has its own cell extractions
-            self.data_type = 'd' 
-            n_time = len(TS_data)
-            self.n_cell = None # to be assigned later
         
-        elif(type(TS_data) == np.ndarray):
+        
+        if(type(TS_data) == np.ndarray):
             # OK! We got an python numpy array
             
             self.ref_im = np.zeros(dims)
-            n_time, n_cell = TS_data.shape[:-1]
+            self.n_time, self.n_cell = TS_data.shape[:-1]
+            
             self.coord = TS_data[0,:,:-1] # the coordinates of all the cells 
-            self.n_cell = n_cell
+            self.ts_data = TS_data 
             self.data_type = 'a'
+            
+        else:
+            # each frame has its own cell extractions
+            self.data_type = 'd' 
+            self.ts_data = TS_data['data']
+            self.coord = TS_data['xy']
+            self.n_time, self.n_cell = self.ts_data.shape[:2]
             
         if(ref_im is None):
             # create a reference image 
@@ -47,7 +51,6 @@ class Temporal_analysis(object):
             
             
         
-        self.n_time = n_time
         self.fig_d = None
         self.sweet_list = np.array([]) # create an empty list to save the good cells. This really requires a GUI.
         # done with initialization. This is kinda long.
@@ -61,8 +64,11 @@ class Temporal_analysis(object):
         nc = self.n_cell
         dff = np.zeros([self.n_time, nc]) 
         f0 = np.zeros_like(dff)
-        f_raw = self.ts_data[:,:,2] # taking out the signal part 
-       
+        if(self.data_type == 'a'):
+            f_raw = self.ts_data[:,:,2] # taking out the signal part 
+        else:
+            f_raw = self.ts_data
+        
         for ic in np.arange(nc):
             # calculate the dff for each cell
             dff[:,ic], f0[:,ic] = dff_raw(f_raw[:,ic], ft_width)
@@ -144,7 +150,7 @@ class Temporal_analysis(object):
         OK this kinda works. How to return the coordinates upon mouse clicking?
         Update: have a saved cell-distribution
         """
-        slice_0 = self.ts_data[0, :, 0:-1] # taking out the first slice 
+        slice_0 = self.coord # taking out the first slice 
         if(self.fig_d is None):
             fig = plt.figure(figsize = (7,6))
         else:

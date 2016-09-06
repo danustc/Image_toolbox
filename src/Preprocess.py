@@ -14,6 +14,7 @@ To be updated: replace all the global variables with local variables.
 import tifffunc
 import numpy as np
 from skimage import filters
+from scipy.ndimage.filters import uniform_filter
 import scipy.fftpack as fftp
 from numeric_funcs import fitgaussian2D
 import ntpath
@@ -69,7 +70,7 @@ def crop_stack(dph, c_nw, c_se, post_fix = 'cr'):
 # --------------------------------------Below are classes for deblur and drift correction 
 
 class Deblur(object):
-    def __init__(self, impath, sig = 30):
+    def __init__(self, impath, sig = 30, ftype = 'g'):
         """
         Update on 0
         sig is the width of Gaussian filter
@@ -85,7 +86,7 @@ class Deblur(object):
         print("The shape of images:", self.px_num)
         self.status = -1* np.ones(self.Nslice) # the status 
         self.sig = sig
-        
+        self.ftype = ftype # specify the filter type
         
         """
         status = -1: the slices are raw
@@ -110,7 +111,10 @@ class Deblur(object):
             
         im0[im0 ==0] = ofst # remove all the zero pixels 
             
-        ifilt = filters.gaussian(im0, sigma=sig)
+        if(self.ftype == 'g'):
+            ifilt = filters.gaussian(im0, sigma=sig)
+        else:
+            ifilt = uniform_filter(im0, size = sig) # test uniform filter
         iratio = im0/ifilt
         nmin = np.argmin(iratio) 
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
@@ -185,52 +189,28 @@ class Drift_correction(object):
           2 --- nonlinear correction?  
     '''
     def __init__(self, raw_stack, mfit = 0):
+        """
+        do not save the raw_stack in the class.
+        """
         self.stack = raw_stack
         self.nslices = raw_stack.shape[0] # number of slices
         self.idim = np.array(raw_stack.shape[1:])
         self.mfit = mfit 
         self.drift = np.zeros([self.nslices,2])
-#         self.ft_stack = fftp.fft2(raw_stack, axes=(-2,-1))
-        
         # have a raw stack
-   
-   
-    def pair_correct(self, im_ref = None, im_cor = None):
-        # calculate the pixel shift between a pair of images (no correction is done at this moment!) 
-        # no further argument tested.
-        
-        if(im_ref is None):
-            im_ref = self.im_ref
-        if(im_cor is None):
-            im_cor = self.im_cor
-        
-#         print("Image marks:")
-#         print(np.mean(im_ref), np.mean(im_cor))
-        ft_ref = fftp.fft2(im_ref) # fft of the reference image 
-        ft_cor = fftp.fft2(im_cor) 
-        # here do the fftw-2d
-        # some shift might be necessary to 
-#          Cxy=ifft2(conj(FT_ref).*FT_shif);
-
-        drift = self._shift_calculation(ft_ref,ft_cor)
-#         print(drift)
-        # shift back y first and x second 
-        im_cor = np.roll(im_cor, -drift[0], axis = 0)
-        im_cor = np.roll(im_cor, -drift[1], axis = 1)
-        
-        return im_cor
     
     def _shift_calculation(self, ft_ref,ft_cor):
-         
+        """
+        only ft_frames are passed into this function, but the fr_frames can be reused outside. 
+        """
+        
         F_prod = np.conj(ft_ref)*ft_cor
-        X_corr = fftp.ifft2(F_prod).astype('float')
-        
-        
+        X_corr = np.abs(fftp.ifft2(F_prod))
+
+              
         # findout the maximum of X_corr and fit to the Gaussian 
         Xmax = np.argmax(X_corr)
         nrow, ncol = np.unravel_index(Xmax, X_corr.shape)
-        
-        
         
         dry=res_ind(nrow,self.idim[0])
         drx=res_ind(ncol,self.idim[1])
@@ -260,6 +240,7 @@ class Drift_correction(object):
             else:
                 Cny = np.mod(dry, self.idim[0])
 
+            self.xcorr = X_corr
             xrange = np.arange(Cnx-self.mfit, Cnx+ self.mfit+1) # Again, this "+1" is due to the subtle differences between matlab and python. 
             yrange = np.arange(Cny-self.mfit, Cny+ self.mfit+1)                
             corr_profile = X_corr[yrange,:][:,xrange]
@@ -268,71 +249,46 @@ class Drift_correction(object):
             popt = fitgaussian2D(corr_profile)
             cx = popt[1]
             cy = popt[2]
+#             dx = popt[3]
+#             dy = popt[4]
+#             print(cy,cx, dx, dy)
             
 #             print("center found at:", cx, cy)
             drift = [dry,  drx] + np.round([cy, cx]).astype('int64')-self.mfit
-
-#         print("drift:", drift)            
+#         print(dry, drx)
+        print("drift:", drift)            
         return drift
             
     
     def drift_correct(self, offset = 1, ref_first = False):
         # offset = m: start from the mth slice  
 #         self.mfit = mfit
-        im_ref = self.stack[offset]
+        iref = offset
+        im_ref = self.stack[iref]
+        ft_ref = fftp.fft2(im_ref)
         if (ref_first == False):
-            for ii in np.arange(offset+1,self.nslices):
-                im_cor = np.copy(self.stack[ii])
-                self.stack[ii]=self.pair_correct(im_ref,im_cor)
-                im_ref = self.stack[ii]
+            for icor in np.arange(offset+1,self.nslices):
+                im_cor = self.stack[icor]
+                ft_cor = fftp.fft2(im_cor)
+                drift = self._shift_calculation(ft_ref, ft_cor)
+                im_cor = np.roll(im_cor, -drift[0], axis = 0)
+                im_cor = np.roll(im_cor, -drift[1], axis = 1)
+                self.stack[icor] = im_cor
+                ft_ref = ft_cor # reuse ft_ref
         else:
             # take the first slice as the reference
-            for ii in np.arange(offset+1,self.nslices):
-                im_cor = np.copy(self.stack[ii])
-                self.stack[ii]=self.pair_correct(im_ref,im_cor)
-            
+            for icor in np.arange(offset+1,self.nslices):
+                im_cor = self.stack[icor]
+                ft_cor = fftp.fft2(im_cor)
+                drift = self._shift_calculation(ft_ref, ft_cor)
+#                 print(drift)
+                im_cor = np.roll(im_cor, -drift[0], axis = 0)
+                im_cor = np.roll(im_cor, -drift[1], axis = 1)
+                self.stack[icor] = im_cor
+                # differs from the ref_first False case by the last statement
+
         return self.stack
     
-    
-    def drift_correct_lite(self, offset = 1, ref_first = False):
-        """
-        Only write down the positions. 
-        """
-        
-        im_ref = self.stack[offset]
-        ns = self.nslices
-        drift_list = self.drift
-        
-        
-        if (ref_first == False):
-            for ii in np.arange(offset+1,ns):
-                im_cor = self.stack[ii]
-                ft_ref = fftp.fft2(im_ref) # fft of the reference image 
-                ft_cor = fftp.fft2(im_cor) 
-                drift_list[ii] = self._shift_calculation(ft_ref, ft_cor)
-                im_ref = self.stack[ii]
-        else:
-            # take the first slice as the reference
-            ft_ref = fftp.fft2(im_ref)
-            for ii in np.arange(offset+1,ns):
-                im_cor = self.stack[ii]
-                ft_cor = fftp.fft2(im_cor) 
-                drift_list[ii] = self._shift_calculation(ft_ref, ft_cor)
-            
-        
-        for ii in np.arange(offset+1, ns):
-            drift_pxl = (-drift_list[ii]).astype('int')
-            print(drift_pxl)
-            new_slice = np.roll(self.stack[ii], drift_pxl[0], axis = 0)
-            new_slice = np.roll(new_slice, drift_pxl[1], axis = 1)
-            self.stack[ii] = new_slice
-        
-        
-        
-        return self.stack
-        
-        
-        
 
 
 #-----------------------------------------------------------------------------------------

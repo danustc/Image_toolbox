@@ -165,7 +165,7 @@ class pipeline_tstacks(object):
       
     
     
-    def tstack_prepro(self, list_num = 0, deblur = 30, align = True, ext_all=True):
+    def tstack_prepro(self, list_num = 0, deblur = 30, filter_type = 'g', align = True, ext_all=True):
         """
         This part is similar to the zstack_prepro one in the first class.
         list_num: the number in the tif-list 
@@ -179,7 +179,7 @@ class pipeline_tstacks(object):
         
         if(deblur>0):
             prefix = 'db_'
-            t_DB = Deblur(ts_name, sig = deblur) # deblur
+            t_DB = Deblur(ts_name, sig = deblur, ftype = filter_type) # deblur
             t_dbstack = t_DB.stack_high_trunc() 
             if(self.dims is None):
                 self.dims = t_DB.px_num # he

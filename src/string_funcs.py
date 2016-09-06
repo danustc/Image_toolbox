@@ -6,7 +6,6 @@ Contains all the string functions (mostly file name parsing)
 import ntpath
 
 
-
 def path_leaf(path):
     """
     A tiny function for splitting filename from a long path, always the last layer, folder or not
