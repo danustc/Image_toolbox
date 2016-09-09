@@ -107,20 +107,21 @@ def circ_mask_patch(frame_size, cr, dr):
     
     # end of circ_mask
     
-def circs_reconstruct(dims, blob_list):
+def circs_reconstruct(dims, blob_list, dr = 3):
     """
     Reconstruct an image (a 2d array) with a list of blobs marked on it.
     dims: (ny, nx)
-    blob_list: a 2-d array  
+    blob_list: a 2-d array, the first two columns specify the position of blobs in pixels, the third column specifies the signal intensity.  
+    This should be updated. 
+    
     """
     new_frame = np.zeros(dims)
     for blob in blob_list:
         # [blob[0], blob[1], n_frame, dr, signal_int]
         cr = [blob[0], blob[1]] # the center of blob in the unit of pixel
-        dr = blob[3]
-        sigs = blob[-1]
+        sigs = blob[2]
         
-        mask = circ_mask(dims, cr, dr)
+        mask = circ_mask_patch(dims, cr, dr)
         new_frame[mask] = sigs
         
 
