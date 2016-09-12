@@ -261,11 +261,16 @@ class Drift_correction(object):
             
     
     def drift_correct(self, offset = 1, ref_first = False):
+        """
+        Update on 09/09: keep the drift list, so the cell coordinates might need be updated.
+        """
         # offset = m: start from the mth slice  
 #         self.mfit = mfit
         iref = offset
         im_ref = self.stack[iref]
         ft_ref = fftp.fft2(im_ref)
+        drift_list = np.zeros(self.nslices, 2)
+        
         if (ref_first == False):
             for icor in np.arange(offset+1,self.nslices):
                 im_cor = self.stack[icor]
@@ -274,6 +279,7 @@ class Drift_correction(object):
                 im_cor = np.roll(im_cor, -drift[0], axis = 0)
                 im_cor = np.roll(im_cor, -drift[1], axis = 1)
                 self.stack[icor] = im_cor
+                drift_list[icor] = drift
                 ft_ref = ft_cor # reuse ft_ref
         else:
             # take the first slice as the reference
@@ -285,8 +291,11 @@ class Drift_correction(object):
                 im_cor = np.roll(im_cor, -drift[0], axis = 0)
                 im_cor = np.roll(im_cor, -drift[1], axis = 1)
                 self.stack[icor] = im_cor
+                drift_list[icor] = drift
                 # differs from the ref_first False case by the last statement
-
+        
+        self.drift_list = drift_list
+        
         return self.stack
     
 
