@@ -8,9 +8,9 @@ import os
 import numpy as np
 import glob 
 from numeric_funcs import circs_reconstruct, corr_mat
+from df_f import dff_raw, dff_expfilt
 from string_funcs import path_leaf, number_strip
 from Preprocess import Drift_correction
-from Dynamics import Temporal_analysis
 
 #=First of all, let's have a couple of small functions and a tiny class
 
@@ -47,7 +47,7 @@ class Redundant_removal(object):
         """
         work_folder: the folder containing all the npz files.
         dims: the size of the frames, unit: pixel
-        temporal analysis added.
+        temporal analysis added to convert all the raw_fluorescence into df_f.
         """
         self.work_folder = work_folder
         self.ny, self.nx = dims
@@ -64,13 +64,12 @@ class Redundant_removal(object):
             # load dataset one by one
             dset_name = data_list[iz] 
             zset = np.load(dset_name)
-            coord = zset['xy']
-            data = zset['data']
+            zm = self.dff_convert(zset, ft_width = 6)
             z_name = path_leaf(dset_name)
             z_keys[iz] = int(number_strip(z_name, delim = '_', ext = True))
             data_key = z_keys[iz]
-            n_blobs[data_key] = coord.shape[0] # number of blobs in each z-slice
-            z_images[data_key] = z_image(coord, data)#             data_key = format(z_keys[iz], '03d')
+            n_blobs[data_key] = zm.n_cell # number of blobs in each z-slice
+            z_images[data_key] = zm     # data_key = format(z_keys[iz], '03d')
             
             # add a key stripping statement here
         self.nz = nz
@@ -78,7 +77,28 @@ class Redundant_removal(object):
         self.z_keys = z_keys # sort the z_keys 
         self.n_blobs = n_blobs
         self.z_images = z_images
-        # done with z_images 
+        # done with z_images initialization
+        
+         
+        
+    def dff_convert(self, zset, ft_width = 6):
+        """
+        convert the raw data into df_f, save as z_images 
+        """    
+        coord = zset['xy']
+        data = zset['data']
+        nc = coord.shape[0]
+        
+        dff_r = dff_raw(data, ft_width)[0]
+        dff = np.zeros_like(dff_r)
+        
+        for cc in np.arange(nc):
+            dff[:,cc] = dff_expfilt(dff_r[:,cc], dt = 0.80, t_width = 2.0)[0]
+         
+        
+        zm = z_image(coord, dff)
+        return zm 
+        
         
     
     def zs_construct(self):

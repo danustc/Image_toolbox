@@ -1,7 +1,7 @@
 """
 This is df/f calculation based on the paper: Nature protocols, 6, 28–35, 2011
 Created by Dan on 08/18/16
-Last update: 08/19/16 ---- I love scipy!!! 
+Last update: 09/13/16 
 """
 
 import numpy as np
@@ -12,13 +12,16 @@ import matplotlib.pyplot as plt
 def min_window(shit_data, wd_width = 10):
     """
     Calculate the baseline  
-    Very awkward 
+    Very awkward
+    update on 09/13: this allows for the multiple cell-processing.  The module "Dynamics" should be updated accordingly.
     """
     f0 = np.zeros_like(shit_data)
-    f0[0:wd_width] = np.min(shit_data[0:wd_width])
+    f0[:wd_width] = np.amin(shit_data[:wd_width], axis = 0) 
+    
     N = len(f0)
     for ii in np.arange(wd_width, N):
-        f0[ii] = np.min(shit_data[ii-wd_width:ii])
+        f0[ii] = np.amin(shit_data[ii-wd_width:ii], axis = 0) 
+        
     return f0
 # this is a good baseline calculation. 
 

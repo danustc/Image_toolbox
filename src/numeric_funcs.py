@@ -19,7 +19,7 @@ def smooth_lpf(shit_data, ft_width = 3):
     shit_data: the noisy data that should be smoothed.
     ft_width: The filter width 
     """
-    s_filt = gaussian_filter1d(shit_data, ft_width)
+    s_filt = gaussian_filter1d(shit_data, ft_width, axis = 0)
     sca = np.min(shit_data/s_filt) 
     s_final = shit_data - sca*s_filt
     
@@ -176,15 +176,23 @@ def corr_mat(arr_a, arr_b=None, scorr = False):
         
         dcm = dcc.as_matrix()
     return dcm
+    # done with corr_mat   
     
     
+def histo_peak(im_arr, val_cut, nbin = 50):
+    """
+    Construct a histogram of an image.
+    cut off values below val_cut.
+    Return peak position
+    """
     
+    hist, bdge = np.histogram(im_arr, bins = nbin)
+    n_cut = np.searchsorted(bdge, val_cut)
     
+    pmx = np.argmax(hist[n_cut:])
+    pk = (bdge[pmx] + bdge[pmx+1])/2.
     
-    
-
-
-    
+    return pk
 
     
     
