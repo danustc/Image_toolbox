@@ -3,10 +3,12 @@ Created by Dan on 08/15/16
 This file contains several small functions shared among all the classes.
 This one has Numerical functions. For graphic functions, see graph_funcs.py
 Adapted from Scipy cookbook.
-Last update: 08/19/16 
+Last update: 09/13/16 
 '''
 
 import numpy as np
+import pandas as pd
+from pandas import DataFrame as df
 from scipy import optimize
 from scipy.ndimage import gaussian_filter1d
 
@@ -143,7 +145,46 @@ def rect_mask(n_size, c_nw, c_se):
     mask = [ly,lx]
     
     return mask 
+    # done with rect _mask
+    
+    
+def corr_mat(arr_a, arr_b=None, scorr = False):
+    """
+    Convert two arrays, arr_a and arr_b into pandas dataframes and calculate the cross-correlations 
+    preserve the self-correlated part if scorr is True.
+    This contains some redundant calculation if the self-calculation is discarded. However, iteration would be even slower.
+    """ 
+    if arr_b is None:
+        # calculate self correlation
+        df_a = df(arr_a)
+        dcm = df_a.corr().as_matrix()
+    
+    else:
+        na = arr_a.shape[1]
+        nb = arr_b.shape[1]
+        
+        col_a = ['a'+str(x) for x in np.arange(na)]
+        col_b = ['b'+str(x) for x in np.arange(nb)]
+        df_a = df(arr_a, columns = col_a)
+        df_b = df(arr_b, columns = col_b)
+        
+        df_concat = pd.concat([df_a,df_b], axis = 1)
+        if scorr:
+            dcc = df_concat.corr() 
+        else:
+            dcc = df_concat.corr().ix[0:na, na:] # only taking out the upper right block, with na columns and nb rows.
+        
+        dcm = dcc.as_matrix()
+    return dcm
+    
+    
+    
+    
+    
+    
 
+
+    
 
     
     

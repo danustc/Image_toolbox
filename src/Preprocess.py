@@ -256,7 +256,6 @@ class Drift_correction(object):
 #             print("center found at:", cx, cy)
             drift = [dry,  drx] + np.round([cy, cx]).astype('int64')-self.mfit
 #         print(dry, drx)
-        print("drift:", drift)            
         return drift
             
     
@@ -269,7 +268,7 @@ class Drift_correction(object):
         iref = offset
         im_ref = self.stack[iref]
         ft_ref = fftp.fft2(im_ref)
-        drift_list = np.zeros(self.nslices, 2)
+        drift_list = np.zeros([self.nslices, 2])
         
         if (ref_first == False):
             for icor in np.arange(offset+1,self.nslices):

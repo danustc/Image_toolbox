@@ -1,7 +1,7 @@
 """
 Created by Dan on 08/02/16
 For group processing
-Last update: 08/15/16
+Last update: 09/13/16
 """
 
 import glob
@@ -10,8 +10,21 @@ import tifffunc
 import numpy as np
 from Preprocess import Drift_correction, Deblur
 from Cell_extract import Cell_extract
+from Redundancy import Redundant_removal 
 
 
+def group_redund_rm(datapath, dims = [1000, 1000]):
+    """
+    Remove redundancy from a group of .npz files 
+    """
+#     pass
+    rrm = Redundant_removal(datapath, dims)
+    rrm.zs_construct()
+    rrm.corrmap_stack()
+    corr_map = rrm.corr_map
+    return corr_map
+    
+    
 
 
 def group_alignment(datapath, nameflag = 'TS', ofst = 1, mfit = 7):
@@ -27,23 +40,6 @@ def group_alignment(datapath, nameflag = 'TS', ofst = 1, mfit = 7):
         tifffunc.write_tiff(a_stack[ofst:].astype('uint16'), n_out)
         
 
-def group_deblur_inplane(datapath, nameflag = 'TS*', sig= 30, n_apdx = '_db', overwrite = True):
-    """
-    group_deblur_inplane, regardless of aligned or not 
-    """
-    raw_list = glob.glob(datapath + '*' + nameflag + '*.tif')
-    for raw_name in raw_list:
-        n_base = raw_name[:-4]
-        DB = Deblur(impath = n_base, sig)
-        DB.stack_high_trunc(adjacent= False, wt=0)
-        if(overwrite == False):
-            DB.write_stack(n_apdx)
-        else:
-            DB.write_stack(None)
-    print("The stack has been deblurred. ")        
-            
-            
-            
             
 def group_deblur_cross():
     # to be filled later 
