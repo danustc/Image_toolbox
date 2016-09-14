@@ -1,6 +1,6 @@
 """
 # ----------- Author: Dan Xie ------------------------
-# ------------Last update: 08/15/2016 --------------------------
+# ------------Last update: 09/13/2016 --------------------------
 
 for pre-processing (actually pre-preprocessing.)
 This file has two classes: 
@@ -16,7 +16,7 @@ import numpy as np
 from skimage import filters
 from scipy.ndimage.filters import uniform_filter
 import scipy.fftpack as fftp
-from numeric_funcs import fitgaussian2D
+from numeric_funcs import fitgaussian2D, histo_peak
 import ntpath
 
 # --------------------------------------Functions ----------------------------------------
@@ -159,7 +159,7 @@ class Deblur(object):
 
     def stack_high_trunc(self, adjacent = False, wt = 0.40):
     # run stack_high_trunc for a whole stack
-    # updated: make adjacent optional  
+    # updated: make adjacent optional
         for ii in np.arange(self.Nslice):
             self.current = ii
             if(adjacent):
@@ -168,6 +168,26 @@ class Deblur(object):
 
         return self.new_stack
         # done with stack_high_trunc
+
+    def baseline_redef(self):
+        """
+        Added on 09/13, aims at removing the artefacts from background subtraction.
+        must be performed after in-plane background subtraction. 
+        """
+        ny, nx = self.px_num
+        nbin = int(2*np.log2(ny*nx)) # number of bins
+        
+        px_max = np.zeros(self.Nslice)
+        
+        for ns in np.arange(self.Nslice):
+            im_bs = self.new_stack[ns]
+            val_cut = np.mean(im_bs)*0.5 # where to cut off 
+            px_max[ns] = histo_peak(im_bs, val_cut, nbin)
+        
+            
+        self.px_max = px_max 
+        return px_max
+
 
     
     def write_stack(self, n_apdx):
@@ -294,7 +314,7 @@ class Drift_correction(object):
                 # differs from the ref_first False case by the last statement
         
         self.drift_list = drift_list
-        
+        print(drift_list)
         return self.stack
     
 

@@ -190,7 +190,7 @@ def histo_peak(im_arr, val_cut, nbin = 50):
     n_cut = np.searchsorted(bdge, val_cut)
     
     pmx = np.argmax(hist[n_cut:])
-    pk = (bdge[pmx] + bdge[pmx+1])/2.
+    pk = (bdge[pmx] + bdge[pmx+1])*0.5
     
     return pk
 

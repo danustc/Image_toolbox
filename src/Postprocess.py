@@ -1,28 +1,27 @@
 """
-Added by Dan on 08/22/2016. To deal with redundancy. 
-Can be run independently. Operated on the key-value data instead of the raw images.
-After redundancy removal, the entire z-y-x-t can be saved as a 3-D npy array.
-Last update: 09/13/2016
+Created on 09/13/2016 by Dan. 
+The purpose is to postprocess the extracted fluorescence signals into df_f (raw and filtered)
 """
-import os
-import numpy as np
-import glob 
-from numeric_funcs import circs_reconstruct, corr_mat
-from df_f import dff_raw, dff_expfilt
-from string_funcs import path_leaf, number_strip
-from Preprocess import Drift_correction
 
-#=First of all, let's have a couple of small functions and a tiny class
+import os 
+import glob
+import df_f 
+import numeric_funcs as numfc
+from string_funcs import path_leaf, number_strip
+import numpy as np
+from Preprocess import Drift_correction
+# -----------------------------First, let's define a small class storing everything 
 
 class z_image():
-    def __init__(self, coord, data):
+    def __init__(self, coord, f_raw):
         """
         This is a tiny structure for storaging the data.
         """
         self.coord = coord
-        self.data = data
-        self.n_cell = coord.shape[0]
-        
+        self.f_raw = f_raw
+        self.n_time, self.n_cell = f_raw.shape
+    
+            
     def coord_shift(self, dy = None, dx = None):
         """
         shift the coordinate by dy or dx
@@ -36,21 +35,50 @@ class z_image():
             pass
         else:
             self.coord[:,1] -= dx
+
+    
+    
+    def dff_calc(self, wd = 6):
+        """
+        convert the raw_fluorescence into dff
+        """
+        dff = df_f.dff_raw(self.f_raw, ft_width = wd)
+        self.dff = dff 
+        return dff
+    
+    
+    def bright_histo(self):
+        """
+        construct a brightness histogram for each time-point 
+        """
+        nbin = int(self.n_cell*0.10)
+        histo_bg = np.zeros(self.n_cell)
+        
+        for nt in np.arange(self.n_time):
+            fr = self.f_raw[nt] # take the nt-th row (not column!!!) within the same time point
+            val_cut = np.mean(fr)*0.50
+            pv  = numfc.histo_peak(fr, val_cut, nbin)
+            histo_bg[nt] = pv
+            self.f_raw[nt] -= pv # correct by offset
+        
+        self.f_raw -= np.min(self.f_raw) # let's make it positive.
         
         
-# The big class for redundancy removal
-# =========================================================================================================        
-
-
-class Redundant_removal(object):
+"""
+Done with z_image. Next, let's define another class to construct the distance and correlation map.
+"""
+#================================================================================================================
+class brain_construct(object):
+    """
+    This class contains all the data structures that suitable for future analysis, including:
+    1. a list of z_image classes
+    2. a reference blobs positions for registration
+    3. a distance map between every two cells
+    4. a correlation map between every two cells.
+    """
+        
     def __init__(self, work_folder, dims):
-        """
-        work_folder: the folder containing all the npz files.
-        dims: the size of the frames, unit: pixel
-        temporal analysis added to convert all the raw_fluorescence into df_f.
-        Note on 09/13: This must be organized in a better way with all its functions splitted instead of intertwined.
         
-        """
         self.work_folder = work_folder
         self.ny, self.nx = dims
         data_list = glob.glob(work_folder+'*.npz*')
@@ -66,7 +94,9 @@ class Redundant_removal(object):
             # load dataset one by one
             dset_name = data_list[iz] 
             zset = np.load(dset_name)
-            zm = self.dff_convert(zset, ft_width = 6)
+            coord = zset['xy']
+            f_raw = zset['data']
+            zm = z_image(coord, f_raw)
             z_name = path_leaf(dset_name)
             z_keys[iz] = int(number_strip(z_name, delim = '_', ext = True))
             data_key = z_keys[iz]
@@ -79,30 +109,9 @@ class Redundant_removal(object):
         self.z_keys = z_keys # sort the z_keys 
         self.n_blobs = n_blobs
         self.z_images = z_images
-        # done with z_images initialization
-        
-         
-        
-    def dff_convert(self, zset, ft_width = 6):
-        """
-        convert the raw data into df_f, save as z_images 
-        """    
-        coord = zset['xy']
-        data = zset['data']
-        nc = coord.shape[0]
-        
-        dff_r = dff_raw(data, ft_width)[0]
-        dff = np.zeros_like(dff_r)
-        
-        for cc in np.arange(nc):
-            dff[:,cc] = dff_expfilt(dff_r[:,cc], dt = 0.80, t_width = 2.0)[0]
-         
-        
-        zm = z_image(coord, dff)
-        return zm 
         
         
-    
+        
     def zs_construct(self):
         """ 
         construct a virtual z-stack, do the alignment
@@ -124,7 +133,7 @@ class Redundant_removal(object):
             blob_list = np.zeros([nb, 3])
             blob_list[:,:2] = z_image.coord
             blob_list[:,2] = sig_aver
-            temp_stack[zz] = circs_reconstruct(frame_size, blob_list, dr=4) # mark out very small circles to calculate correlations
+            temp_stack[zz] = numfc.circs_reconstruct(frame_size, blob_list, dr=6) # mark out very small circles to calculate correlations
         
         Z_drc = Drift_correction(temp_stack, mfit = 0)
         new_stack = Z_drc.drift_correct(offset=0, ref_first = False) # drift correct. 
@@ -141,16 +150,17 @@ class Redundant_removal(object):
             
         self.z_stack = new_stack
         return new_stack
-
-
+    
+    
+    
     def corrmap_stack(self):
         """
         Construct a correlation map and a distance map which can be passed to other functions. 
         """
         n_all = self.n_blobs.sum()
         n_cumu = self.n_blobs.cumsum()
-        self.n_cumu = np.concatenate(([0], n_cumu))
-        
+        n_cumu = np.concatenate(([0], n_cumu))
+        self.n_cumu = n_cumu
         
         self.dist_map = np.zeros([n_all, n_all])
         self.corr_map = np.zeros([n_all, n_all])
@@ -158,10 +168,16 @@ class Redundant_removal(object):
         # construct the correlation map and distance map blockwise 
         for z_corr in np.arange(self.nz):
             print(z_corr)
-            self.corrmap_self(z_corr)
+            c_start = n_cumu[z_corr]
+            c_end = n_cumu[z_corr+1]
+            self._corrmap_self_(z_corr)
             for z_ref in np.arange(z_corr):
-                self.corrmap_pair(z_ref, z_corr)
-            
+                dist_map_p2, corr_map_p2 = self._corrmap_pair_(z_ref, z_corr)
+                r_start = n_cumu[z_ref]
+                r_end = n_cumu[z_ref+1]
+                
+                self.dist_map[r_start:r_end, c_start:c_end] = dist_map_p2
+                self.corr_map[r_start:r_end, c_start:c_end] = corr_map_p2
             
         # symmetrize self.dist_map and self.corr_map
         # WARNING!!!!! Here we cannot use "+=" operator.
@@ -170,25 +186,24 @@ class Redundant_removal(object):
         # done with corr_stack
 
 
-    def corrmap_self(self, z_frame):
+    def _corrmap_self_(self, z_frame):
         """
-        self correlation
+        self correlation, private function.
         """
         
         data = self.z_images[z_frame].data
-        corr_map_in = corr_mat(data)/2. # because of the symmetrization step, here the diagonal block is reduced by 2.
+        corr_map_in = numfc.corr_mat(data)/2. # because of the symmetrization step, here the diagonal block is reduced by 2.
         
         n_sta = self.n_cumu[z_frame]
         n_end = self.n_cumu[z_frame+1]
         self.corr_map[n_sta:n_end, n_sta:n_end] = corr_map_in
-        
+        # done with _corrmap_self_
 
 
 
-
-    def corrmap_pair(self, z_ref, z_corr):
+    def _corrmap_pair_(self, z_ref, z_corr):
         """
-        detect redundancy between two adjacent slices
+        detect redundancy between two adjacent slices, private function.
         Method: 
         1.Construct a distance map, calculate the distances between every two cells.
         2.Find out the correlations between every two adjacent cells, fill up the correlation map.
@@ -210,29 +225,41 @@ class Redundant_removal(object):
         dist_map_p2 = np.sqrt((YC-YR)**2 + (XC-XR)**2) # distant map
         
         # construct the correlation map        
-        data_ref = im_ref.data
-        data_corr = im_corr.data
-        corr_map_p2 = corr_mat(data_ref, data_corr, scorr = False)
+        data_ref = im_ref.dff
+        data_corr = im_corr.dff
+        corr_map_p2 = numfc.corr_mat(data_ref, data_corr, scorr = False)
         
         
         # self.n_cumu is in the function zs_construct
-        r_start = self.n_cumu[z_ref]
-        r_end = self.n_cumu[z_ref+1]
-        c_start = self.n_cumu[z_corr]
-        c_end = self.n_cumu[z_corr+1]
         
         
-        self.dist_map[r_start:r_end, c_start:c_end] = dist_map_p2
-        self.corr_map[r_start:r_end, c_start:c_end] = corr_map_p2
         
-
-        # done with updating the block, only UPPER RIGHT side is updated! 
+        return dist_map_p2, corr_map_p2
+        # done with _corrmap_pair_
         
-    def red_detect(self, z_cross = 2):
+        
+        
+        
+    def red_detect(self, d_crt = 2.0, c_thresh = 0.7):
         """
-        Detect redundancy
-        z_cross: up or down by z_cross number of slices. 
-        """ 
+        detect redundancy by 3 conditions:
+        0. the center of the two cells are smaller than 
+        1. distance between the two cells are less than d_crt
+        2. correlation is larger than the c_thresh  
+        """
         
-        
-        
+        n_cumu = self.n_cumu
+        for na in np.arange(self.nz-1):
+            n_start = n_cumu[na]
+            n_mid = n_cumu[na+1]
+            n_end = n_cumu[na+2]
+            
+            dist_map_nb = self.dist_map[n_start:n_mid, n_mid:n_end]
+            corr_map_nb = self.corr_map[n_start:n_mid, n_mid:n_end]
+            
+            red_pos = np.logical_and(dist_map_nb < d_crt, corr_map_nb > c_thresh)
+            
+            dist_map_nb[red_pos] = -1. # mark out dist_map_nb
+            corr_map_nb[red_pos] = 2. 
+            
+        # done with red_detect
