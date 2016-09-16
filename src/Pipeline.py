@@ -1,6 +1,7 @@
 """
 Created by Dan on 08/15/2016, a test of data processing pipeline
-Last update: 08/19/2016
+Last update: 09/16/2016
+Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
 """
 import os
 import glob
@@ -192,19 +193,26 @@ class pipeline_tstacks(object):
             prefix += 'al_'
             t_DC = Drift_correction(t_dbstack)
             t_newstack = t_DC.drift_correct(offset=0, ref_first=True)
+            drift_list = t_DC.get_drift()
+        
         else:
             t_newstack = t_dbstack
         
-        if(prefix != ''):
-            t_writename = self.work_folder + self.prefix_t+prefix + postfix_num+'.tif'
-            tifffunc.write_tiff(t_newstack,t_writename)
+        
+        # Comment on 09/16/16: Here I no longer resave the rolled-back stacks.
+        
+#         if(prefix != ''):
+#             t_writename = self.work_folder + self.prefix_t+prefix + postfix_num+'.tif'
+#             tifffunc.write_tiff(t_newstack,t_writename)
         
         # ---------------Time for cell extraction! --------------------
         np_fname = self.work_folder+self.prefix_t+ prefix + postfix_num
         t_CE = Cell_extract(t_newstack) 
+        
+        
+        
         if(ext_all):
             t_CE.stack_blobs(msg = True)
-            t_CE.stack_signal_integ()
             t_CE.save_data_list(np_fname) 
         else: # only extract cells in the first slice and assume that they persist in the rest
             # update on 08/19: save npz instead of npy.

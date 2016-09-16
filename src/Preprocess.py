@@ -280,7 +280,7 @@ class Drift_correction(object):
         return drift
             
     
-    def drift_correct(self, offset = 1, ref_first = False):
+    def drift_correct(self, offset = 1, ref_first = False, roll_back = True):
         """
         Update on 09/09: keep the drift list, so the cell coordinates might need be updated.
         """
@@ -297,9 +297,11 @@ class Drift_correction(object):
                 ft_cor = fftp.fft2(im_cor)
                 ft_ref = fftp.fft2(im_ref)
                 drift = self._shift_calculation(ft_ref, ft_cor)
-                im_cor = np.roll(im_cor, -drift[0], axis = 0)
-                im_cor = np.roll(im_cor, -drift[1], axis = 1)
-                self.stack[icor] = im_cor
+                if(roll_back):
+                    im_cor = np.roll(im_cor, -drift[0], axis = 0)
+                    im_cor = np.roll(im_cor, -drift[1], axis = 1)
+                    self.stack[icor] = im_cor
+                
                 drift_list[icor] = drift
                 im_ref = im_cor # reuse ft_ref
         else:
@@ -309,18 +311,29 @@ class Drift_correction(object):
                 ft_cor = fftp.fft2(im_cor)
                 drift = self._shift_calculation(ft_ref, ft_cor)
 #                 print(drift)
-                im_cor = np.roll(im_cor, -drift[0], axis = 0)
-                im_cor = np.roll(im_cor, -drift[1], axis = 1)
-                self.stack[icor] = im_cor
+                if(roll_back):
+                    im_cor = np.roll(im_cor, -drift[0], axis = 0)
+                    im_cor = np.roll(im_cor, -drift[1], axis = 1)
+                    self.stack[icor] = im_cor
                 drift_list[icor] = drift
                 # differs from the ref_first False case by the last statement
-        
         self.drift_list = drift_list
-        print(drift_list)
-        return self.stack
+#         print(drift_list)
+    # done with stack drift correction
     
+    
+    def get_stack(self):
+        """
+        simply return the stack (corrected or not)
+        """
+        return self.stack
 
-
+    
+    def get_drift(self):
+        """
+        simply return the drift list 
+        """
+        return self.drift_list
 #-------------------------------Done with drift correction part ----------------------------------------------------------
 
 
