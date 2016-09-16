@@ -1,6 +1,6 @@
 """
 # ----------- Author: Dan Xie ------------------------
-# ------------Last update: 09/13/2016 --------------------------
+# ------------Last update: 09/16/2016 --------------------------
 
 for pre-processing (actually pre-preprocessing.)
 This file has two classes: 
@@ -14,7 +14,6 @@ To be updated: replace all the global variables with local variables.
 import tifffunc
 import numpy as np
 from skimage import filters
-from scipy.ndimage.filters import uniform_filter
 import scipy.fftpack as fftp
 from numeric_funcs import fitgaussian2D, histo_peak
 import ntpath
@@ -70,24 +69,20 @@ def crop_stack(dph, c_nw, c_se, post_fix = 'cr'):
 # --------------------------------------Below are classes for deblur and drift correction 
 
 class Deblur(object):
-    def __init__(self, impath, sig = 30, ftype = 'g'):
+    def __init__(self, stack, sig = 30):
         """
         Update on 0
         sig is the width of Gaussian filter
         """
-        print(impath)
-        self.raw_stack = tifffunc.read_tiff(impath)# load a raw image and convert to float type
-        self.new_stack = np.copy(self.raw_stack).astype('float64')
-        self.impath = impath
+        self.stack = np.copy(stack).astype('float64')
         self.cell_list = []
         self.current = 0 # just using an index
-        self.Nslice = self.raw_stack.shape[0] # number of slices 
+        self.Nslice = self.stack.shape[0] # number of slices 
         print("The number of slices:", self.Nslice)
-        self.px_num = self.raw_stack.shape[1:] # the number of pixels in y and x for each slice
+        self.px_num = self.stack.shape[1:] # the number of pixels in y and x for each slice
         print("The shape of images:", self.px_num)
         self.status = -1* np.ones(self.Nslice) # the status 
         self.sig = sig
-        self.ftype = ftype # specify the filter type
         
         """
         status = -1: the slices are raw
@@ -106,23 +101,20 @@ class Deblur(object):
         """
         sig = self.sig
         if (nslice is None):
-            im0 = self.new_stack[self.current]
+            im0 = self.stack[self.current]
         else:
-            im0 = self.new_stack[nslice]
+            im0 = self.stack[nslice]
             
         im0[im0 ==0] = ofst # remove all the zero pixels 
             
-        if(self.ftype == 'g'):
-            ifilt = filters.gaussian(im0, sigma=sig)
-        else:
-            ifilt = uniform_filter(im0, size = sig) # test uniform filter
+        ifilt = filters.gaussian(im0, sigma=sig)
         iratio = im0/ifilt
         nmin = np.argmin(iratio) 
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
         sca =im0[gmin_ind]/(ifilt[gmin_ind])
-        print("scale:",sca)
+#         print("scale:",sca)
         im0 -= (ifilt*sca*0.999) # update the background-corrected image
-        return im0, ifilt
+#         return im0, ifilt
 
 
 
@@ -131,9 +123,9 @@ class Deblur(object):
         # Should this be done after the in-plane deblurring is accomplished, or before that?
         n_current = self.current 
         if n_current > 0 and n_current < (self.Nslice-1):
-            i_mid = self.raw_stack[n_current]
-            i_up = self.raw_stack[n_current-1] # the previous slice 
-            i_down = self.raw_stack[n_current+1] # the next slice 
+            i_mid = self.stack[n_current]
+            i_up = self.stack[n_current-1] # the previous slice 
+            i_down = self.stack[n_current+1] # the next slice 
             ifilt_up = filters.gaussian(i_up, sigma = sig)
             ifilt_down = filters.gaussian(i_down, sigma = sig)
             
@@ -150,7 +142,7 @@ class Deblur(object):
             
             print('%.6f' %sca_up, '%.6f' %sca_down)
             
-            i_mid -= wt*(sca_up*ifilt_up+sca_down*ifilt_down) # Pay attention: it means self.raw_stack changes!
+            i_mid -= wt*(sca_up*ifilt_up+sca_down*ifilt_down) # Pay attention: it means self.stack changes!
             return i_mid
         else: 
             pass    
@@ -167,8 +159,6 @@ class Deblur(object):
                 self.image_high_trunc_adjacent(wt) # subtract the adjacent plane values first 
             self.image_high_trunc_inplane()  # in-plane correction
 
-        return self.new_stack
-        # done with stack_high_trunc
 
     def baseline_redef(self):
         """
@@ -181,7 +171,7 @@ class Deblur(object):
         px_max = np.zeros(self.Nslice)
         
         for ns in np.arange(self.Nslice):
-            im_bs = self.new_stack[ns]
+            im_bs = self.stack[ns]
             val_cut = np.mean(im_bs)*0.5 # where to cut off 
             px_max[ns] = histo_peak(im_bs, val_cut, nbin)
         
@@ -189,6 +179,12 @@ class Deblur(object):
         self.px_max = px_max 
         return px_max
 
+
+    def get_stack(self):
+        """
+        simply return the stack
+        """
+        return self.stack
 
     
     def write_stack(self, n_apdx):
@@ -198,7 +194,7 @@ class Deblur(object):
         
         """
         fext = self.impath[:-4]
-        tifffunc.write_tiff(self.new_stack, fext+n_apdx+'.tif')
+        tifffunc.write_tiff(self.stack, fext+n_apdx+'.tif')
     
         
 
@@ -209,13 +205,13 @@ class Drift_correction(object):
           1 --- Gaussian correction 
           2 --- nonlinear correction?  
     '''
-    def __init__(self, raw_stack, mfit = 0):
+    def __init__(self, stack, mfit = 0):
         """
-        do not save the raw_stack in the class.
+        do not save the stack in the class.
         """
-        self.stack = raw_stack
-        self.nslices = raw_stack.shape[0] # number of slices
-        self.idim = np.array(raw_stack.shape[1:])
+        self.stack = stack
+        self.nslices = stack.shape[0] # number of slices
+        self.idim = np.array(stack.shape[1:])
         self.mfit = mfit 
         self.drift = np.zeros([self.nslices,2])
         # have a raw stack

@@ -67,17 +67,21 @@ class pipeline_zstacks(object):
         zs_name = self.tif_list[list_num]
         print(self.tp_flag[list_num])
         postfix_num = format(self.tp_flag[list_num], '03d') # take out the time point number 
+        raw_stack = np.copy(tifffunc.read_tiff(zs_name)).astype('float64')
+        
         
         if(deblur > 0):
             prefix = 'db_'
             print(zs_name)
-            z_DB = Deblur(zs_name, sig = 30) # deblur
-            z_dbstack = z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
+            z_DB = Deblur(raw_stack, sig = 30) # deblur
+            z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
+            z_dbstack = z_DB.get_stack()
+            
             if(self.dims is None):
                 self.dims = z_DB.px_num # here we get self.dims 
         else:
             prefix = ''
-            z_dbstack = np.copy(tifffunc.read_tiff(zs_name)).astype('float64')
+            z_dbstack = raw_stack
 
         if(align):
             prefix += 'al_'
@@ -178,36 +182,48 @@ class pipeline_tstacks(object):
         ts_name = self.tif_list[list_num]
         print(self.zp_flag[list_num])
         postfix_num = format(self.zp_flag[list_num], '03d') # take out the time point number 
+        raw_stack = np.copy(tifffunc.read_tiff(ts_name)).astype('float64')
+        
         
         if(deblur>0):
             prefix = 'db_'
-            t_DB = Deblur(ts_name, sig = deblur, ftype = filter_type) # deblur
-            t_dbstack = t_DB.stack_high_trunc() 
+            t_DB = Deblur(raw_stack, sig = deblur) # deblur
+            t_DB.stack_high_trunc()
+            t_dbstack = t_DB.get_stack() 
+            
             if(self.dims is None):
                 self.dims = t_DB.px_num # he
         else:
             prefix = ''
-            t_dbstack = np.copy(tifffunc.read_tiff(ts_name)).astype('float64')
+            t_dbstack = raw_stack
             # directly load
         if(align):
             prefix += 'al_'
             t_DC = Drift_correction(t_dbstack)
-            t_newstack = t_DC.drift_correct(offset=0, ref_first=True)
+            t_DC.drift_correct(offset=0, ref_first=True, roll_back= False) # not rolling back
+            t_slice0 = t_DC.get_stack()[0]
             drift_list = t_DC.get_drift()
+            nz = len(drift_list)
+            # Now, let's roll back the original stack
+            for iz in np.arange(1, nz):
+                drift = drift_list[iz]
+                raw_stack[iz] = np.roll(raw_stack[iz], -drift[0], axis = 0)
+                raw_stack[iz] = np.roll(raw_stack[iz], -drift[1], axis = 1)
+            
+            raw_stack[0] = t_slice0
         
         else:
-            t_newstack = t_dbstack
+            raw_stack[0] = t_dbstack[0]
         
         
         # Comment on 09/16/16: Here I no longer resave the rolled-back stacks.
-        
 #         if(prefix != ''):
 #             t_writename = self.work_folder + self.prefix_t+prefix + postfix_num+'.tif'
 #             tifffunc.write_tiff(t_newstack,t_writename)
         
         # ---------------Time for cell extraction! --------------------
         np_fname = self.work_folder+self.prefix_t+ prefix + postfix_num
-        t_CE = Cell_extract(t_newstack) 
+        t_CE = Cell_extract(raw_stack) 
         
         
         
