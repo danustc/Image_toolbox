@@ -5,7 +5,7 @@ Last update: 08/19/2016
 import os
 import glob
 import numpy as np
-from string_funcs import path_leaf
+from string_funcs import path_leaf, number_strip
 
 from Cell_extract import Cell_extract
 from Preprocess import Deblur, Drift_correction
@@ -27,11 +27,11 @@ class pipeline_zstacks(object):
     3. Perform Cell extraction on the deblurred z-stack, save as 'npz' (completed)
     4. reconstruct t-stacks from z-stacks (can be run from outside)
     """
-    def __init__(self, folder_path, tpflags = 'TP', offset = 1):
+    def __init__(self, folder_path, tpflags = 'ZD', offset = 1):
         self.work_folder = folder_path # folder path should be a folder
         self.tif_list = glob.glob(self.work_folder+ '*'+ tpflags +'*.tif')
         self.tif_list.sort(key = os.path.getmtime)
-        self.tp_flag = -np.ones(len(self.tif_list)).astype('uint16') # all zero, if any time point is converted, then the element is set to True.
+        self.tp_flag = -np.ones(len(self.tif_list)).astype('int16') # all zero, if any time point is converted, then the element is set to True.
         self.dims = None  
         name_base = path_leaf(self.tif_list[0])[:-4] 
         parse_name = name_base.split('_') # get an array of list that 
@@ -41,7 +41,8 @@ class pipeline_zstacks(object):
         iflag = 0     
         for zs_name in self.tif_list:
             zs_tail = path_leaf(zs_name)[:-4] 
-            TP_number = int(zs_tail.split('_')[-1]) # get the time point number 
+#             TP_number = int(zs_tail.split('_')[-1]) # get the time point number 
+            TP_number = number_strip(zs_tail, delim='_', ext = False)
             self.tp_flag[iflag] = TP_number
             iflag += 1 
             
@@ -68,6 +69,7 @@ class pipeline_zstacks(object):
         
         if(deblur > 0):
             prefix = 'db_'
+            print(zs_name)
             z_DB = Deblur(zs_name, sig = 30) # deblur
             z_dbstack = z_DB.stack_high_trunc() # return a new stack with inplane-background subtracted
             if(self.dims is None):
@@ -90,8 +92,7 @@ class pipeline_zstacks(object):
             tifffunc.write_tiff(z_newstack,z_writename)
 
         z_CE = Cell_extract(z_newstack) 
-        z_CE.stack_blobs(diam = 6)
-        z_CE.stack_signal_integ()
+        z_CE.stack_blobs(msg = False)
         z_CE.save_data_list(self.work_folder+self.prefix_z+postfix_num) # save as npz
         self.pro_flag[list_num] = True
         
@@ -141,7 +142,7 @@ class pipeline_tstacks(object):
             # This part is almost parallel to the z-stack preprocessing case.
             
             tif_list.sort(key = os.path.getmtime)
-            self.zp_flag = -np.ones(len(tif_list)).astype('uint16') # all zero, if any time point is converted, then the element is set to True.
+            self.zp_flag = -np.ones(len(tif_list)).astype('int16') # all zero, if any time point is converted, then the element is set to True.
             self.dims = None  
             name_base = path_leaf(tif_list[0])[:-4] 
             parse_name = name_base.split('_') # get an array of list that 
@@ -202,7 +203,7 @@ class pipeline_tstacks(object):
         np_fname = self.work_folder+self.prefix_t+ prefix + postfix_num
         t_CE = Cell_extract(t_newstack) 
         if(ext_all):
-            t_CE.stack_blobs(diam = 6)
+            t_CE.stack_blobs(msg = True)
             t_CE.stack_signal_integ()
             t_CE.save_data_list(np_fname) 
         else: # only extract cells in the first slice and assume that they persist in the rest

@@ -1,6 +1,7 @@
 """
 Created by Dan on 08/22/2016
 Contains all the string functions (mostly file name parsing)
+last update: 09/14/2016
 """
 
 import ntpath
@@ -26,12 +27,14 @@ def number_strip(name_str, delim = '_', ext = True):
         khead = name_str
     klist = khead.split(delim) 
     knum = [km for km in klist if km.isdigit()]
-    korder =knum[-1] # usually the last one represent 
-    # how tor
-    
-    return korder
+    if knum:
+        # if it is not empty
+        korder = int(knum[-1]) # usually the last one represent 
+        return korder
     # done with number_strip.
-    
+    else:
+        # return default value: 0
+        return 0
 
 def fname_postfix(dph, postfix):
     """

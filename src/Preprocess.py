@@ -75,8 +75,9 @@ class Deblur(object):
         Update on 0
         sig is the width of Gaussian filter
         """
-        self.raw_stack = tifffunc.read_tiff(impath).astype('float')# load a raw image and convert to float type
-        self.new_stack = np.copy(self.raw_stack)
+        print(impath)
+        self.raw_stack = tifffunc.read_tiff(impath)# load a raw image and convert to float type
+        self.new_stack = np.copy(self.raw_stack).astype('float64')
         self.impath = impath
         self.cell_list = []
         self.current = 0 # just using an index
@@ -119,7 +120,7 @@ class Deblur(object):
         nmin = np.argmin(iratio) 
         gmin_ind = np.unravel_index(nmin, im0.shape) # global mininum of the index    
         sca =im0[gmin_ind]/(ifilt[gmin_ind])
-#         print("scale:",sca)
+        print("scale:",sca)
         im0 -= (ifilt*sca*0.999) # update the background-corrected image
         return im0, ifilt
 
@@ -294,12 +295,13 @@ class Drift_correction(object):
             for icor in np.arange(offset+1,self.nslices):
                 im_cor = self.stack[icor]
                 ft_cor = fftp.fft2(im_cor)
+                ft_ref = fftp.fft2(im_ref)
                 drift = self._shift_calculation(ft_ref, ft_cor)
                 im_cor = np.roll(im_cor, -drift[0], axis = 0)
                 im_cor = np.roll(im_cor, -drift[1], axis = 1)
                 self.stack[icor] = im_cor
                 drift_list[icor] = drift
-                ft_ref = ft_cor # reuse ft_ref
+                im_ref = im_cor # reuse ft_ref
         else:
             # take the first slice as the reference
             for icor in np.arange(offset+1,self.nslices):
@@ -319,4 +321,9 @@ class Drift_correction(object):
     
 
 
-#-----------------------------------------------------------------------------------------
+#-------------------------------Done with drift correction part ----------------------------------------------------------
+
+
+
+
+

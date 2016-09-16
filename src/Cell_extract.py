@@ -81,9 +81,9 @@ class Cell_extract(object):
         
         for n_frame in np.arange(self.n_slice):
             self.image_blobs(n_frame)
-        if msg:
-            n_blobs = self.bl_flag[n_frame].astype('int64')
-            print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
+            if msg:
+                n_blobs = self.bl_flag[n_frame].astype('int64')
+                print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
             
         self.valid_frames = np.where(self.bl_flag>0)[0]
         # end of the function stack_blobs 

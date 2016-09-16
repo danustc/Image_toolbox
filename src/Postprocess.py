@@ -42,7 +42,11 @@ class z_image():
         """
         convert the raw_fluorescence into dff
         """
-        dff = df_f.dff_raw(self.f_raw, ft_width = wd)
+        dff_r = df_f.dff_raw(self.f_raw, ft_width = wd)[0] # the return has two objects, and we only take the first one.
+        dff = np.zeros_like(dff_r)
+        for cc in np.arange(self.n_cell):
+            dff[:,cc] =df_f.dff_expfilt(dff_r[:,cc], dt = 0.80, t_width = 2.0)[0]
+        
         self.dff = dff 
         return dff
     
@@ -51,22 +55,73 @@ class z_image():
         """
         construct a brightness histogram for each time-point 
         """
-        nbin = int(self.n_cell*0.10)
-        histo_bg = np.zeros(self.n_cell)
+        nbin = int(self.n_cell*0.20)
+        print(nbin)
+        histo_bg = np.zeros(self.n_time)
         
         for nt in np.arange(self.n_time):
             fr = self.f_raw[nt] # take the nt-th row (not column!!!) within the same time point
             val_cut = np.mean(fr)*0.50
-            pv  = numfc.histo_peak(fr, val_cut, nbin)
+            pv, hist  = numfc.histo_peak(fr, val_cut, nbin)
             histo_bg[nt] = pv
-            self.f_raw[nt] -= pv # correct by offset
+            print(pv)
+#             self.f_raw[nt] -= pv # correct by offset
         
-        self.f_raw -= np.min(self.f_raw) # let's make it positive.
+#         self.f_raw -= np.min(self.f_raw) # let's make it positive.
         
+        return histo_bg, hist
         
 """
 Done with z_image. Next, let's define another class to construct the distance and correlation map.
 """
+
+class img_volume(object):
+    """
+    a processed image volume with all the feature of interests arranged in coordinates and signals
+    """
+    def __init__(self, c_coords, c_signals):
+        """
+        zd_stack: 
+        """
+        self.c_coords = c_coords
+        self.c_signals = c_signals
+    
+    # ---------------------------------------------------------------------
+    
+    
+    
+
+class over_counting(object):
+    """
+    A tiny tiny class for conveniently registering redundant cells.
+    """
+    def __init__(self, cell_mark, sig_1, sig_2):
+        
+        self.cm = cell_mark
+        self.n_fold = 2
+        self.signal = np.array([sig_1, sig_2])
+    
+        
+    def add_one(self, sig_add):
+        """
+        If redundancy is detected in a new frame, add signal by 1 and append the signal list by sig_add.
+        """
+        self.n_fold +=1
+        self.signal = np.concatenate(self.signal, [sig_add]) 
+
+        
+    def zdef_fitting(self):
+        """
+        define the z-position by gaussian fitting. Only works when self.n_fold >=3.
+        """
+        if self.n_fold < 3:
+            pass
+        
+    
+
+
+
+
 #================================================================================================================
 class brain_construct(object):
     """
@@ -85,6 +140,7 @@ class brain_construct(object):
         data_list.sort(key = os.path.getmtime)
 
         nz = len(data_list)
+        print(nz)
         z_keys = np.zeros(nz)
         n_blobs = np.zeros(nz)
         
@@ -98,7 +154,7 @@ class brain_construct(object):
             f_raw = zset['data']
             zm = z_image(coord, f_raw)
             z_name = path_leaf(dset_name)
-            z_keys[iz] = int(number_strip(z_name, delim = '_', ext = True))
+            z_keys[iz] = number_strip(z_name, delim = '_', ext = True)
             data_key = z_keys[iz]
             n_blobs[data_key] = zm.n_cell # number of blobs in each z-slice
             z_images[data_key] = zm     # data_key = format(z_keys[iz], '03d')
@@ -118,6 +174,9 @@ class brain_construct(object):
         return a new z-stack
         Updated on 09/13:  
         """
+#         self.histo_bg = dict()
+        
+        
         
         temp_stack = np.zeros([self.nz, self.ny, self.nx])
         frame_size = np.array([self.ny, self.nx])
@@ -128,8 +187,10 @@ class brain_construct(object):
 #             kz = self.z_keys[zz]
             data_key = self.z_keys[zz] 
             z_image = self.z_images[data_key]
-            sig_aver = z_image.data.sum(axis = 0)
-            nb = self.n_blobs[data_key]
+            # // z_image bright_histo
+            
+            sig_aver = z_image.f_raw.sum(axis = 0)
+            nb = z_image.n_cell
             blob_list = np.zeros([nb, 3])
             blob_list[:,:2] = z_image.coord
             blob_list[:,2] = sig_aver
@@ -140,12 +201,14 @@ class brain_construct(object):
         drift_list = Z_drc.drift_list
         
         for z_key in self.z_images.keys():
-            # correct all the cell positions with drift list 
+            # correct all the cell positions with drift list
+            # also, calculate the dff 
             kz = int(z_key)
             dy = drift_list[kz,0]
             dx = drift_list[kz,1]
             self.z_images[z_key].coord_shift(dy, dx)
-            
+            self.z_images[z_key].dff_calc()
+#             self.histo_bg[z_key] = z_image.bright_histo()
         # updated rhe coordinates of the blobs    
             
         self.z_stack = new_stack
@@ -191,12 +254,24 @@ class brain_construct(object):
         self correlation, private function.
         """
         
-        data = self.z_images[z_frame].data
-        corr_map_in = numfc.corr_mat(data)/2. # because of the symmetrization step, here the diagonal block is reduced by 2.
+        data = self.z_images[z_frame].dff
+        corr_map_in = numfc.corr_mat(data)*0.5 # because of the symmetrization step, here the diagonal block is reduced by 2.
+        
+        coord = self.z_images[z_frame].coord
+        
+        coord_y = coord[:,0]
+        coord_x = coord[:,1]
+        
+        YC, YR = np.meshgrid(coord_y, coord_y)
+        XC, XR = np.meshgrid(coord_x, coord_x)
+        
+        dist_map_in = np.sqrt((YC-YR)**2 + (XC-XR)**2)*0.5
+        
         
         n_sta = self.n_cumu[z_frame]
         n_end = self.n_cumu[z_frame+1]
         self.corr_map[n_sta:n_end, n_sta:n_end] = corr_map_in
+        self.dist_map[n_sta:n_end, n_sta:n_end] = dist_map_in
         # done with _corrmap_self_
 
 
@@ -238,9 +313,7 @@ class brain_construct(object):
         # done with _corrmap_pair_
         
         
-        
-        
-    def red_detect(self, d_crt = 2.0, c_thresh = 0.7):
+    def red_detect(self, d_crt = 3.0, c_thresh = 0.7):
         """
         detect redundancy by 3 conditions:
         0. the center of the two cells are smaller than 
@@ -249,6 +322,10 @@ class brain_construct(object):
         """
         
         n_cumu = self.n_cumu
+        
+        red_list = dict()
+        
+        
         for na in np.arange(self.nz-1):
             n_start = n_cumu[na]
             n_mid = n_cumu[na+1]
@@ -258,8 +335,39 @@ class brain_construct(object):
             corr_map_nb = self.corr_map[n_start:n_mid, n_mid:n_end]
             
             red_pos = np.logical_and(dist_map_nb < d_crt, corr_map_nb > c_thresh)
+            red_indy, red_indx = np.where(red_pos) # the indices of redundancy
+            zkey = format(na, '03d') 
+            red_list[zkey] = (red_indy, red_indx)
+            print("redundancy:", red_pos.sum())
             
-            dist_map_nb[red_pos] = -1. # mark out dist_map_nb
-            corr_map_nb[red_pos] = 2. 
             
+#             dist_map_nb[red_pos] = 0. # mark out dist_map_nb
+#             corr_map_nb[red_pos] = 0. # mark out corr_map nb 
+            
+        return red_list
         # done with red_detect
+        
+    
+    
+    
+    
+    def dense_regist(self, z_dense_stack):
+        """
+        load a densely imaged stack as a reference. 
+        do drift correction on the stack. 
+        But how to utilize this part of information?
+        Assumption: the z_dense stack has the same start and end point as the z_sparse stack does.
+        """
+        
+        self.z_dense = z_dense_stack
+        
+    
+    
+    
+    def red_removal(self):
+        """
+        Removal of redundancy:
+        1. register the marked cells with the densely labeled z_stack.
+        2. keep only one, remove the rest 
+        """
+    

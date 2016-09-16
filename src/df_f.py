@@ -33,7 +33,7 @@ def dff_raw(shit_data, ft_width):
     """
     s_filt = smooth_lpf(shit_data, ft_width)[1]
     
-    f_base = min_window(s_filt, 4*ft_width)
+    f_base = min_window(s_filt, 8*ft_width)
     dff_r = (shit_data-f_base)/f_base
     
     return dff_r, f_base 
@@ -67,7 +67,7 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
     tmark = -dt*10
     
     
-    fig = plt.figure(figsize = (7,5))
+    fig = plt.figure(figsize = (7,9))
     for ii in np.arange(n_cell):
         dff = dff_data[:,ii]
         ax = fig.add_subplot(n_cell,1, ii+1)
@@ -75,7 +75,7 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
         ax.plot([tmark,tmark], [0, sc_bar], color = 'k', linewidth = 3)
         ax.set_xlim([-dt*20, tt[-1]])
 
-        ax.set_ylim([-0.25, 1.25])
+        ax.set_ylim([-0.18, 0.90])
         ax.get_yaxis().set_visible(False)
         ax.get_xaxis().set_visible(False)
     

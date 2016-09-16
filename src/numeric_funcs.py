@@ -179,7 +179,7 @@ def corr_mat(arr_a, arr_b=None, scorr = False):
     # done with corr_mat   
     
     
-def histo_peak(im_arr, val_cut, nbin = 50):
+def histo_peak(im_arr, val_cut, nbin = 50, ext = 1):
     """
     Construct a histogram of an image.
     cut off values below val_cut.
@@ -189,8 +189,14 @@ def histo_peak(im_arr, val_cut, nbin = 50):
     hist, bdge = np.histogram(im_arr, bins = nbin)
     n_cut = np.searchsorted(bdge, val_cut)
     
-    pmx = np.argmax(hist[n_cut:])
-    pk = (bdge[pmx] + bdge[pmx+1])*0.5
+    pmx = np.argmax(hist[n_cut:]) + n_cut
+    
+    sub_vals = bdge[pmx-ext:pmx+ext+1]
+    sub_hist = hist[pmx-ext:pmx+ext+1]
+    
+    pk = np.inner(sub_vals, sub_hist)/sub_hist.sum()
+    
+#     pk = (bdge[pmx] + bdge[pmx+1])*0.5
     
     return pk
 

@@ -56,7 +56,7 @@ class Temporal_analysis(object):
         # done with initialization. This is kinda long.
         
         
-    def dff_calculation(self, ft_width = 10): 
+    def dff_calculation(self, ft_width = 6): 
         """ 
         calculate df/f for all the identified cells.
         OK this works.
@@ -80,7 +80,7 @@ class Temporal_analysis(object):
         
         
 
-    def firing_analysis(self, sfreq = 1.25, kfrac = 0.20, k_threshold = 0.80):
+    def firing_analysis(self, sfreq = 1.25, kfrac = [0.20, 0.50], k_threshold = 0.80):
         """
         Update on 08/19: replacing the raw data with dff. 
         Analyzes the firing pattern of all the neurons fft-based. Feature the frequency components larger than kfrac* kmax 
@@ -177,7 +177,7 @@ class Temporal_analysis(object):
         return distr 
     
     
-    def cell_mark(self, mark, tx, dr = 6.5, cl = 'r'):
+    def cell_mark(self, mark, tx = '', dr = 6.5, cl = 'r'):
         """
         mark the selected cells from the figure 
         """
@@ -187,7 +187,8 @@ class Temporal_analysis(object):
         y, x = mark
         c = plt.Circle((x, y), dr+1, color=cl, linewidth=1, fill=True)
         ax.add_patch(c)
-        ax.text(mark[1], mark[0]+20, tx, color = 'w')
+        if tx:
+            ax.text(mark[1], mark[0]+20, tx, color = 'w')
 
         return fig
         # done with cell_mark
