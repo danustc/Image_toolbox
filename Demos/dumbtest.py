@@ -2,9 +2,11 @@
 Updated by Dan on 08//30/2016.
 """
 import sys
+from numeric_funcs import histo_peak
 sys.path.insert(0, '../src')
 import matplotlib.pyplot as plt
 import tifffunc
+import tifffile
 import numpy as np
 import os
 import time
@@ -12,138 +14,107 @@ import glob
 from Preprocess import Deblur, Drift_correction
 from Cell_extract import Cell_extract
 from Pipeline import pipeline_zstacks, pipeline_tstacks
-from Dynamics import Temporal_analysis
-from graphic_funcs import coord_click
 from df_f import nature_style_dffplot, dff_expfilt
 from graphic_funcs import image_zoom_frame
-from drift_correct_1D import DC_1D
-
-
-
+from Batch_processor import group_postprocess
+from Postprocess import z_image
+from scipy.ndimage import gaussian_filter, uniform_filter
+from Dynamics import Temporal_analysis
+import matplotlib 
 
 def dumb1():
     """
     This program tests pipeline_zstacks 
     """
+    dph = '/home/sillycat/Programming/Python/Image_toolbox/data_test/short/'
+    zlist = glob.glob(dph+'*00*.npz*')
+    zset = np.load(zlist[2])
+    coord = zset['xy']
+    TA = Temporal_analysis(zset, dims = [740, 880])
+    TA.dff_calculation(ft_width = 4)
+    kp, ks = TA.firing_analysis(sfreq = 1.25, kfrac = np.array([0.80, 0.90]), k_threshold = 0.80)
     
+    TA.cell_show()
+    N_select = -1
+    
+    k_select = TA.dff[:,ks]
+    fig_sk = plt.figure(figsize=(7,9))
+    ax_sk = fig_sk.add_subplot(111)
+    tt = 0.8*np.arange(400)
+    
+    ii=0
+    for s in ks:
+        mark = coord[s]
+        fig_mk = TA.cell_mark(mark, tx = str(ii+1), dr=5, cl = 'r')
+        ax_sk.plot(tt, TA.dff[:,s]+ ii*0.55)
+        ii+=1
+    
+    font = {'size'   : 14}
 
-def dumb2():
-
-    """
-    OK this part already works. 
-    """ 
-#     DB_gaussian = Deblur('sample_tstack.tif', sig = 25, ftype = 'g')
-#     DB_uniform = Deblur('sample_tstack.tif', sig = 25, ftype = 'u')
-# #     
-#     print("initialized.")
-# #     
-#     db_g = DB_gaussian.stack_high_trunc()
-#     db_u = DB_uniform.stack_high_trunc()
-# #     
-#     print("deblurred.")
-# #     
-#     DC_gaussian = Drift_correction(db_g, mfit = 0)
-#     DC_uniform = Drift_correction(db_u, mfit = 0)
-# #     
-#     print("Drift correction initialized.")
-# #     
-# #     
-#     nstack_g = DC_gaussian.drift_correct(offset = 0, ref_first = True)
-#     nstack_u = DC_uniform.drift_correct(offset = 0, ref_first = True)
-# # 
-#     print("Drift correction completed.")
-# #
-# #
-#     dbstack_gs = tifffunc.read_tiff('ts_gaussian_s25.tif')
-    refim = tifffunc.read_tiff('ref_im.tif').copy()
-#     tifffunc.write_tiff(dbstack_gs[0].astype('uint16'), 'ref_im.tif')
-#     tifffunc.write_tiff(nstack_u.astype('uint16'), 'ts_uniform_s25.tif')
-# # 
-# #     
-#     CE_gaussian = Cell_extract(nstack_g)
-#     CE_uniform = Cell_extract(nstack_u)
-# #     
-#     blob_stack_gaussian = CE_gaussian.stack_signal_propagate(0)
-#     blob_stack_uniform = CE_uniform.stack_signal_propagate(0)
-# # 
-#     np.savez('bs_gaussian_s25', **blob_stack_gaussian)
-#     np.savez('bs_uniform_s25', **blob_stack_uniform)
-# #     
-    dims = [584, 888]
-    data_gaussian = np.load('bs_gaussian.npz')
-    data_uniform = np.load('bs_uniform.npz')
+    matplotlib.rc('font', **font)
     
-    TD_gaussian = Temporal_analysis(data_gaussian, dims, refim)
-    TD_uniform = Temporal_analysis(data_uniform, dims, refim)
-
-    n_gauss = TD_gaussian.n_cell
-    n_uni = TD_uniform.n_cell
-    
-    print(n_gauss, n_uni)
-
-
-    dff_gauss = TD_gaussian.dff_calculation(ft_width = 10)
-    dff_unif = TD_uniform.dff_calculation(ft_width = 10)
-    
-    kcenter = np.array([266,393])
-    k_select_gauss = TD_gaussian.signal_profile_single(kcenter, rad = 40, sel = 3)
-    k_select_unif = TD_uniform.signal_profile_single(kcenter, rad = 40, sel = 3)
-
-
-    fig = plt.figure(figsize = (9,7))
-    
-    sel = len(k_select_gauss)
-    TD_gaussian.cell_show()
-#     TD_uniform.cell_show()
-    
-      
-    for nsel in np.arange(sel):
-        s_mark = k_select_gauss[nsel]
-        mark = TD_gaussian.coord[s_mark]
-        tx = str(nsel+1)
-        TD_gaussian.cell_mark(mark, tx, cl = 'y')
-      
-    
-    
-    
-    tt = np.arange(100)*0.8
-    ax1 = fig.add_subplot(2,1,1)
-    ax1.plot(tt, dff_gauss[:,k_select_gauss])
-    
-    ax2 = fig.add_subplot(2,1,2)
-    ax2.plot(tt, dff_unif[:, k_select_unif])
-    
-    
+    ax_sk.get_yaxis().set_visible(False)
+    ax_sk.set_xlim([0, 320])
+    ax_sk.set_ylim([-0.4, ii*0.55])
+    ax_sk.set_xlabel('time (s)', fontsize = 14)
     plt.tight_layout()
-    plt.savefig('Whole_select')
+    fig_sk.savefig('dff_mark_hf')
+    
+    fig_mk.savefig('cell_mark_hf')
+    
+    
+    
+    plt.plot(k_select)
+    plt.savefig('TF_select_hf')
 
-
-
-#     ax1 = fig.add_subplot(121)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-#     DC = Drift_correction(db_stack, mfit = 30)
-#     new_stack = DC.drift_correct(offset=498, ref_first=True).astype('uint16')
-#     ax2 = fig.add_subplot(122)
-#     ax2.imshow(np.log(DC.xcorr), cmap = 'Greys_r', interpolation = 'none')
-#     plt.show()
-                                                                                                                                                                                                                                                                                                                                          
+    fig_nature = nature_style_dffplot(k_select, dt = 0.8, sc_bar = 0.20)
+    fig_nature.savefig('dff_nature_hf')
+    
         
 def dumb3():                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
     """
     suppose drift already corrected. Now time for real cell extraction! 
     The first part is almost identical to dumb2().
-    
     """
-    hroot = 'D:\Data/'
-    abspath = os.path.abspath(hroot)                                                                                                        
-    aq_date = '/2016-03-21/zp_A2_4_TS1\\'
-    work_folder = abspath + aq_date+'\\'
+    
+    dph = '/home/sillycat/Programming/Python/Image_toolbox/Demos/MB.tif'
+    
+#     Deblur(dph,sig = 30)
+
+
+    image = tifffunc.read_tiff(dph)
+    zim_i = image[0]
+    zim_m = image[50]
+    zim_f = image[-1]
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+    ax1.imshow(zim_i, cmap = 'Greys_r')
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig('MB_init')
+    plt.clf()
+    
+    ax1 = fig.add_subplot(1,1,1)
+    ax1.imshow(zim_m, cmap = 'Greys_r')
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig('MB_mid')
+    plt.clf()
+    
+    ax1 = fig.add_subplot(1,1,1)
+    ax1.imshow(zim_f, cmap = 'Greys_r')
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig('MB_final')
+    plt.clf()
+    
+
     
     
     
-    print(work_folder)
-    t_pipeline = pipeline_tstacks(work_folder)
-    t_pipeline.tstack_zseries(deblur=30, align = True)
-    
+#     PZP = pipeline_zstacks(dph, tpflags='ref',offset = 0)
+#     PZP.zstack_tseries(deblur = 30, align = True)
     
     
     
@@ -151,42 +122,22 @@ def dumb4():
     """    
     test dynamics
     """
-    tt = np.arange(400)*0.80 
-    TS_data = np.load('A24TS1ZPdbal_005.npy')
+    dph = '/home/sillycat/Programming/Python/Image_toolbox/Demos/refim.tif'
+    image = tifffunc.read_tiff(dph)
+    pv = np.zeros(image.shape[0])
+    
+    for ii in np.arange(image.shape[0]):
+        #def histo_peak(im_arr, val_cut, nbin = 50, ext = 1):
+        zim = image[ii]
+        vc = zim.mean()*0.10
+        pv[ii] = histo_peak(zim, val_cut = vc, nbin = 200, ext = 1)
+#         plt.hist(zim.flatten(), bins = 200, facecolor = 'g', alpha = 0.60)#     
+#         plt.savefig('hist_'+str(ii))
+#         plt.tight_layout()
+#         plt.clf()
 
-    refstack = tifffunc.read_tiff('refim.tif')
-    
-    ref_im = refstack[0]
-    
-    
-    dims = [760, 832]
-    TD=Temporal_analysis(TS_data, dims, ref_im=ref_im)
-    dff = TD.dff_calculation(ft_width = 6)
-    kf = np.array([0.11,0.16])
-    
-    kpros, k_select = TD.firing_analysis(sfreq = 1.25, kfrac = kf, k_threshold = 1.95)
-    
-    fig = plt.figure(figsize = (8,7))
-    
-    ax1 = fig.add_subplot(2,1,1)
-    ax1.plot(kpros[:,0]/0.625, kpros[:,1:])
-    
-    ax2 = fig.add_subplot(2,1,2)
-    ax2.plot(tt, dff[:, k_select])
-    
-    df_try = dff[:, k_select[2]]
-    df_filt, wd = dff_expfilt(df_try, dt=0.80, t_width = 1.2)
-    ax2.plot(tt, df_filt+2.50, '-g', linewidth =2)
-    ax2.plot(tt, df_try+2.50, '-m')
-#     plt.plot(dff[:,26:29])
-    plt.show()
-    plt.clf()
-    plt.plot(wd)
-    plt.show()
-    
-    
-#    
-#     
+    plt.plot(pv)
+    plt.savefig('hist_background')
     
 
 def dumb5():
@@ -202,6 +153,6 @@ def dumb5():
 
 if __name__ == '__main__':
     start_time = time.time()
-    dumb2()
+    dumb1()
 
     print("--- %s seconds ---" % (time.time() - start_time))
