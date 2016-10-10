@@ -87,14 +87,16 @@ class pipeline_zstacks(object):
             prefix += 'al_'
             ofst = self.offset
             z_DC = Drift_correction(z_dbstack)
-            z_newstack = z_DC.drift_correct(offset=ofst, ref_first = False)
+            z_DC.drift_correct(offset=ofst, ref_first = False)
+            z_newstack = z_DC.get_stack()
         else:
             z_newstack = z_dbstack
 
 
-        if(prefix != ''):
-            z_writename = self.work_folder + self.prefix_z+prefix + postfix_num+'.tif'
-            tifffunc.write_tiff(z_newstack,z_writename)
+
+#         if(prefix != ''):
+#             z_writename = self.work_folder + self.prefix_z+prefix + postfix_num+'.tif'
+#             tifffunc.write_tiff(z_newstack, z_writename)
 
         z_CE = Cell_extract(z_newstack) 
         z_CE.stack_blobs(msg = False)
@@ -171,7 +173,7 @@ class pipeline_tstacks(object):
       
     
     
-    def tstack_prepro(self, list_num = 0, deblur = 30, filter_type = 'g', align = True, ext_all=True):
+    def tstack_prepro(self, list_num = 0, deblur = 30, align = True, ext_all=False):
         """
         This part is similar to the zstack_prepro one in the first class.
         list_num: the number in the tif-list 
@@ -182,7 +184,7 @@ class pipeline_tstacks(object):
         ts_name = self.tif_list[list_num]
         print(self.zp_flag[list_num])
         postfix_num = format(self.zp_flag[list_num], '03d') # take out the time point number 
-        raw_stack = np.copy(tifffunc.read_tiff(ts_name)).astype('float64')
+        raw_stack = tifffunc.read_tiff(ts_name).astype('float64')
         
         
         if(deblur>0):
@@ -190,6 +192,7 @@ class pipeline_tstacks(object):
             t_DB = Deblur(raw_stack, sig = deblur) # deblur
             t_DB.stack_high_trunc()
             t_dbstack = t_DB.get_stack() 
+            print("deblurred!")
             
             if(self.dims is None):
                 self.dims = t_DB.px_num # he
@@ -202,7 +205,7 @@ class pipeline_tstacks(object):
             t_DC = Drift_correction(t_dbstack)
             t_DC.drift_correct(offset=0, ref_first=True, roll_back= False) # not rolling back
             t_slice0 = t_DC.get_stack()[0]
-            drift_list = t_DC.get_drift()
+            drift_list = t_DC.get_drift().astype('int')
             nz = len(drift_list)
             # Now, let's roll back the original stack
             for iz in np.arange(1, nz):
@@ -211,6 +214,7 @@ class pipeline_tstacks(object):
                 raw_stack[iz] = np.roll(raw_stack[iz], -drift[1], axis = 1)
             
             raw_stack[0] = t_slice0
+#             raw_stack = t_DC.get_stack()
         
         else:
             raw_stack[0] = t_dbstack[0]
@@ -228,7 +232,7 @@ class pipeline_tstacks(object):
         
         
         if(ext_all):
-            t_CE.stack_blobs(msg = True)
+            t_CE.stack_blobs(msg = False)
             t_CE.save_data_list(np_fname) 
         else: # only extract cells in the first slice and assume that they persist in the rest
             # update on 08/19: save npz instead of npy.

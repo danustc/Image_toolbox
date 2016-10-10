@@ -75,7 +75,6 @@ class Deblur(object):
         sig is the width of Gaussian filter
         """
         self.stack = np.copy(stack).astype('float64')
-        self.cell_list = []
         self.current = 0 # just using an index
         self.Nslice = self.stack.shape[0] # number of slices 
         print("The number of slices:", self.Nslice)
@@ -213,7 +212,6 @@ class Drift_correction(object):
         self.nslices = stack.shape[0] # number of slices
         self.idim = np.array(stack.shape[1:])
         self.mfit = mfit 
-        self.drift = np.zeros([self.nslices,2])
         # have a raw stack
     
     def _shift_calculation(self, ft_ref,ft_cor):
@@ -276,7 +274,7 @@ class Drift_correction(object):
         return drift
             
     
-    def drift_correct(self, offset = 1, ref_first = False, roll_back = True):
+    def drift_correct(self, offset = 1, ref_first = False, roll_back = False):
         """
         Update on 09/09: keep the drift list, so the cell coordinates might need be updated.
         """
@@ -306,7 +304,6 @@ class Drift_correction(object):
                 im_cor = self.stack[icor]
                 ft_cor = fftp.fft2(im_cor)
                 drift = self._shift_calculation(ft_ref, ft_cor)
-#                 print(drift)
                 if(roll_back):
                     im_cor = np.roll(im_cor, -drift[0], axis = 0)
                     im_cor = np.roll(im_cor, -drift[1], axis = 1)
