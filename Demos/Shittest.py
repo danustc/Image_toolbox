@@ -7,7 +7,7 @@ main function under Linux.
 
 import glob 
 import os 
-from Pipeline import pipeline_zstacks
+from Pipeline import pipeline_tstacks
 
 
 def main():
@@ -15,19 +15,19 @@ def main():
     """
     OK this part already works. 
     """ 
-    hroot = 'X:\Zebrafish_ispim/'
+    hroot = 'D:\Data/'
     abspath = os.path.abspath(hroot)
-    aq_date = '/2016-05-18\\'
+    aq_date = '/2016-09-28\\'
     fd = abspath + aq_date
-    fd_list = glob.glob(fd+'*') # list all the tiff files in the folder
-    tpflags = 'TP'
+    fd_list = glob.glob(fd+'*TS*') # list all the tiff files in the folder
+    tpflags = 'ZP'
     fd_list.sort(key=os.path.getmtime)  
-    for work_folder in fd_list[:-1]:
+    for work_folder in fd_list:
         work_folder = work_folder+ '\\'
         print(work_folder)
      
-        pz = pipeline_zstacks(work_folder, tpflags)
-        pz.zstack_tseries()
+        pz = pipeline_tstacks(work_folder, tpflags)
+        pz.tstack_zseries(deblur = 30, align = True, ext_all = False)
         
 def shit1():
     """
@@ -36,14 +36,18 @@ def shit1():
     """
     hroot = 'D:\Data/'
     abspath = os.path.abspath(hroot)
-    aq_date = '/2016-06-14'
-    fd = abspath + aq_date
-    
+    aq_date = '/2016-09-29\\'
+    fd = abspath + aq_date  
+    fd_list = glob.glob(fd+'*TS*')
+    for work_folder in fd_list:
+        work_folder += '\\'
+        pt = pipeline_tstacks(work_folder, zp_flags='ZP')
+        pt.tstack_zseries(deblur = 30, align = True, ext_all = False)
     
     
     
     
 
 if __name__ == '__main__':
-    main()
+    shit1()
 
