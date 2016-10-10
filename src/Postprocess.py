@@ -197,8 +197,9 @@ class brain_construct(object):
             temp_stack[zz] = numfc.circs_reconstruct(frame_size, blob_list, dr=6) # mark out very small circles to calculate correlations
         
         Z_drc = Drift_correction(temp_stack, mfit = 0)
-        new_stack = Z_drc.drift_correct(offset=0, ref_first = False) # drift correct. 
+        Z_drc.drift_correct(offset=0, ref_first = False, roll_back= True) # drift correct. 
         drift_list = Z_drc.drift_list
+        new_stack = Z_drc.get_stack()
         
         for z_key in self.z_images.keys():
             # correct all the cell positions with drift list
@@ -322,7 +323,6 @@ class brain_construct(object):
         """
         
         n_cumu = self.n_cumu
-        
         red_list = dict()
         
         
@@ -353,13 +353,14 @@ class brain_construct(object):
     
     def dense_regist(self, z_dense_stack):
         """
-        load a densely imaged stack as a reference. 
-        do drift correction on the stack. 
+        load a densely imaged stack as a reference. (Key values only) 
+    
         But how to utilize this part of information?
         Assumption: the z_dense stack has the same start and end point as the z_sparse stack does.
         """
         
         self.z_dense = z_dense_stack
+        self.nz, self.ny, self.nx = z_dense_stack.shape
         
     
     
@@ -370,4 +371,5 @@ class brain_construct(object):
         1. register the marked cells with the densely labeled z_stack.
         2. keep only one, remove the rest 
         """
+        
     
