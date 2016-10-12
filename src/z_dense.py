@@ -30,7 +30,8 @@ class z_dense_ref(object):
         
         
         
-        self.z_dense = z_dense # so here it is automatically sorted 
+        self.z_dense = z_dense # so here it is automatically sorted
+        self.nz = nz 
 #         self.zd_stack = np.zeros(nz, ny, nx) # have a "virtual stack"  
         
     
@@ -82,21 +83,33 @@ class z_dense_ref(object):
         n_exist = len(pool_exist)
         
         
-        for n_ind in pool_new:
-            # build the new keys 
-            pr_key = str(nslice) + '_' + str(n_ind)
+        for n_count in np.arange(n_new):
+            # build the new keys
+            # also, we need to assign each new key an identity number which is unique.  
+            n_ind1 = pool_new[n_count]
+            n_ind2 = pool_new_cov[n_count]
+            pr_number =  nslice * 1000 + n_ind1
+            pr_key = 'sl_' + str(pr_number) 
             new_sl = Simple_list(nslice) # create a simple list with z_marker = nslice   
-            new_sl.add([n_ind, zf_1[n_ind, 4]]) 
+            new_sl.add([n_ind1, zf_1[n_ind1, 4]]) 
+            new_sl.add([n_ind2, zf_2[n_ind2, 4]])
+            zf_1[n_ind1, 3] = pr_number 
+            zf_2[n_ind2, 3] = pr_number
             
-            self.redundancy_pool[pr_key] =   
+            self.redundancy_pool[pr_key] = new_sl   
             
-        
-        
-        zf_1[ind1, 3] +=1 
-        zf_2[ind2, 3] += zf_1[ind1, 3]  # mark the fold of redundancy. I think this is a smart step. 
-        
-        
-        return ind1, ind2  # return the indices which indicates the marked positions of redundancy 
+            
+        for n_count in np.arange(n_exist):
+            # search for the existing keys 
+            n_ind1 = pool_exist[n_count]
+            n_ind2 = pool_exist_cov[n_count]
+            pr_number = zf_1[n_ind1, 3] # catch up the pr_number
+            pr_key = 'sl_' + str(pr_number)
+            
+            self.redundancy_pool[pr_key].add([n_ind2, zf_2[n_ind2, 4]])
+            zf_2[n_ind2, 3] = pr_number 
+
+#         return ind1, ind2  # return the indices which indicates the marked positions of redundancy 
         # end of paired redundancy detection 
         
         
@@ -113,13 +126,22 @@ class z_dense_ref(object):
         
         self.redundancy_pool = {}  # this should be initialized first, so that it can be updated in every round of detection 
         
-        ind_init, ind_next = self._red_detect_(0, thresh = 1.0)
         
-        for cell in ind_init: 
-            cell_key = 'z0_'+ str(cell)
+        for nslice in np.arange(self.nz): 
+            self._red_detect_(nslice, thresh = 1.0)
+        
+        # OK, let's check the the size of the pool and remove them one by one. 
+        for sl_key, sl_value in self.redundancy_pool.items():
+            z_start = sl_value.z_marker # where does the z_marker starts
+            z_key = 's_' + format(z_start, '03d') 
+            zframe_0 = self.z_dense[z_key]
+            z_identifier = int(sl_key[3:]) - z_start*1000 # which cell? 
             
-            new_SL = Simple_list(z_marker = 0)
-            new_node = [cell, self.z_dense] 
-            new_SL.add([cell, ])
+            py, px = zframe_0[z_identifier, 0:2] # The x-y coordinates 
+            
+            
         
-        
+            
+            
+            
+            
