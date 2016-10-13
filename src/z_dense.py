@@ -9,28 +9,27 @@ from scipy.stats.mstats_basic import threshold
 from linked_list import Simple_list
 
 
+def z_dense_construct(zd_file):
+    zd = np.load(zd_file)
+    z_dense = {}
+    for keys, values in zd.items():
+        new_entry = values
+        new_entry[:,3] = 0
+        z_dense[keys] = new_entry
+        
+    return z_dense
+
+
 class z_dense_ref(object):
     """
     load a densely labeled stack 
     """
     
-    def __init__(self, densefile, dims):
-        z_dense = np.load(densefile) 
+    def __init__(self, z_dense, dims):
         z_keys = z_dense.keys()
-        z_keys.sort()
         nz  = len(z_keys)
         ny, nx = dims
-        
-        for iz in np.arange(nz):
-            """
-            clear the diameter column of each frame and use it as a counter.
-            """
-            zk  = z_keys[iz]
-            z_dense[zk][:,3] = 0 
-        
-        
-        
-        self.z_dense = z_dense # so here it is automatically sorted
+        self.z_dense = z_dense
         self.nz = nz 
 #         self.zd_stack = np.zeros(nz, ny, nx) # have a "virtual stack"  
         
@@ -57,7 +56,8 @@ class z_dense_ref(object):
         x1 = zf_1[:,1]
         
         y2 = zf_2[:,0]
-        x2 = zf_2[:,0]
+        x2 = zf_2[:,1]
+        
         
         # create a meshgrid 
         [YC, YR] = np.meshgrid(y2, y1)
@@ -71,17 +71,24 @@ class z_dense_ref(object):
         ind2 = red_pair[1] # the indices in the second frame 
         
             
-        # select those with markers > 0 and markers < 0  
-        new_idx = (ind1 ==0 )
+        # select those with markers > 0 and markers < 0 
+        marker_1 = zf_1[ind1, 3] 
+        
+        
+
+        new_idx = (marker_1 == 0)
+        print(new_idx)
         pool_new = ind1[new_idx]
         pool_new_cov = ind2[new_idx]
+        
         
         pool_exist = ind1[~new_idx]
         pool_exist_cov = ind2[~new_idx]
         
         n_new = len(pool_new)
         n_exist = len(pool_exist)
-        
+
+        print(n_new, n_exist, "nums!")
         
         for n_count in np.arange(n_new):
             # build the new keys
@@ -103,7 +110,7 @@ class z_dense_ref(object):
             # search for the existing keys 
             n_ind1 = pool_exist[n_count]
             n_ind2 = pool_exist_cov[n_count]
-            pr_number = zf_1[n_ind1, 3] # catch up the pr_number
+            pr_number = int(zf_1[n_ind1, 3])# catch up the pr_number
             pr_key = 'sl_' + str(pr_number)
             
             self.redundancy_pool[pr_key].add([n_ind2, zf_2[n_ind2, 4]])
@@ -127,21 +134,30 @@ class z_dense_ref(object):
         self.redundancy_pool = {}  # this should be initialized first, so that it can be updated in every round of detection 
         
         
-        for nslice in np.arange(self.nz): 
+        for nslice in np.arange(self.nz-1): 
             self._red_detect_(nslice, thresh = 1.0)
         
-        # OK, let's check the the size of the pool and remove them one by one. 
+        # OK, let's check the the size of the pool and remove them one by one.
+        dist_3d = np.zeros((0, 4)) # create an empty array to save z, y, x, f
+        
+         
         for sl_key, sl_value in self.redundancy_pool.items():
             z_start = sl_value.z_marker # where does the z_marker starts
+            z_list = np.array(sl_value.list) # convert it into a 2d array 
             z_key = 's_' + format(z_start, '03d') 
             zframe_0 = self.z_dense[z_key]
             z_identifier = int(sl_key[3:]) - z_start*1000 # which cell? 
             
-            py, px = zframe_0[z_identifier, 0:2] # The x-y coordinates 
+            pz = np.inner(z_list[:,0], z_list[:,1])/z_list[:,1].sum() # weighted average estimation 
+            py, px = zframe_0[z_identifier, 0:2] # The x-y coordinates
+            pf = zframe_0[z_identifier, 4] # the fluorescence 
             
+            
+            new_entry = np.array([[pz, py, px, pf]])
+            dist_3d = np.concatenate((dist_3d, new_entry), axis = 0)
             
         
             
-            
+        return dist_3d
             
             
