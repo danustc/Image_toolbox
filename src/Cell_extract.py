@@ -23,22 +23,16 @@ def frame_reextract(raw_frame, coords):
     f_dims = raw_frame.shape 
     n_cells = len(coords) # number of cells 
     
+    real_sig = np.zeros(n_cells)
+    
     for nc in np.arange(n_cells):
         cr = coords[0,1] # the real center on non-drift corrected frame
         dr = coords[2] 
         indm = circ_mask_patch(f_dims, cr, dr)
-        coords[2] = np.mean(raw_frame[indm]) # is it OK for replacing dr with 
-            
-         
-        
-        
-        
-    
-    
-    
-    
+        real_sig[nc] = np.mean(raw_frame[indm]) # is it OK for replacing dr with 
 
-
+    return real_sig
+        
 
 #-----------------------------------------------------------------------------------
 class Cell_extract(object):
@@ -197,6 +191,13 @@ class Cell_extract(object):
             coord_list[zkey] = zvalue[:,[0,1,3]] # take out the y, x coordinates and the radius
         
         return coord_list
+
+    
+    def signal_update(self, new_sig, nkey):
+        """
+        Updates the signal of the nth frame while keep the coordinates.  
+        """
+        self.data_list[nkey][:,-1] = new_sig
     
         
         

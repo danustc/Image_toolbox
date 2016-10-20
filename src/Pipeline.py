@@ -8,9 +8,8 @@ import glob
 import numpy as np
 from string_funcs import path_leaf, number_strip
 
-from Cell_extract import Cell_extract
+from Cell_extract import Cell_extract, frame_reextract
 from Preprocess import Deblur, Drift_correction
-from numeric_funcs import circ_mask_patch
 import tifffunc
 #------------------------------------------Small functions----------------------------------
 
@@ -101,14 +100,14 @@ class pipeline_zstacks(object):
         z_CE = Cell_extract(z_newstack)
         z_CE.stack_blobs(msg = False)
         coord_list = z_CE.get_coordinates()
-        f_dims = self.dims
 
 
         for zkey, zvalue in coord_list.items():
             """
             # recalculate the blobs average fluorescence from the original  
             # instead of shifting the frames, let's shift the center of blobs!
-            # zvalue: the y,x coordinates and the radius 
+            # zvalue: the y,x coordinates and the radius
+            Block updated by Dan on 10/20. Need to be tested.  
             """  
             z_frame = int(zkey[2:]) # convert the zkey from string into integer 
             drift_value = z_drift[z_frame] 
@@ -116,25 +115,12 @@ class pipeline_zstacks(object):
             zvalue[:,0] += drift_value[0]
             zvalue[:,1] += drift_value[1]  # here the coord_list has been changed.
             
-            
-            for coords in zvalue:
-                cr = coords[0,1] + drift_value # the real center on non-drift corrected frame
-                dr = coords[2] 
-                indm = circ_mask_patch(f_dims, cr, dr)
-                np.mean(raw_frame[indm])
-            
-            
+            real_sig = frame_reextract(raw_frame, zvalue)
+            z_CE.signal_update(real_sig, zkey)
             
 #             raw_frame = np.roll(raw_frame, -drift_value[0], axis = 0)
 #             raw_frame = np.roll(raw_frame, -drift_value[1], axis = 1)
             
-            
-            
-            
-            
-        
-        
-        
         
         z_CE.save_data_list(self.work_folder+self.prefix_z+postfix_num) # save as npz
         self.pro_flag[list_num] = True
