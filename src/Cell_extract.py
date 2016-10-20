@@ -1,7 +1,7 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package 
-Last update: 08/18/16 
+Last update: 10/19/16 
 Now it really feels lousy. :( Try to use as few for loops as you can!
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 """
@@ -15,6 +15,32 @@ from numeric_funcs import circ_mask_patch
 OL_blob = 0.8
 magni_lateral = 0.295 # 0.295 micron per pixel
 
+def frame_reextract(raw_frame, coords):
+    """
+    Let's make it simple: instead of extracting from the whole stack, just extract from one frame. 
+    So life's gonna be much easier! 
+    """
+    f_dims = raw_frame.shape 
+    n_cells = len(coords) # number of cells 
+    
+    for nc in np.arange(n_cells):
+        cr = coords[0,1] # the real center on non-drift corrected frame
+        dr = coords[2] 
+        indm = circ_mask_patch(f_dims, cr, dr)
+        coords[2] = np.mean(raw_frame[indm]) # is it OK for replacing dr with 
+            
+         
+        
+        
+        
+    
+    
+    
+    
+
+
+
+#-----------------------------------------------------------------------------------
 class Cell_extract(object):
     # this class extracts 
     def __init__(self, im_stack, diam = 6):
@@ -159,6 +185,19 @@ class Cell_extract(object):
         """
         np.savez(dph, **self.data_list) # with keys saved 
     
+    
+    def get_coordinates(self):
+        """
+        Only return the coordinates and diameters of the blobs; lose the intensity 
+        """
+        data_list = self.data_list
+        coord_list = {}
+        
+        for zkey, zvalue in data_list: 
+            coord_list[zkey] = zvalue[:,[0,1,3]] # take out the y, x coordinates and the radius
+        
+        return coord_list
+    
         
         
     def stack_reload(self, new_stack):
@@ -203,29 +242,4 @@ class Cell_extract(object):
         return fig
     
 
-    def volume_display(self, zstep = 3.00, view_angle=None):
-        """
-        This is a daring attempt for 3-D plots of all the blobs in the brain. 
-        Prerequisites: self.blobs_archive are established.
-        The magnification of the microscope must be known.
-        """
-        fig3 = plt.figure(figsize = (12, 9))
-        ax_3d = fig3.add_subplot(111, projection = '3d')
-        
-        for n_frame in self.valid_frames:
-            # below the coordinates of the cells are computed.
-            blobs_list = self.c_list[n_frame] 
-            ys = blobs_list[:,0]*magni_lateral
-            xs = blobs_list[:,1]*magni_lateral 
-            zs = np.ones(len(blobs_list))*n_frame*zstep
-            ss = (np.sqrt(2)*blobs_list[:,2]*magni_lateral)**2
-            ax_3d.scatter(xs,ys, zs, zdir = 'z', s=ss, c='g')        
-        
-        
-        
-        ax_3d.set_xlabel('x (micron)', fontsize = 12)
-        ax_3d.set_ylabel('y (micron)', fontsize = 12)
-        ax_3d.set_zlabel('z (micron)', fontsize = 12)
-        return fig3
-        
         

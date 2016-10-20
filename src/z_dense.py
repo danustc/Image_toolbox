@@ -5,7 +5,6 @@ Created by Dan on 10/10/2016. Load a densely imaged stack (npz file, with all th
 import numpy as np
 from Cell_extract import Cell_extract
 from Preprocess import Drift_correction
-from scipy.stats.mstats_basic import threshold
 from linked_list import Simple_list
 
 
@@ -24,23 +23,25 @@ class z_dense_ref(object):
     """
     load a densely labeled stack 
     """
-    
     def __init__(self, z_dense, dims):
         z_keys = z_dense.keys()
         nz  = len(z_keys)
-        ny, nx = dims
+        self.ny, self.nx = dims
         self.z_dense = z_dense
-        self.nz = nz 
+        self.nz = nz
+        self.z_step = 1.0
+         
 #         self.zd_stack = np.zeros(nz, ny, nx) # have a "virtual stack"  
         
     
     
-    def zd_construct(self):
+    def zd_construct(self, z_step = 1.0):
         """
         reconstruct a new densely-imaged stack
         """
+        self.z_step = z_step
         
-    def _red_detect_(self, nslice = 0, thresh = 1.0):
+    def _red_detect_(self, nslice = 0, thresh = 2.0):
         """
         detect redundancy centered around the slice n.
         thresh: threshold for redundancy detection  
@@ -77,7 +78,6 @@ class z_dense_ref(object):
         
 
         new_idx = (marker_1 == 0)
-        print(new_idx)
         pool_new = ind1[new_idx]
         pool_new_cov = ind2[new_idx]
         
@@ -98,8 +98,8 @@ class z_dense_ref(object):
             pr_number =  nslice * 1000 + n_ind1
             pr_key = 'sl_' + str(pr_number) 
             new_sl = Simple_list(nslice) # create a simple list with z_marker = nslice   
-            new_sl.add([n_ind1, zf_1[n_ind1, 4]]) 
-            new_sl.add([n_ind2, zf_2[n_ind2, 4]])
+            new_sl.add([nslice, zf_1[n_ind1, 4]]) 
+            new_sl.add([nslice+1, zf_2[n_ind2, 4]])
             zf_1[n_ind1, 3] = pr_number 
             zf_2[n_ind2, 3] = pr_number
             
@@ -113,7 +113,7 @@ class z_dense_ref(object):
             pr_number = int(zf_1[n_ind1, 3])# catch up the pr_number
             pr_key = 'sl_' + str(pr_number)
             
-            self.redundancy_pool[pr_key].add([n_ind2, zf_2[n_ind2, 4]])
+            self.redundancy_pool[pr_key].add([nslice+1, zf_2[n_ind2, 4]])
             zf_2[n_ind2, 3] = pr_number 
 
 #         return ind1, ind2  # return the indices which indicates the marked positions of redundancy 
@@ -148,7 +148,7 @@ class z_dense_ref(object):
             zframe_0 = self.z_dense[z_key]
             z_identifier = int(sl_key[3:]) - z_start*1000 # which cell? 
             
-            pz = np.inner(z_list[:,0], z_list[:,1])/z_list[:,1].sum() # weighted average estimation 
+            pz = self.z_step*np.inner(z_list[:,0], z_list[:,1])/z_list[:,1].sum() # weighted average estimation 
             py, px = zframe_0[z_identifier, 0:2] # The x-y coordinates
             pf = zframe_0[z_identifier, 4] # the fluorescence 
             
@@ -157,7 +157,7 @@ class z_dense_ref(object):
             dist_3d = np.concatenate((dist_3d, new_entry), axis = 0)
             
         
-            
+           
         return dist_3d
             
             

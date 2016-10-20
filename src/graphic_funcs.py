@@ -4,8 +4,11 @@ This one contains all the plt-based graphic functions shared among all the funct
 Last update: 08/19/16
 """
 
-import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sb # hahaha!!!! 
+import matplotlib.pyplot as plt 
+
+
 # ---------------------------------Some tiny functions -------------------------------------
 
 def image_scale_bar(fig_im, location, sc_length = 20., pxl_size = 0.295):
@@ -25,6 +28,7 @@ def image_scale_bar(fig_im, location, sc_length = 20., pxl_size = 0.295):
     ax.plot(xs, ys, '-w', linewidth = 10)
     # done with image_scale_bar
     
+
 
 
 def image_zoom_frame(fig_im, c_nw, c_se, cl = 'w'): 
