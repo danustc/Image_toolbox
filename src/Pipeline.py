@@ -98,7 +98,7 @@ class pipeline_zstacks(object):
 #             tifffunc.write_tiff(z_newstack, z_writename)
 
         z_CE = Cell_extract(z_newstack)
-        z_CE.stack_blobs(msg = False)
+        z_CE.stack_blobs(msg = True)
         coord_list = z_CE.get_coordinates()
 
 
