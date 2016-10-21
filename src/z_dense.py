@@ -3,8 +3,6 @@ Created by Dan on 10/10/2016. Load a densely imaged stack (npz file, with all th
 """
 
 import numpy as np
-from Cell_extract import Cell_extract
-from Preprocess import Drift_correction
 from linked_list import Simple_list
 
 
@@ -23,7 +21,7 @@ class z_dense_ref(object):
     """
     load a densely labeled stack 
     """
-    def __init__(self, z_dense, dims):
+    def __init__(self, z_dense, dims, z_step=1.0):
         z_keys = z_dense.keys()
         nz  = len(z_keys)
         self.ny, self.nx = dims
@@ -31,16 +29,8 @@ class z_dense_ref(object):
         self.nz = nz
         self.z_step = 1.0
          
-#         self.zd_stack = np.zeros(nz, ny, nx) # have a "virtual stack"  
-        
+
     
-    
-    def zd_construct(self, z_step = 1.0):
-        """
-        reconstruct a new densely-imaged stack
-        """
-        self.z_step = z_step
-        
     def _red_detect_(self, nslice = 0, thresh = 2.0):
         """
         detect redundancy centered around the slice n.
@@ -157,7 +147,25 @@ class z_dense_ref(object):
             dist_3d = np.concatenate((dist_3d, new_entry), axis = 0)
             
         
+        self.dist_3d = dist_3d
            
         return dist_3d
-            
-            
+    # ----Done with redundancy removal 
+    
+    
+
+    def frame_align(self, zf_coord, z_init = 0.0, search_range = 6.0, crit = 0.80):
+        """
+        Purpose: align a frame's cell with 3-D reconstructed, redundancy removed distributions.
+        z_frame: two-columns array containing y,x coordinates
+        search_range: 
+        crit: if the overall number of assigned cells exceeds crit, then the frame is aligned.   
+        return: 
+        """
+        ncell = len(zf_coord)
+        dist_3d = self.dist_3d # catch the dist_3d
+        z_dense = self.z_dense 
+        
+        
+        
+        n_init = int(z_init/self.z_step) 
