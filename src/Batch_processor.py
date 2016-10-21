@@ -5,10 +5,9 @@ Last update: 09/13/16
 """
 
 import glob
-import ntpath
 import tifffunc
 import numpy as np
-from Preprocess import Drift_correction, Deblur
+from Preprocess import Drift_correction
 from Cell_extract import Cell_extract
 from Postprocess import brain_construct
 import matplotlib.pyplot as plt
@@ -80,10 +79,6 @@ def group_alignment(datapath, nameflag = 'TS', ofst = 1, mfit = 7):
         
 
             
-def group_deblur_cross():
-    # to be filled later 
-    pass
-
 
 def group_cell_extract(datapath, name_flag = 'TS*'):
     stack_list = glob.glob(datapath+'*'+ name_flag + '*.tif')
@@ -93,17 +88,3 @@ def group_cell_extract(datapath, name_flag = 'TS*'):
         CE = Cell_extract(im_stack)
         CE.stack_blobs()
         
-        
-# class working_folder(object):
-#     """
-#     provide a folder wrapper for the working_folder, which allows batch processing
-#     created on 08/15/16. 
-#     """
-#     def __init__(self, dph):
-#         self.dph = dph
-#         self.wfolder = path_leaf(self.dph)
-#           
-#     """
-#     More to be filled here.
-#     """    
-#     

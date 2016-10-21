@@ -163,9 +163,13 @@ class z_dense_ref(object):
         return: 
         """
         ncell = len(zf_coord)
-        dist_3d = self.dist_3d # catch the dist_3d
+#         dist_3d = self.dist_3d # catch the dist_3d
         z_dense = self.z_dense 
         
         
+        n_init = int(z_init/self.z_step)
+        zkey = 's_'+ format(n_init, '03d')
+        z_frame = z_dense[zkey]
         
-        n_init = int(z_init/self.z_step) 
+        
+        
