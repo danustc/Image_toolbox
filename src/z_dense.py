@@ -4,6 +4,8 @@ Created by Dan on 10/10/2016. Load a densely imaged stack (npz file, with all th
 
 import numpy as np
 from linked_list import Simple_list
+from numeric_funcs import lateral_distance
+
 
 
 def z_dense_construct(zd_file):
@@ -16,6 +18,8 @@ def z_dense_construct(zd_file):
         
     return z_dense
 
+
+# ---------------------------Big classes ------------------------------------
 
 class z_dense_ref(object):
     """
@@ -147,7 +151,11 @@ class z_dense_ref(object):
             dist_3d = np.concatenate((dist_3d, new_entry), axis = 0)
             
         
-        self.dist_3d = dist_3d
+        ord_z = np.argsort(dist_3d[:,0], axis = 0)
+        # sort in the order of Z. 
+        
+        
+        self.dist_3d = dist_3d[ord_z, :]
            
         return dist_3d
     # ----Done with redundancy removal 
@@ -163,13 +171,22 @@ class z_dense_ref(object):
         return: 
         """
         ncell = len(zf_coord)
-#         dist_3d = self.dist_3d # catch the dist_3d
+        dist_3d = self.dist_3d # catch the dist_3d
         z_dense = self.z_dense 
+        
+        
         
         
         n_init = int(z_init/self.z_step)
         zkey = 's_'+ format(n_init, '03d')
-        z_frame = z_dense[zkey]
+        z_frame = z_dense[zkey] # take out the z_frame 
+        
+        
+        
+        
+        
+        lateral_distance()
+        
         
         
         

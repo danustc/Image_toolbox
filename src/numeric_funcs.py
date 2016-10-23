@@ -199,3 +199,23 @@ def histo_peak(im_arr, val_cut, nbin = 50, ext = 1):
 #     pk = (bdge[pmx] + bdge[pmx+1])*0.5
 
     return pk
+    # done with histo_peak
+    
+    
+def lateral_distance(coord_1, coord_2):
+    """
+    Very simple: calculate distances between two groups of coordinates 
+    """
+    y1 = coord_1[:,0]
+    y2 = coord_2[:,0]
+    x1 = coord_1[:,1]
+    x2 = coord_2[:,1]
+    
+    [YR, YC] = np.meshgrid(y1,y2)
+    [XR, XC] = np.meshgrid(x1,x2)
+
+    dR = np.sqrt( (YR-YC)**2 + (XR-XC)**2)
+    
+    return dR
+    
+

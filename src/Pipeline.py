@@ -11,7 +11,6 @@ from string_funcs import path_leaf, number_strip
 from Cell_extract import Cell_extract, frame_reextract
 from Preprocess import Deblur, Drift_correction
 import tifffunc
-#------------------------------------------Small functions----------------------------------
 
 
 
