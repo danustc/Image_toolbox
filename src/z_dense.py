@@ -193,8 +193,31 @@ class z_dense_ref(object):
         ind1 = red_pair[0] # the indices of search_lateral 
         ind2 = red_pair[1] # the indices of zf_coord 
         
-        uind1, unique_marks, unique_counts = np.unique(ind1, return_inverse = True, return_counts = True) # if more than one cells are identified with each cell on zf_coord
-        amb_count = np.where(unique_counts>1)
+        # This is a messy but magic block to detect ambiguities :D 
+        uind2, unique_indices, unique_counts = np.unique(ind2, return_index = True, return_counts = True) # if more than one cells are identified with each cell on zf_coord
+        ind2[unique_indices]
+
+        
+        n_detected = len(uind2) 
+        zf_3d = np.zeros((n_detected, 3)) # 
+        zf_3d[:,:2] = zf_coord[ind2[unique_indices],:]
+        zf_3d[:,2] =  z_block[ind1[unique_indices]]
+        
+        
+        amb_count = np.where(unique_counts>1)[0] # 
+        if(amb_count.size): # there are ambiguities 
+            z_ambind = uind2[amb_count] # select which indices are overcounted  
+            # iterate through z_ambind 
+            for za in z_ambind:  
+                ref_ind = np.where(ind2==za)
+                ref_z = z_block[ind1[ref_ind]]
+                z_closest = np.min(np.abs(ref_z-z_init))
+                ind
+                
+                
+            
+            
+        z_ambind[z_closest]
             # if any cell is ambiguously identified 
             
             
@@ -204,10 +227,7 @@ class z_dense_ref(object):
         
         
         
-        
-        zf_3d = np.zeros((ncell, 3)) # 
-        zf_3d[:,:2] = zf_coord
-        zf_3d[:,2] =  
+       
         
         
         
