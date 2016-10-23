@@ -1,10 +1,11 @@
 """
 Created by Dan on 10/10/2016. Load a densely imaged stack (npz file, with all the slices corrected and the cells extracted )
+to replace the Redundancy. 
 """
 
 import numpy as np
 from linked_list import Simple_list
-from numeric_funcs import lateral_distance
+from numeric_funcs import lateral_distance, circs_reconstruct
 
 
 
@@ -112,7 +113,8 @@ class z_dense_ref(object):
 
 #         return ind1, ind2  # return the indices which indicates the marked positions of redundancy 
         # end of paired redundancy detection 
-        
+    
+    
         
     def stack_red_detect(self):
         """
@@ -160,33 +162,52 @@ class z_dense_ref(object):
         return dist_3d
     # ----Done with redundancy removal 
     
-    
 
-    def frame_align(self, zf_coord, z_init = 0.0, search_range = 6.0, crit = 0.80):
+    def frame_zalign(self, zf_coord, z_init = 0.0, search_range = 10.0, thresh = 1.50, crit = 0.80):
         """
         Purpose: align a frame's cell with 3-D reconstructed, redundancy removed distributions.
-        z_frame: two-columns array containing y,x coordinates
-        search_range: 
+        zf_coord: the coordination of cells on the frame that is to be aligned. 
+        search_range: in which z-range should we search for the cells?
+        thresh: threshold of lateral distance in the unit of pixels 
         crit: if the overall number of assigned cells exceeds crit, then the frame is aligned.   
         return: 
         """
         ncell = len(zf_coord)
         dist_3d = self.dist_3d # catch the dist_3d
-        z_dense = self.z_dense 
+        z_coord = dist_3d[:,0] # taking out the z coordinates of all the 
+
+
+        # set the upper and lower bound of the search range 
+        z_upper = z_init+search_range*0.5
+        z_lower = z_init-search_range*0.5
+        
+        z_index = np.where(np.logical_and(z_coord > z_lower, z_coord < z_upper)) # taking out the indices 
+        
+        search_block = dist_3d[z_index, :] # only search for the search block
+        z_block = z_coord[z_index, :] 
+        search_lateral = search_block[:,1:-1] # exclude the z-column and the fluorescence column 
+        dR = lateral_distance(search_lateral, zf_coord) 
+        
+        red_pair = np.where(dR <= thresh)
+        
+        ind1 = red_pair[0] # the indices of search_lateral 
+        ind2 = red_pair[1] # the indices of zf_coord 
+        
+        uind1, unique_marks, unique_counts = np.unique(ind1, return_inverse = True, return_counts = True) # if more than one cells are identified with each cell on zf_coord
+        amb_count = np.where(unique_counts>1)
+            # if any cell is ambiguously identified 
+            
+            
+   
+        
+        n_detected = len(ind1)
         
         
         
         
-        n_init = int(z_init/self.z_step)
-        zkey = 's_'+ format(n_init, '03d')
-        z_frame = z_dense[zkey] # take out the z_frame 
-        
-        
-        
-        
-        
-        lateral_distance()
-        
+        zf_3d = np.zeros((ncell, 3)) # 
+        zf_3d[:,:2] = zf_coord
+        zf_3d[:,2] =  
         
         
         

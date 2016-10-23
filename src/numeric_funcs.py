@@ -211,8 +211,8 @@ def lateral_distance(coord_1, coord_2):
     x1 = coord_1[:,1]
     x2 = coord_2[:,1]
     
-    [YR, YC] = np.meshgrid(y1,y2)
-    [XR, XC] = np.meshgrid(x1,x2)
+    [YC, YR] = np.meshgrid(y2, y1)
+    [XC, XR] = np.meshgrid(x2, x1)
 
     dR = np.sqrt( (YR-YC)**2 + (XR-XC)**2)
     
