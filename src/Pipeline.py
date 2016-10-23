@@ -284,6 +284,4 @@ class pipeline_tstacks(object):
 
         print("All done.")
 
-
-
 #             tifffunc.write_tiff(z_dc, zp_file[:-4]+'_pp.tif')

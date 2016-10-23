@@ -5,7 +5,7 @@ to replace the Redundancy.
 
 import numpy as np
 from linked_list import Simple_list
-from numeric_funcs import lateral_distance, circs_reconstruct
+from numeric_funcs import lateral_distance
 
 
 
@@ -172,7 +172,6 @@ class z_dense_ref(object):
         crit: if the overall number of assigned cells exceeds crit, then the frame is aligned.   
         return: 
         """
-        ncell = len(zf_coord)
         dist_3d = self.dist_3d # catch the dist_3d
         z_coord = dist_3d[:,0] # taking out the z coordinates of all the 
 
@@ -198,10 +197,10 @@ class z_dense_ref(object):
         ind2[unique_indices]
 
         
-        n_detected = len(uind2) 
+        n_detected = len(ind2) 
         zf_3d = np.zeros((n_detected, 3)) # 
-        zf_3d[:,:2] = zf_coord[ind2[unique_indices],:]
-        zf_3d[:,2] =  z_block[ind1[unique_indices]]
+        zf_3d[:,1:] = zf_coord[ind2,:]
+        zf_3d[:,0] =  z_block[ind1]
         
         
         amb_count = np.where(unique_counts>1)[0] # 
@@ -212,22 +211,14 @@ class z_dense_ref(object):
                 ref_ind = np.where(ind2==za)
                 ref_z = z_block[ind1[ref_ind]]
                 z_closest = np.min(np.abs(ref_z-z_init))
-                ind
+                zf_3d[ref_ind, 0] = z_closest
                 
-                
+        # then, remove the duplication 
+        
+            zfu_ind = np.unique(zf_3d[:,0], return_index = True)[1] # only return the indices 
+            zf_3d = zf_3d[zfu_ind, :] # this is sorted in z-direction 
+            
+        
+        return zf_3d
             
             
-        z_ambind[z_closest]
-            # if any cell is ambiguously identified 
-            
-            
-   
-        
-        n_detected = len(ind1)
-        
-        
-        
-       
-        
-        
-        
