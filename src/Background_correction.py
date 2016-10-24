@@ -6,7 +6,7 @@ for pre-processing (actually pre-preprocessing.)
 This file has two classes: 
 
 1. The class Deblur deblurrs the in-plane image and deblurrs each image from its adjacent stacks 
-2. The class Drift_correction corrects the drifts between adjacent slices based on cross-correlation function.
+2. The class Alignments corrects the drifts between adjacent slices based on cross-correlation function.
 To be updated: replace all the global variables with local variables.
 
 

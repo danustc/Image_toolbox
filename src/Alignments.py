@@ -15,6 +15,27 @@ def res_ind(indi, hdim):
     else:
         indo = indi
     return indo
+    # done with res_ind
+
+
+
+def cross_alignment(stack_ref, frame_al, z_step=1.0, z_al = 0.0, pre_align = True):
+    """
+    Align one or more slices into a stack.
+    stack_ref: the reference stack 
+    frame_al: the frame to be aligned. 
+    z_step: the step of the reference stack 
+    z_al: the z-coordinate of the to-be-aligned frame. 
+    return: drift coordinates
+    """
+    nz = stack_ref.shape[0] # the number of slices 
+    z_coordinates = np.arange(nz)* z_step
+    
+    
+
+
+
+
 
 #-------------------------------------Class for drift correction -------------------------------
 
@@ -149,4 +170,5 @@ class Drift_correction(object):
         """
         return self.drift_list
 #-------------------------------Done with drift correction part ----------------------------------------------------------
+
 

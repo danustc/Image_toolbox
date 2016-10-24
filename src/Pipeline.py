@@ -9,7 +9,8 @@ import numpy as np
 from string_funcs import path_leaf, number_strip
 
 from Cell_extract import Cell_extract, frame_reextract
-from Preprocess import Deblur, Drift_correction
+from Background_correction import Deblur
+from Alignments import Drift_correction
 import tifffunc
 
 
@@ -97,10 +98,10 @@ class pipeline_zstacks(object):
 #             tifffunc.write_tiff(z_newstack, z_writename)
 
         z_CE = Cell_extract(z_newstack)
-        z_CE.stack_blobs(msg = False)
-        
-        
+        z_CE.stack_blobs(msg = True)
         coord_list = z_CE.get_coordinates()
+
+
         for zkey, zvalue in coord_list.items():
             """
             # recalculate the blobs average fluorescence from the original  
@@ -113,12 +114,12 @@ class pipeline_zstacks(object):
             raw_frame = raw_stack[z_frame]
             zvalue[:,0] += drift_value[0]
             zvalue[:,1] += drift_value[1]  # here the coord_list has been changed.
-             
+            
             real_sig = frame_reextract(raw_frame, zvalue)
             z_CE.signal_update(real_sig, zkey)
-#             
-# #             raw_frame = np.roll(raw_frame, -drift_value[0], axis = 0)
-# #             raw_frame = np.roll(raw_frame, -drift_value[1], axis = 1)
+            
+#             raw_frame = np.roll(raw_frame, -drift_value[0], axis = 0)
+#             raw_frame = np.roll(raw_frame, -drift_value[1], axis = 1)
             
         
         z_CE.save_data_list(self.work_folder+self.prefix_z+postfix_num) # save as npz
@@ -283,5 +284,7 @@ class pipeline_tstacks(object):
 
 
         print("All done.")
+
+
 
 #             tifffunc.write_tiff(z_dc, zp_file[:-4]+'_pp.tif')
