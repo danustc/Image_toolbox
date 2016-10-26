@@ -7,8 +7,9 @@ main function under Linux.
 
 import glob 
 import os 
-from Pipeline import pipeline_tstacks
-
+import numpy as np
+from Pipeline import pipeline_tstacks, pipeline_zstacks
+import df_f
 
 def main():
     
@@ -36,18 +37,37 @@ def shit1():
     """
     hroot = 'D:\Data/'
     abspath = os.path.abspath(hroot)
-    aq_date = '/2016-09-29\\'
+    aq_date = '/2016-10-18\\'
+    fd = abspath + aq_date  
+    fd_list = glob.glob(fd+'*ZD*')
+    for work_folder in fd_list:
+        work_folder += '\\'
+        pt = pipeline_zstacks(work_folder, tpflags='MM')
+        pt.zstack_tseries(deblur = 30, align = True)
+    
+    
+    
+def shit2():
+    """
+    Correct a stack of shift
+    How to add argc, argv like what we do in c/c++ ?
+    """
+    hroot = 'D:\Data/'
+    abspath = os.path.abspath(hroot)
+    aq_date = '/2016-10-18\\'
     fd = abspath + aq_date  
     fd_list = glob.glob(fd+'*TS*')
     for work_folder in fd_list:
         work_folder += '\\'
         pt = pipeline_tstacks(work_folder, zp_flags='ZP')
-        pt.tstack_zseries(deblur = 30, align = True, ext_all = False)
-    
-    
+        pt.tstack_zseries(deblur = 30, align = True, ext_all=False)
+        
+        
+
+
     
     
 
 if __name__ == '__main__':
-    shit1()
+    shit2()
 
