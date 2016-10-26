@@ -18,6 +18,21 @@ def res_ind(indi, hdim):
     # done with res_ind
 
 
+def correlation_drift(im_ref, im_corr):
+    """
+    An independent function that can be used for drift correction. 
+    """
+    ny, nx = im_ref.shape # assume that the two frames have the same size. 
+    
+    ft_ref = fftp.fft2(im_ref)
+    ft_corr = fftp.fft2(im_corr)
+    
+
+
+
+
+
+
 
 def cross_alignment(stack_ref, frame_al, z_step=1.0, z_al = 0.0, pre_align = True):
     """
@@ -29,7 +44,13 @@ def cross_alignment(stack_ref, frame_al, z_step=1.0, z_al = 0.0, pre_align = Tru
     return: drift coordinates
     """
     nz = stack_ref.shape[0] # the number of slices 
-    z_coordinates = np.arange(nz)* z_step
+    z_coordinates = np.arange(nz)* z_step # the z_coordinates of the 
+    insert_ind = np.searchsorted(z_coordinates, z_al) # find where 
+    
+    
+    
+    
+    
     
     
 
