@@ -1,18 +1,18 @@
 """
 Created by Dan on 08/15/2016, a test of data processing pipeline
-Last update: 09/16/2016
+Last update: 10/26/2016
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
 """
 import os
+import sys
 import glob
 import numpy as np
 from string_funcs import path_leaf, number_strip
 
 from Cell_extract import Cell_extract, frame_reextract
 from Background_correction import Deblur
-from Alignments import Drift_correction
+from Alignments import Drift_correction, cross_alignment
 import tifffunc
-
 
 
 # -----------------------------------------Big classes-------------------------------------------------
@@ -143,16 +143,6 @@ class pipeline_zstacks(object):
 
         print("All done.")
 
-
-
-    def z2t_construct(self):
-        """
-        test test.
-        """
-        pass
-
-
-
 #--------------------------------the counterpart for tstacks---------------------------------
 
 
@@ -163,13 +153,8 @@ class pipeline_tstacks(object):
     """
     def __init__(self, folder_path, zp_flags = 'ZP'):
         self.work_folder = folder_path # folder path should be a folder
-
-        tif_list = glob.glob(self.work_folder+ '*'+ zp_flags +'*.tif')
-        if(not tif_list):
-            print("Error! The selected folder has no required files.")
-        else:
-            # This part is almost parallel to the z-stack preprocessing case.
-
+        try: 
+            tif_list = glob.glob(self.work_folder+ '*'+ zp_flags +'*.tif')
             tif_list.sort(key = os.path.getmtime)
             self.zp_flag = -np.ones(len(tif_list)).astype('int16') # all zero, if any time point is converted, then the element is set to True.
             self.dims = None
@@ -184,7 +169,7 @@ class pipeline_tstacks(object):
                 ZP_number = int(ts_tail.split('_')[-1]) # get the time point number
                 self.zp_flag[iflag] = ZP_number
                 iflag += 1
-
+            
             if(np.any(self.zp_flag<0) == True):
                 print("File name mistake. please check! ")
             else:
@@ -193,6 +178,13 @@ class pipeline_tstacks(object):
                 self.n_ZP = len(self.zp_flag) # number of time points
                 self.pro_flag = np.zeros(self.n_ZP).astype('bool')
 
+        except ValueError:
+            print("Error! The selected folder has no required files.")
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+        # done with __init__ 
+
+            
 
 
     def tstack_prepro(self, list_num = 0, deblur = 30, align = True, ext_all=False):
@@ -284,7 +276,8 @@ class pipeline_tstacks(object):
 
 
         print("All done.")
-
-
-
-#             tifffunc.write_tiff(z_dc, zp_file[:-4]+'_pp.tif')
+        # done with tstack_zseries
+    
+    
+    
+   
