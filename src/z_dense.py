@@ -6,7 +6,7 @@ to replace the Redundancy.
 import numpy as np
 from linked_list import Simple_list
 from numeric_funcs import lateral_distance
-
+from Alignments import cross_alignment
 
 
 def z_dense_construct(zd_file):
@@ -161,6 +161,35 @@ class z_dense_ref(object):
            
         return dist_3d
     # ----Done with redundancy removal 
+    
+    
+    
+    def zstack_shiftcalc(self, zf_coord, z_init = 0.0):
+        """
+        This is unfinished. ---- 10/26/2016
+        load a known, prealigned Z-stack, calculate the shifts of each time stacks with respect to the z-stack.
+        meanframes: number of frames that should be taken for averaged alignment
+        sample_strategy: uni --- uniformly sample among the t-stack (default)
+                         first --- take the first <meanframes> frames for drift calculation
+                         last --- take the last <meanframes>
+        """
+        zd_ref = self.z_dense 
+        
+        frame_al = 0 
+       
+       
+       
+       
+        
+        zp_drift = cross_alignment(zd_ref, frame_al, self.z_step, z_init, pre_align = True)
+
+
+        
+        return zp_drift
+    
+    
+    
+    
     
 
     def frame_zalign(self, zf_coord, z_init = 0.0, search_range = 10.0, thresh = 1.50, crit = 0.80):

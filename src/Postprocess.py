@@ -9,7 +9,7 @@ import df_f
 import numeric_funcs as numfc
 from string_funcs import path_leaf, number_strip
 import numpy as np
-from Preprocess import Drift_correction
+from Alignments import Drift_correction, cross_alignment
 # -----------------------------First, let's define a small class storing everything 
 
 class z_image():
@@ -117,6 +117,8 @@ class over_counting(object):
         if self.n_fold < 3:
             pass
         
+    
+    
     
 
 
@@ -364,12 +366,16 @@ class brain_construct(object):
         
     
     
-    
-    def red_removal(self):
-        """
-        Removal of redundancy:
-        1. register the marked cells with the densely labeled z_stack.
-        2. keep only one, remove the rest 
-        """
         
-    
+    def zstack_shiftcalc(self, zd_path, meanframes = 3, sample_strategy = 'uni'):
+        """
+        load a known, prealigned Z-stack, calculate the shifts of each time stacks with respect to the z-stack.
+        meanframes: number of frames that should be taken for averaged alignment
+        sample_strategy: uni --- uniformly sample among the t-stack (default)
+                         first --- take the first <meanframes> frames for drift calculation
+                         last --- take the last <meanframes>
+        """
+        zp_drift = np.zeros([self.n_ZP, 2])
+        zd_ref = np.load(zd_path)
+        
+       
