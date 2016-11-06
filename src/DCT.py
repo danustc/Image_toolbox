@@ -1,5 +1,6 @@
-# created by Dan on 07/25/2016 
-# discrete cosine transform (DCT)
+"""
+Last update by Dan on 10/27/2016.
+"""
 
 import numpy as np
 import scipy.fftpack as fftpack
