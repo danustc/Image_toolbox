@@ -7,9 +7,7 @@ main function under Linux.
 
 import glob 
 import os 
-import numpy as np
 from Pipeline import pipeline_tstacks, pipeline_zstacks
-import df_f
 
 def main():
     
@@ -18,7 +16,7 @@ def main():
     """ 
     hroot = 'D:\Data/'
     abspath = os.path.abspath(hroot)
-    aq_date = '/2016-09-28\\'
+    aq_date = '/2016-10-25\\'
     fd = abspath + aq_date
     fd_list = glob.glob(fd+'*TS*') # list all the tiff files in the folder
     tpflags = 'ZP'
@@ -37,12 +35,12 @@ def shit1():
     """
     hroot = 'D:\Data/'
     abspath = os.path.abspath(hroot)
-    aq_date = '/2016-10-18\\'
+    aq_date = '/2016-12-07\\'
     fd = abspath + aq_date  
-    fd_list = glob.glob(fd+'*ZD*')
+    fd_list = glob.glob(fd+'B2*ZD*')
     for work_folder in fd_list:
         work_folder += '\\'
-        pt = pipeline_zstacks(work_folder, tpflags='MM')
+        pt = pipeline_zstacks(work_folder, tpflags='ZD')
         pt.zstack_tseries(deblur = 30, align = True)
     
     
@@ -54,9 +52,9 @@ def shit2():
     """
     hroot = 'D:\Data/'
     abspath = os.path.abspath(hroot)
-    aq_date = '/2016-10-18\\'
+    aq_date = '/2016-12-07\\'
     fd = abspath + aq_date  
-    fd_list = glob.glob(fd+'*TS*')
+    fd_list = glob.glob(fd+'B2_HB_TS*')
     for work_folder in fd_list:
         work_folder += '\\'
         pt = pipeline_tstacks(work_folder, zp_flags='ZP')
@@ -65,8 +63,7 @@ def shit2():
         
 
 
-    
-    
+
 
 if __name__ == '__main__':
     shit2()
