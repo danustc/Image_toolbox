@@ -1,8 +1,7 @@
 """
-Created by Dan on 10/10/2016. Load a densely imaged stack (npz file, with all the slices corrected and the cells extracted )
-to replace the Redundancy.
+Modification: 03/23/2017 by Dan.
 """
-
+import os
 import numpy as np
 from src.algos.linked_list import Simple_list
 from src.shared_funcs.numeric_funcs import lateral_distance
@@ -10,6 +9,14 @@ from src.pipeline.Alignments import cross_alignment
 
 
 def z_dense_construct(zd_file):
+    '''
+    Construct a z_dense dictionary from the raw z_dense file, add one column to stock redundancy information.
+    Column 0: y coordinates
+    Column 1: x coordinates
+    Column 2: z slices
+    Column 3: originally radius, changed to redundancy flags, initialized as 0
+    Column 4: intensity (kept for gaussian real z identification)
+    '''
     zd = np.load(zd_file)
     z_dense = {}
     for keys, values in zd.items():
@@ -26,14 +33,15 @@ class z_dense_ref(object):
     """
     load a densely labeled stack
     """
-    def __init__(self, z_dense, dims, z_step=1.0):
+    def __init__(self, z_dense, dims, z_step=1.0, verbose = False):
         z_keys = z_dense.keys()
         nz  = len(z_keys)
         self.ny, self.nx = dims
-        self.z_dense = z_dense
+        self.z_dense = z_dense # z_dense: a densely labeled stack containing y-x coordinates, 
         self.nz = nz
-        self.z_step = 1.0
-
+        self.z_step=z_step
+        self.verbose = verbose
+        self.redundancy_pool = {} # create an empty redundancy pool
 
 
     def _red_detect_(self, nslice = 0, thresh = 2.0):
@@ -61,7 +69,7 @@ class z_dense_ref(object):
 
 
         dist_block = np.sqrt((YC-YR)**2 + (XC-XR)**2)
-        red_pair = np.where(dist_block <= thresh) # find out where
+        red_pair = np.where(dist_block <= thresh) # find out where the distance between cell i in plane k and cell j in plane k+1 is below the threshold.
 
         ind1 = red_pair[0] # the indices in the first frame
         ind2 = red_pair[1] # the indices in the second frame
@@ -71,34 +79,33 @@ class z_dense_ref(object):
         marker_1 = zf_1[ind1, 3]
 
 
+        new_idx = (marker_1 == 0) # select those with zero-markers, which are never counted before. These are new cells. marker_1 needs to be updated.
+        pool_new = ind1[new_idx] # select the indices in the first frame where new redundancies are detected 
+        pool_new_cov = ind2[new_idx] # select the indices in the second frame where new redundancies are detected.
 
-        new_idx = (marker_1 == 0)
-        pool_new = ind1[new_idx]
-        pool_new_cov = ind2[new_idx]
 
-
-        pool_exist = ind1[~new_idx]
-        pool_exist_cov = ind2[~new_idx]
+        pool_exist = ind1[~new_idx] # among the detected redundancies, find those already marked.
+        pool_exist_cov = ind2[~new_idx] # correspondingly, find those already marked in the adjacent slice
 
         n_new = len(pool_new)
         n_exist = len(pool_exist)
-
-        print(n_new, n_exist, "nums!")
+        if self.verbose:
+            print(n_new, "new redundancies, ", n_exist, "existing redundancies")
 
         for n_count in np.arange(n_new):
             # build the new keys
             # also, we need to assign each new key an identity number which is unique.
-            n_ind1 = pool_new[n_count]
-            n_ind2 = pool_new_cov[n_count]
+            n_ind1 = pool_new[n_count] # find the indices in the first slice that contains new redundancies
+            n_ind2 = pool_new_cov[n_count] # find the indices in the following slice 
             pr_number =  nslice * 1000 + n_ind1
-            pr_key = 'sl_' + str(pr_number)
-            new_sl = Simple_list(nslice) # create a simple list with z_marker = nslice
+            pr_key = 'sl_' + str(pr_number) # build a key 
+            new_sl = Simple_list(nslice) # create a simple list with z_marker = nslice, nslice is the index of the first z-slice 
             new_sl.add([nslice, zf_1[n_ind1, 4]])
             new_sl.add([nslice+1, zf_2[n_ind2, 4]])
-            zf_1[n_ind1, 3] = pr_number
-            zf_2[n_ind2, 3] = pr_number
+            zf_1[n_ind1, 3] = pr_number # assign the new pr_number to zf_1
+            zf_2[n_ind2, 3] = pr_number # assigne the same new pr_number to zf_2
 
-            self.redundancy_pool[pr_key] = new_sl
+            self.redundancy_pool[pr_key] = new_sl # stored into the redundancy pool
 
 
         for n_count in np.arange(n_exist):
@@ -106,10 +113,10 @@ class z_dense_ref(object):
             n_ind1 = pool_exist[n_count]
             n_ind2 = pool_exist_cov[n_count]
             pr_number = int(zf_1[n_ind1, 3])# catch up the pr_number
-            pr_key = 'sl_' + str(pr_number)
+            pr_key = 'sl_' + str(pr_number) # this pr_key should already exist in the pool. 
 
             self.redundancy_pool[pr_key].add([nslice+1, zf_2[n_ind2, 4]])
-            zf_2[n_ind2, 3] = pr_number
+            zf_2[n_ind2, 3] = pr_number # update the pr_number in the adjacent slice
 
 #         return ind1, ind2  # return the indices which indicates the marked positions of redundancy
         # end of paired redundancy detection
@@ -126,9 +133,7 @@ class z_dense_ref(object):
         3. compare the next two frames (z1, z2) and detect the redundancy again. If the cells of z1 are unmarked in the last comparison,
         initialize a new linklist; otherwise find the identity key (should be a string) and append the frame number to the old list.
         """
-
-        self.redundancy_pool = {}  # this should be initialized first, so that it can be updated in every round of detection
-
+        self.redundancy_pool.clear()
 
         for nslice in np.arange(self.nz-1):
             self._red_detect_(nslice, thresh = 1.0)

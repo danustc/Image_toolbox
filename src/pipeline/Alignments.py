@@ -40,7 +40,7 @@ def correlation_drift(im_ref, im_corr):
 
 
 
-def cross_alignment(stack_ref, frame_al, z_step=1.0, z_al = 0.0, pre_align = True):
+def cross_alignment(stack_ref, frame_al, z_step=1.0, z_al = 0.0):
     """
     Align one or more slices into a stack.
     stack_ref: the reference stack
@@ -51,7 +51,7 @@ def cross_alignment(stack_ref, frame_al, z_step=1.0, z_al = 0.0, pre_align = Tru
     """
     nz = stack_ref.shape[0] # the number of slices
     z_coordinates = np.arange(nz)* z_step # the z_coordinates of the
-    insert_ind = np.searchsorted(z_coordinates, z_al) # find where the
+    insert_ind = np.searchsorted(z_coordinates, z_al) # find where the closest slice is 
 
     test_ref = stack_ref[insert_ind-1 : insert_ind+1]
     test_drift = np.zeros([3,2]) # the empty array to store test_drift
@@ -197,4 +197,3 @@ class Drift_correction(object):
         simply return the drift list
         """
         return self.drift_list
-#-------------------------------Done with drift correction part ----------------------------------------------------------

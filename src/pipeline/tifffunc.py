@@ -1,19 +1,25 @@
 """
 A wrapper designed for Dan's image processing.
 Based on Christoph Gohlke (UCI)'s tifffile module.
-Last modification: 08/15/16
+Last modification: 04/04/17
 """
 
 from tifffile import TiffFile
 from tifffile import imsave
 import numpy as np
+import glob
+
 
 # read a tiff stack
-def read_tiff(fname):
+def read_tiff(fname, nslice = None):
     # the fname should include the absolute path and extension name
+    # nslice can be a number or an array, indicating multiple slices
     with TiffFile(fname) as tif:
         istack = tif.asarray()
-    return istack
+    if nslice is None:
+        return istack
+    else:
+        return istack[nslice]
 
 def intp_tiff(istack, ns1, ns2, nint = 1):
     # linear interpolation of slices between
@@ -40,11 +46,21 @@ def reorient_tiff_RAS(imstack, fname):
     write_tiff(rot_stack, fname)
 
 
+def interlacing_split(stack_ref, stack_aln, folder_path, name_flag):
+    '''
+    interlacing two stacks and split them into several substacks.
+    '''
+
+
 
 def main():
-    impath = '/home/sillycat/Documents/Zebrafish/Exp_figures/ZD_2.tif'
-    tiff = read_tiff(impath)
-    reorient_tiff_RAS(tiff, impath[:-4]+ '_rio.tif')
+    impath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+    ZD_name= 'ZD_2.tif'
+    TS_name= 'TS_2.tif'
+    ZD_stack = read_tiff(impath+ZD_name)
+    TS_stack = read_tiff(impath+TS_name)
+
+
 
 if __name__ == '__main__':
     main()

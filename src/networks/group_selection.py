@@ -1,10 +1,10 @@
 '''
-Created by Dan on 02/01/2017
+Last modification: 03/23/2017 by Dan
 '''
 
 import numpy as np
 
-def cell_selection(coord_data, coordinates, tolerance = 5):
+def spatial_cell_selection(coord_data, coordinates, tolerance = 5):
     '''
     data: contains the coordinates, column0: y, column1:x
     coordinates: the centers of selection
@@ -21,3 +21,10 @@ def cell_selection(coord_data, coordinates, tolerance = 5):
     CC, SS = np.where(r_diff < tolerance)
 
     return CC
+
+def activity_var_selection(dff_data, display = True):
+    '''
+    select the high-activity cells based on the variance of the Delta f/f.
+    Score the activity for each neuron, try to find possible pattern.
+    Return the score list and estimated cut-off 
+    '''
