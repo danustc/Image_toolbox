@@ -8,13 +8,14 @@ The class is supposed to have nothing to do with file name issue. I need to addr
 
 import numpy as np
 import matplotlib.pyplot as plt
+from Red_detect import redund_detect_merge
 from skimage.feature import blob_log
 from src.shared_funcs.numeric_funcs import circ_mask_patch
 
 
 OL_blob = 0.5
 magni_lateral = 0.295 # 0.295 micron per pixel
-
+ 
 def frame_reextract(raw_frame, coords):
     """
     Let's make it simple: instead of extracting from the whole stack, just extract from one frame.
@@ -32,6 +33,20 @@ def frame_reextract(raw_frame, coords):
         real_sig[nc] = np.mean(raw_frame[indm]) # is it OK for replacing dr with
 
     return real_sig
+
+# adjust the positions of cells 
+def cell_list_afm(clist, afm, afb):
+    '''
+    Affine transformation of a list of cell positions.
+    clist: the list of extracted cells (y-x positions only)
+    afm: the matrix of the affine transformation
+    afb: the shift vector of the affine transformation.
+    '''
+    xy_coord = np.fliplr(clist).T # transform the matrix
+    n_cells = len(clist) # number of the cells
+    b_tile = p.tile(afb,(n_cells, 1)).T
+    tc_list = np.matmul(afm, xy_coord) +b_tile
+    return tc_list
 
 
 #-----------------------------------------------------------------------------------
@@ -131,15 +146,29 @@ class Cell_extract(object):
         Update on 08/19. Output: a dict. ['xy']: coordinates; ['data']: fluorescence signal.
         """
         if(np.isscalar(n_frame)):
-            if self.bl_flag[n_frame]>0: # if the
+            if self.bl_flag[n_frame]>0: # if the cell extraction is already done
                 kwd = 's_'+ str(n_frame).zfill(3)
                 data_slice = self.data_list[kwd]
             else:
                 data_slice = self.image_blobs(n_frame) # extract blobs from the selected frame first
             n_blobs = self.bl_flag[n_frame]
         else:
-            # n_frame is a list
-            pass
+            # Added on 04/13/2017           
+            data_ref = self.image_blobs(n_frame[0])
+            for nf in n_frame[1:]:
+                # extract cells from each frame, detect redundancy, then merge
+                data_fol = self.image_blobs(nf)
+                ind_ref, ind_fol = redund_detect_merge(data_ref,data_fol, thresh = 2.0)
+                # merge the two slice; append the redundant ones behind 
+                if(np.isscalar(ind_ref)):
+                    data_redund = np.array([data_ref[ind_ref, :]])
+                else:
+                    data_redund = data_ref[ind_ref,:]
+                data_merge = np.concatenate((data_ref[~ind_ref],data_fol[~ind_fol],data_redund), axis = 0 )
+                data_ref = data_merge
+
+            n_blobs = len(data_ref)# merging extracted cells in several frames
+            # ----- end else, n_frame is an array instead of a slice number
 
         blob_time_stack = dict()
         coords = data_slice[:,:2] # takenout the y and x coordinates as maps
