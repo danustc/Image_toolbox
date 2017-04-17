@@ -155,16 +155,22 @@ class Cell_extract(object):
             for nf in n_frame[1:]:
                 # extract cells from each frame, detect redundancy, then merge
                 data_fol = self.image_blobs(nf)
-                ind_ref, ind_fol = redund_detect_merge(data_ref,data_fol, thresh = 4.0)
+                ind_ref, ind_fol = redund_detect_merge(data_ref,data_fol, thresh = 4)
                # merge the two slice; append the redundant ones behind 
+                nr_ref = len(ind_ref)
+                nr_fol = len(ind_fol)
+                mask_ref = np.array([ir in ind_ref for ir in np.arange(len(data_ref))])
+                mask_fol = np.array([io in ind_fol for io in np.arange(len(data_fol))])
+                dr_unique = data_ref[~mask_ref] # the unique part in data_ref
+                df_unique = data_fol[~mask_fol] # the unique part in data_fol
                 if(np.isscalar(ind_ref)):
                     data_redund = np.array([data_ref[ind_ref, :]])
                 else:
                     data_redund = data_ref[ind_ref,:]
-                data_merge = np.concatenate((data_ref[~ind_ref],data_fol[~ind_fol],data_redund), axis = 0 )
+                data_merge = np.concatenate((dr_unique, df_unique, data_redund), axis = 0 )
                 data_ref = data_merge
                 if verbose:
-                    print("fol slice nblobs:", data_fol.shape)
+                    print("unique slice nblobs:", dr_unique.shape, df_unique.shape)
             n_blobs = len(data_ref)# merging extracted cells in several frames
             data_slice = data_ref
             # ----- end else, n_frame is an array instead of a slice number
@@ -256,7 +262,7 @@ def main():
     TS_slice9 = 'A1_FB_TS_ZP_9.tif'
     tstack = np.copy(read_tiff(tf_path+TS_slice9).astype('float64'))
     CE = Cell_extract(tstack)
-    blob_time_stack = CE.stack_signal_propagate([0,1],verbose = True)
+    blob_time_stack = CE.stack_signal_propagate([0,1,2],verbose = True)
     np.savez(tf_path+'test_z9_s2', **blob_time_stack)
     print("CE class initialized.")
 
