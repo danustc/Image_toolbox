@@ -9,6 +9,7 @@ import numpy as np
 import tifffunc as tf
 import pyfftw
 import glob
+import os
 import src.shared_funcs.string_funcs as sfc
 
 def pyfftw_container(ny, nx, bwd = False):
@@ -138,46 +139,51 @@ def T2Z_sample(wfolder,n_slice, zpflag = 'ZP', save_flag='tz'):
 
     return stack_represent
 
+def stack_split(raw_stack, nsplit, dph = None):
+    '''
+    Split a substack from a raw stack and save if dph is not None.
+    '''
+    if np.isscalar(nsplit):
+        substack = raw_stack[:nsplit] # take out the first nsplit slices
+    else:
+        substack = raw_stack[nsplit]
+
+    if dph is None:
+        return substack
+    else:
+        tf.write_tiff(substack, dph)
+
+
+def reorient_tiff_RAS(imstack, fname):
+    '''
+    Reorient the image stack in the RAS coordinate system.
+    Note that the original image.
+    '''
+    # nz, nx, ny = imstack.shape
+    rot_stack = []
+    for zslice in imstack:
+        rot_stack.append(np.rot90(zslice, k=3))
+
+    rot_stack = np.array(rot_stack)
+    tf.write_tiff(rot_stack, fname)
+
+
+
+
 def main():
     '''
     a test function,test stack splitting functions
     '''
-    impath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    ZD_name= 'A1_FB_ZD.tif'
-    TS_name= 'TS_folder/TS_ZP_9.tif'
-    ZD_stack = tf.read_tiff(impath+ZD_name)
-    '''
-    TS_slice= tf.read_tiff(impath+TS_name, 1) # take 5 slices
-   1 loc_stack = frame_locate(ZD_stack, 36,verbose = True)
-    tf.write_tiff(loc_stack,impath+'loc.tif')
-    n_loc = loc_stack.shape[0]
-    TS_dup = duplicate_tiff(TS_slice, n_loc)
-    tf.write_tiff(TS_dup, impath+'ts_dup.tif')
-    '''
-    loc_stack = tf.read_tiff(impath+'loc.tif')
-    TS_dup = tf.read_tiff(impath+'ts_dup.tif')
-    corr_trace = correlate_trace(loc_stack, TS_dup)
-    print(corr_trace)
+    impath = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
+    target_list = glob.glob(impath+"*.tif")
+    for target_brain in target_list:
+        brain = tf.read_tiff(target_brain)
+        base_name = os.path.basename(target_brain)[:-4]
+        reorient_tiff_RAS(brain, impath +'images/'+ base_name+'RAS.tif')
 
-    print("Finished!")
-
-
-def scratch():
-    '''
-    test the translation
-    '''
-    impath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    TS_dup = tf.read_tiff(impath + 'ts_dup.tif')
-    ref_frame = TS_dup[0]
-    cor_frame = np.roll(TS_dup[1], 10,axis = 0)
-    cor_frame = np.roll(cor_frame, 10,axis = 1)
-    tf.write_tiff(ref_frame, impath + 'ref.tif')
-    tf.write_tiff(cor_frame, impath + 'trans_10.tif')
 
 
 
 
 if __name__=='__main__':
-    scratch()
-
-
+    main()

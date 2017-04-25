@@ -31,7 +31,7 @@ def z_dense_construct(zd_file):
 
 class z_dense_ref(object):
     """
-    load a densely labeled stack
+    load a densely labeled stack, remove redundancy
     """
     def __init__(self, z_dense, dims, z_step=1.0, verbose = False):
         z_keys = z_dense.keys()
@@ -157,7 +157,6 @@ class z_dense_ref(object):
             new_entry = np.array([[pz, py, px, pf]])
             dist_3d = np.concatenate((dist_3d, new_entry), axis = 0)
 
-
         ord_z = np.argsort(dist_3d[:,0], axis = 0)
         # sort in the order of Z.
 
@@ -166,31 +165,6 @@ class z_dense_ref(object):
 
         return dist_3d
     # ----Done with redundancy removal
-
-
-
-    def zstack_shiftcalc(self, zf_coord, z_init = 0.0):
-        """
-        This is unfinished. ---- 10/26/2016
-        load a known, prealigned Z-stack, calculate the shifts of each time stacks with respect to the z-stack.
-        meanframes: number of frames that should be taken for averaged alignment
-        sample_strategy: uni --- uniformly sample among the t-stack (default)
-                         first --- take the first <meanframes> frames for drift calculation
-                         last --- take the last <meanframes>
-        """
-        zd_ref = self.z_dense
-
-        frame_al = 0
-
-
-
-
-
-        zp_drift = cross_alignment(zd_ref, frame_al, self.z_step, z_init, pre_align = True)
-        return zp_drift
-
-
-
 
 
 
@@ -251,3 +225,10 @@ class z_dense_ref(object):
 
 
         return zf_3d
+
+# ----------------------------Test functions---------------------
+def main():
+    fpath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+    
+    ZDR = z_dense_ref()
+

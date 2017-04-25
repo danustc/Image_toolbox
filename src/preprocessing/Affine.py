@@ -1,6 +1,7 @@
 '''
 This file loads the affine transformation output (2 triangle coordinates) and generates the affine matrix (M) and the translation vector(b).
 The function trans_reading reads the triangle coordinates.
+Last update: 04/25/2017
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
@@ -8,6 +9,7 @@ import numpy as np
 import numpy.linalg as linalg
 import src.pipeline.stack_operations as st_op
 
+global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/' # this is the global path to the test data sets.
 # read affine transformation form 
 def triangle2afm(ts, td, mode='a'):
     '''
@@ -90,6 +92,7 @@ def aff_transform(frame, afm, afb):
     That also involves interpolation of the transformed image
     '''
     tframe = np.zeros_like(frame)
+
     return tframe
 
 
@@ -103,7 +106,7 @@ def main():
     rigmat_single, rigvec_single = aff_read(tmpath_single)
     rigmat_multi, rigvec_multi = aff_read(tmpath_multi)
     print(rigmat_single[0])
-
+    tmpath_ts2zd = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
 
 

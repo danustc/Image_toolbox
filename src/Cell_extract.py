@@ -1,7 +1,7 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package
-Last update: 10/19/16
+Last update: 04/23/2017
 Now it really feels lousy. :( Try to use as few for loops as you can!
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 """
@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from preprocessing.tifffunc import read_tiff
 from preprocessing.Red_detect import redund_detect_merge
 from skimage.feature import blob_log
+from skimage.filters import threshold_local
 from shared_funcs.numeric_funcs import circ_mask_patch
 
 
@@ -64,21 +65,21 @@ class Cell_extract(object):
     def image_blobs(self, n_frame):
         """
         Extract number of blobs from the frame n_frame.
+        Updated: self.data_list
         """
 
         im0 = self.stack[n_frame]
+        im_ept = np.where(im0 == 0)
+        VI = np.floor(np.std(im0)) # variability of the pixels 
+        im0[im_ept] = np.random.randint(VI)
         mx_sig = self.blobset[0]
         mi_sig = self.blobset[1]
         nsig = self.blobset[2]
         # comment on 09/05: we need a smarter way to do the threshold setting.
-        th = (np.mean(im0)-np.min(im0))/18.0
-        # th = 0.50
-        plt.imshow(im0)
-        plt.savefig('test')
-
-        cblobs = blob_log(im0,
-            max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
-
+        block_size = 55
+        th = (np.mean(im0)-np.std(im0))/5.0
+        print("threshold:", th)
+        cblobs = blob_log(im0,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
 
         n_blobs = cblobs.shape[0]
         if(n_blobs == 0):
@@ -124,10 +125,6 @@ class Cell_extract(object):
         self.valid_frames = np.where(self.bl_flag>0)[0]
         # end of the function stack_blobs
 
-
-
-            # This sounds really lousy.
-
     def stack_signal_propagate(self, n_frame = 0, verbose = False):
         """
         Assume that all the slices are aligned and morphologically the same. We only extract cells
@@ -155,7 +152,7 @@ class Cell_extract(object):
             for nf in n_frame[1:]:
                 # extract cells from each frame, detect redundancy, then merge
                 data_fol = self.image_blobs(nf)
-                ind_ref, ind_fol = redund_detect_merge(data_ref,data_fol, thresh = 4)
+                ind_ref, ind_fol = redund_detect_merge(data_ref,data_fol, thresh = 5)
                # merge the two slice; append the redundant ones behind 
                 nr_ref = len(ind_ref)
                 nr_fol = len(ind_fol)
@@ -170,7 +167,11 @@ class Cell_extract(object):
                 data_merge = np.concatenate((dr_unique, df_unique, data_redund), axis = 0 )
                 data_ref = data_merge
                 if verbose:
+                    print("t_slice:", nf)
+                    print("direct extraction:", data_fol.shape)
+                    print("level of redundancy:", data_redund.shape)
                     print("unique slice nblobs:", dr_unique.shape, df_unique.shape)
+                    print("overall nblobs:", data_merge.shape)
             n_blobs = len(data_ref)# merging extracted cells in several frames
             data_slice = data_ref
             # ----- end else, n_frame is an array instead of a slice number
@@ -259,13 +260,17 @@ def main():
     The main function for testing the cell extraction code.
     '''
     tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    TS_slice9 = 'A1_FB_TS_ZP_9.tif'
-    tstack = np.copy(read_tiff(tf_path+TS_slice9).astype('float64'))
-    CE = Cell_extract(tstack)
-    blob_time_stack = CE.stack_signal_propagate([0,1,2],verbose = True)
-    np.savez(tf_path+'test_z9_s2', **blob_time_stack)
-    print("CE class initialized.")
-
+    TS_slice9 = 'TS_folder/rg_A1_FB_TS_ZP_9.tif'
+    ZD_stack = 'A1_FB_ZD.tif'
+#     zstack = read_tiff(tf_path+ZD_stack).astype('float64')
+#     CEz = Cell_extract(zstack)
+#     CEz.stack_blobs(msg=True)
+#     CEz.save_data_list(tf_path+'A1_FB_ZD')
+# 
+    tstack = read_tiff(tf_path+TS_slice9).astype('float64')
+    CEt = Cell_extract(tstack)
+    bt_stack = CEt.stack_signal_propagate(n_frame = np.arange(10), verbose = True)
+    np.savez(tf_path+'TS_9_10slice', **bt_stack)
 
 if __name__ == '__main__':
     main()
