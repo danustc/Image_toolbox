@@ -1,7 +1,9 @@
 """
-Modification: 03/23/2017 by Dan.
+Last Modification: 04/26/2017 by Dan.
 """
 import os
+import sys
+sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import numpy as np
 from src.algos.linked_list import Simple_list
 from src.shared_funcs.numeric_funcs import lateral_distance
@@ -226,9 +228,12 @@ class z_dense_ref(object):
 
         return zf_3d
 
+
+
 # ----------------------------Test functions---------------------
 def main():
     fpath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    
-    ZDR = z_dense_ref()
 
+
+if __name__ == '__main__':
+    main()

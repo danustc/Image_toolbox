@@ -6,6 +6,7 @@ Function: navigate a stack of images and display cells across the stack.
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 global_ccode = 'bgrcmyk'
 
@@ -65,3 +66,20 @@ def slices_compare(im_slice1, im_slice2):
     figc.tight_layout()
     return figc
     ax2.get_yaxis().set_visible(False)
+
+
+
+def stack_display(zstack_3d, cl = 'b'):
+    '''
+    display a z-distribution of a stack
+    column conventions: 0 -- z; 1 -- y; 2 -- x
+    '''
+    zs, ys, xs = zstack_3d[:,0], zstack_3d[:,1], zstack_3d[:,2]
+    fig3d = plt.figure(figsize= (10,10))
+    ax = fig3d.add_subplot(111, projection = '3d')
+    ax.scatter(xs, ys, zs, c = cl, depthshade = True)
+    ax.set_xlabel('Posterior-->', fontsize = 14)
+    ax.set_ylabel('Right -->', fontsize = 14)
+    ax.set_zlabel('Dorsal -->', fontsize = 14)
+    fig3d.tight_layout()
+    return fig3d

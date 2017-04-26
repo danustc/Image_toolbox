@@ -173,7 +173,8 @@ def reorient_tiff_RAS(imstack, fname):
 
 def main():
     # test slice splitting function
+    pass
 
 
-if __name__=='__main__':
+if __name__ =='__main__':
     main()
