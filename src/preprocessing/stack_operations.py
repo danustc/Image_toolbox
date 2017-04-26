@@ -12,6 +12,8 @@ import glob
 import os
 import src.shared_funcs.string_funcs as sfc
 
+global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+
 def pyfftw_container(ny, nx, bwd = False):
     '''
     construct a fftw container to perform fftw.
@@ -31,6 +33,8 @@ def duplicate_tiff(frame, ndup):
     '''
     dup_stack = np.tile(frame, [ndup,1,1])
     return dup_stack
+
+
 
 
 def crop_tiff(imstack,positions, cfname):
@@ -143,10 +147,7 @@ def stack_split(raw_stack, nsplit, dph = None):
     '''
     Split a substack from a raw stack and save if dph is not None.
     '''
-    if np.isscalar(nsplit):
-        substack = raw_stack[:nsplit] # take out the first nsplit slices
-    else:
-        substack = raw_stack[nsplit]
+    substack = raw_stack[nsplit]
 
     if dph is None:
         return substack
@@ -174,15 +175,19 @@ def main():
     '''
     a test function,test stack splitting functions
     '''
-    impath = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
-    target_list = glob.glob(impath+"*.tif")
-    for target_brain in target_list:
-        brain = tf.read_tiff(target_brain)
-        base_name = os.path.basename(target_brain)[:-4]
-        reorient_tiff_RAS(brain, impath +'images/'+ base_name+'RAS.tif')
+    # impath = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
+    # target_list = glob.glob(impath+"*.tif")
+    # for target_brain in target_list:
+    #     brain = tf.read_tiff(target_brain)
+    #     base_name = os.path.basename(target_brain)[:-4]
+    #     reorient_tiff_RAS(brain, impath +'images/'+ base_name+'RAS.tif')
+    im_ref = tf.read_tiff(global_datapath+'ref.tif')
+    im_rot30 = tf.read_tiff(global_datapath+'rot_30.tif')
+    cr_ref = im_ref[50:-50, 50:-50]
+    cr_rot30 = im_rot30[50:-50, 50:-50]
 
-
-
+    tf.write_tiff(cr_ref, global_datapath+'ref_crop.tif')
+    tf.write_tiff(cr_rot30, global_datapath+'rot30_crop.tif')
 
 
 if __name__=='__main__':

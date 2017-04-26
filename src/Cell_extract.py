@@ -5,13 +5,15 @@ Last update: 04/23/2017
 Now it really feels lousy. :( Try to use as few for loops as you can!
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 """
+import sys
+sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import matplotlib.pyplot as plt
-from preprocessing.tifffunc import read_tiff
-from preprocessing.Red_detect import redund_detect_merge
+from src.preprocessing.tifffunc import read_tiff
+from src.preprocessing.Red_detect import redund_detect_merge
 from skimage.feature import blob_log
 from skimage.filters import threshold_local
-from shared_funcs.numeric_funcs import circ_mask_patch
+from src.shared_funcs.numeric_funcs import circ_mask_patch
 
 
 OL_blob = 0.5

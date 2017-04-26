@@ -7,7 +7,7 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import numpy.linalg as linalg
-import src.pipeline.stack_operations as st_op
+import src.preprocessing.stack_operations as st_op
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/' # this is the global path to the test data sets.
 # read affine transformation form 
@@ -95,18 +95,33 @@ def aff_transform(frame, afm, afb):
 
     return tframe
 
+def pixel_transform(px_list, afmat, afvec):
+    '''
+    afmat: the matrix part of the affine transformation
+    afvec: the vector part of the affine transformation
+    px_list: the list of pixels to be transformed. Conventions: column 0 -- y; column 1 -- x. Need to be transposed before applying the affine matrix on it.
+    '''
+    if(px_list.size == 2):
+        # if px list is only one point
+        px_trans = afmat*px_list+afvec
+    else:
+        NL = np.max(px_trans.shape)
+        px_trans_row = np.dot(afmat, px_list.transpose()) +np.tile(afvec, (NL,1).transpose())
+        px_trans = px_trans_row.transpose()
+    return px_trans
 
+# -----------------------------------------_Testing function (main)--------------------------------------
 
 def main():
     '''
     test for functions
     '''
-    tmpath_single = '/home/sillycat/Programming/Python/Image_toolbox/data_test/Trans_rot30.txt'
-    tmpath_multi =  '/home/sillycat/Programming/Python/Image_toolbox/data_test/Trans_rot8s.txt'
-    rigmat_single, rigvec_single = aff_read(tmpath_single)
-    rigmat_multi, rigvec_multi = aff_read(tmpath_multi)
-    print(rigmat_single[0])
-    tmpath_ts2zd = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+    tmpath_ts2zd = global_datapath+'sliceReg.txt'
+    rigmat_multi, rigvec_multi = aff_read(tmpath_ts2zd)
+    print("Number of aligned slices:", len(rigmat_multi))
+    print(rigmat_multi)
+    print(rigvec_multi)
+
 
 
 

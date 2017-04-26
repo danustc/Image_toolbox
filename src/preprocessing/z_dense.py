@@ -5,7 +5,7 @@ import os
 import numpy as np
 from src.algos.linked_list import Simple_list
 from src.shared_funcs.numeric_funcs import lateral_distance
-from src.pipeline.Alignments import cross_alignment
+from src.preprocessing.Alignments import cross_alignment
 
 
 def z_dense_construct(zd_file):
