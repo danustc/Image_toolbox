@@ -72,7 +72,7 @@ class Cell_extract(object):
 
         im0 = self.stack[n_frame]
         im_ept = np.where(im0 == 0)
-        VI = np.floor(np.std(im0)) # variability of the pixels 
+        VI = np.floor(np.std(im0)/5+10) # variability of the pixels 
         im0[im_ept] = np.random.randint(VI)
         mx_sig = self.blobset[0]
         mi_sig = self.blobset[1]
@@ -224,14 +224,12 @@ class Cell_extract(object):
 
 
     def get_coordinates(self):
-        """
-        Only return the coordinates and diameters of the blobs; lose the intensity
-        """
+        # Only return the y-x coordinates of the blobs; ignore everything else
         data_list = self.data_list
         coord_list = {}
 
         for zkey, zvalue in data_list.items():
-            coord_list[zkey] = zvalue[:,[0,1,3]] # take out the y, x coordinates and the radius
+            coord_list[zkey] = zvalue[:,[0,1]] # take out the y, x coordinates and the radius
 
         return coord_list
 
@@ -263,16 +261,21 @@ def main():
     '''
     tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
     TS_slice9 = 'TS_folder/rg_A1_FB_TS_ZP_9.tif'
+    TS_slice14 = 'TS_folder/rg_A1_FB_TS_ZP_14.tif'
     ZD_stack = 'A1_FB_ZD.tif'
 #     zstack = read_tiff(tf_path+ZD_stack).astype('float64')
 #     CEz = Cell_extract(zstack)
 #     CEz.stack_blobs(msg=True)
 #     CEz.save_data_list(tf_path+'A1_FB_ZD')
 # 
-    tstack = read_tiff(tf_path+TS_slice9).astype('float64')
-    CEt = Cell_extract(tstack)
-    bt_stack = CEt.stack_signal_propagate(n_frame = np.arange(10), verbose = True)
-    np.savez(tf_path+'TS_9_10slice', **bt_stack)
+    tstack9 = read_tiff(tf_path+TS_slice9).astype('float64')
+    tstack14 = read_tiff(tf_path+TS_slice14).astype('float64')
+    CEt = Cell_extract(tstack9)
+    bt_stack = CEt.stack_signal_propagate(n_frame = np.arange(8), verbose = True)
+    np.savez(tf_path+'TS_9', **bt_stack)
+    CEt.stack_reload(tstack14) # reload the stack 14
+    bt_stack = CEt.stack_signal_propagate(n_frame = np.arange(8), verbose = True)
+    np.savez(tf_path+'TS_14', **bt_stack)
 
 if __name__ == '__main__':
     main()

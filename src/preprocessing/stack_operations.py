@@ -6,7 +6,7 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import src
 import numpy as np
-import tifffunc as tf
+import src.preprocessing.tifffunc as tf
 import pyfftw
 import glob
 import os
@@ -172,22 +172,7 @@ def reorient_tiff_RAS(imstack, fname):
 
 
 def main():
-    '''
-    a test function,test stack splitting functions
-    '''
-    # impath = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
-    # target_list = glob.glob(impath+"*.tif")
-    # for target_brain in target_list:
-    #     brain = tf.read_tiff(target_brain)
-    #     base_name = os.path.basename(target_brain)[:-4]
-    #     reorient_tiff_RAS(brain, impath +'images/'+ base_name+'RAS.tif')
-    im_ref = tf.read_tiff(global_datapath+'ref.tif')
-    im_rot30 = tf.read_tiff(global_datapath+'rot_30.tif')
-    cr_ref = im_ref[50:-50, 50:-50]
-    cr_rot30 = im_rot30[50:-50, 50:-50]
-
-    tf.write_tiff(cr_ref, global_datapath+'ref_crop.tif')
-    tf.write_tiff(cr_rot30, global_datapath+'rot30_crop.tif')
+    # test slice splitting function
 
 
 if __name__=='__main__':

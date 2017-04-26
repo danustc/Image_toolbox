@@ -31,6 +31,8 @@ def triangle2afm(ts, td, mode='a'):
     pq = np.array([p1,q1, p2, q2, p3, q3])
 
     if mode == 'a':
+        print("Affine transformation.")
+        # affine transformation, more degrees of freedom
         LT = np.zeros([6,6])
         LT[0] = [x1, y1, 0,0, 1.0, 0]
         LT[1] = [0, 0, x1, y1,0, 1.0]
@@ -39,9 +41,13 @@ def triangle2afm(ts, td, mode='a'):
         LT[4] = [x3, y3, 0,0, 1.0, 0]
         LT[5] = [0, 0, x3, y3,0, 1.0]
         paras = linalg.solve(LT, pq)
+        print("The affine matrix:", LT)
+        print(paras)
         M = paras[:4].reshape([2,2])
         b = paras[4:]
+
     elif mode == 'r':
+        print("Rigid body transformation.")
         # rigid body transformation, less degrees of freedom
         LT = np.zeros([4,4])
         LT[0] = [x1, -y1, 1.0, 0]
@@ -59,11 +65,15 @@ def aff_read(tm_path):
     '''
     The transformation file has the standard format of the .txt output file produced by MultiStackReg (Brad Busse).
     '''
+    trans_dic = {'RIGID_BODY':'r', 'AFFINE': 'a'}
     f = open(tm_path, 'r')
     txt_contents = f.read()
     f.close()
     txt_list = txt_contents.splitlines()
     transform_method = txt_list[3] # it can be 'TRANSLATION', 'RIGID_BODY', 'AFFINE', and this method string serves as the landmark of the output file. 
+    t_mode = trans_dic[transform_method]
+    print("Transform method:", transform_method, t_mode)
+    # add transform dictionary
     n_frames = txt_list.count(transform_method)
     aff_mat = [] # affine matrix
     aff_vec = []
@@ -76,7 +86,7 @@ def aff_read(tm_path):
         tri_d = tri_d.astype('float64')
         tri_s = tri_s.astype('float64')
 
-        zafm, zafb = triangle2afm(tri_s, tri_d, mode = 'r')# tri_s, tri_d: the triangle coordinates of source and destination. 
+        zafm, zafb = triangle2afm(tri_s, tri_d, mode = t_mode)
         aff_mat.append(zafm)
         aff_vec.append(zafb)
 
@@ -84,7 +94,7 @@ def aff_read(tm_path):
     return aff_mat, aff_vec
 
 # next, apply the affine transformation to the frame (this is a must-test)
-def aff_transform(frame, afm, afb):
+def aff_transform_fwd(frame, afm, afb):
     '''
     frame: the original image frame
     afm: affine transformation matrix
@@ -95,21 +105,28 @@ def aff_transform(frame, afm, afb):
 
     return tframe
 
-def pixel_transform(px_list, afmat, afvec):
+def pixel_transform(px_list, afmat, afvec ):
     '''
+    forward pixel transform
     afmat: the matrix part of the affine transformation
     afvec: the vector part of the affine transformation
-    px_list: the list of pixels to be transformed. Conventions: column 0 -- y; column 1 -- x. Need to be transposed before applying the affine matrix on it.
+    px_list: the list of pixels to be transformed. Conventions: column 0 -- x; column 1 -- y. Need to be transposed before applying the affine matrix on it.
     '''
     if(px_list.size == 2):
         # if px list is only one point
         px_trans = afmat*px_list+afvec
     else:
-        NL = np.max(px_trans.shape)
-        px_trans_row = np.dot(afmat, px_list.transpose()) +np.tile(afvec, (NL,1).transpose())
+        NL = np.max(px_list.shape)
+        px_trans_row = np.dot(afmat, px_list.transpose()) +np.tile(afvec, (NL,1)).transpose()
         px_trans = px_trans_row.transpose()
     return px_trans
 
+
+def reverse_trans(afmat, afvec):
+    # reverse the transform: produce the inverted transform mat and vec.
+    raf_mat = np.linalg.inv(afmat)
+    raf_vec = -np.dot(raf_mat,afvec)
+    return raf_mat, raf_vec
 # -----------------------------------------_Testing function (main)--------------------------------------
 
 def main():
