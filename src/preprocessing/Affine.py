@@ -61,7 +61,7 @@ def triangle2afm(ts, td, mode='a'):
         b = paras[2:]
     return M, b
 
-def aff_read(tm_path):
+def aff_read(tm_path, average = False):
     '''
     The transformation file has the standard format of the .txt output file produced by MultiStackReg (Brad Busse).
     '''
@@ -90,7 +90,10 @@ def aff_read(tm_path):
         aff_mat.append(zafm)
         aff_vec.append(zafb)
 
-
+    if average:
+    # if average is true, average all the aff_mat and aff_vec to generate the final one
+        aff_mat= np.mean(np.array(aff_mat), axis = 0)
+        aff_vec = np.mean(np.array(aff_vec), axis = 0)
     return aff_mat, aff_vec
 
 # next, apply the affine transformation to the frame (this is a must-test)
