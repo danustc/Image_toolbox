@@ -36,37 +36,29 @@ def dumb1(ariz_list = [], rota_list = []):
 
     TS14 = np.load(global_datapath+'TS_14.npz')
     coord_14, f_14 = TS14['xy'], TS14['data'] # split the coordinates and data
-    print("coord:", coord_14.shape)
     # do the similar thing for slice 9
     TS9= np.load(global_datapath+'TS_9.npz')
-    coord_9, f_9 = TS9['xy'], TS9['data'] # split the coordinates and data
+    coord_14, f_14 = TS9['xy'], TS9['data'] # split the coordinates and data
 
-    zd_file  = 'A1_FB_ZD.npz'
+    zd_file = 'A1_FB_ZD.npz'
     dims = [732, 908]
-    zd_coord = np.load(global_datapath+zd_file)
     ZDR = z_dense_construct(global_datapath+zd_file)
     ZD_red = z_dense_ref(ZDR, dims)
     zstack_3d = ZD_red.stack_red_detect()
     print(zstack_3d.shape)
-   # next, let's load the affine transformation and apply them on the TS stack.
-    afm_9, afv_9 = Affine.aff_read(global_datapath+'ts2zd_9.txt', True)
-    afm_14, afv_14 = Affine.aff_read(global_datapath+'ts2zd_14.txt', True)
-    rfm_09, rfv_09 = Affine.reverse_trans(afm_9, afv_9)
-    rfm_14, rfv_14 = Affine.reverse_trans(afm_14, afv_14)
-    afc_09= np.fliplr(Affine.pixel_transform(np.fliplr(coord_9), rfm_09, rfv_09))
-    afc_14 = np.fliplr(Affine.pixel_transform(np.fliplr(coord_14), rfm_14, rfv_14))
+    fig3d = stack_display(zstack_3d, cl = 'b')
+    ax =fig3d.gca()
+    for ariz in ariz_list:
+        for rota in rota_list:
+            ax.view_init(ariz, rota)
+            fig3d.tight_layout()
+            fig_str = 'view'+ str(int(ariz))+ '_'+ str(int(rota))
+            fig3d.savefig(global_datapath+fig_str)
 
-    # afc09, afc14 are the new coordinates after Affine Transformation
-    zf_3d = ZD_red.frame_zalign(afc_09, z_init = 36, thresh = 4.0)
-    print(zf_3d.shape)
-    zd_09 = zd_coord['s_036']
-    zd_14 = zd_coord['s_056']
-    fig_09 = slice_display([zd_09, afc_09], title = 'Slice 9')
-    fig_14 = slice_display([zd_14, afc_14], title = 'Slice 14')
-    fig_09.savefig(global_datapath+'match_slice09')
-    fig_14.savefig(global_datapath+'match_slice14')
 
 
 
 if __name__ == '__main__':
-    dumb1()# 
+    ariz_list = [0, 45, 90]
+    rota_list = [0, 30, 60, 90, 120, 150]
+    dumb1(ariz_list, rota_list)# 

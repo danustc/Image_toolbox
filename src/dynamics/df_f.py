@@ -112,3 +112,6 @@ def terrible_dffplot(dff_data, layout = (3,3),  dt = 0.625, sc_bar = 0.10):
     plt.subplots_adjust(hspace = 0)
 
     return fig
+
+
+# ------------------------------------Test the main functions--------------------------------------

@@ -8,10 +8,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-global_ccode = 'bgrcmyk'
+global_ccode = 'grbmcyk'
 
 
-def slice_display(slice_blobs, ref_image = None):
+def slice_display(slice_blobs, title = None, ref_image = None):
     '''
     slice_blobs: a 2-D array specifying the cell coordinates
     ref_image: a 2-D array specifying the reference image.
@@ -27,17 +27,19 @@ def slice_display(slice_blobs, ref_image = None):
         ax.imshow(ref_imagei, cmap = 'Greys_r')
         ax.set_xlim([0,nx])
         ax.set_ylim([0,ny])
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
 
     if isinstance(slice_blobs, list):
         ii = 0
         NS = len(slice_blobs)
         for fr in slice_blobs:
-            ax.scatter(fr[:,1], fr[:,0], c = global_ccode[ii], s = 11*(NS-ii))
+            ax.scatter(fr[:,1], fr[:,0], c = global_ccode[ii], s = 20*(NS-ii))
             ii+=1
     else:
         ax.scatter(slice_blobs[:,1], slice_blobs[:,0], c='g', s = 6)
+
+    ax.set_title(title, fontsize = 14)
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
     figd.tight_layout()
     return figd
 
@@ -78,8 +80,8 @@ def stack_display(zstack_3d, cl = 'b'):
     fig3d = plt.figure(figsize= (10,10))
     ax = fig3d.add_subplot(111, projection = '3d')
     ax.scatter(xs, ys, zs, c = cl, depthshade = True)
-    ax.set_xlabel('Posterior-->', fontsize = 14)
-    ax.set_ylabel('Right -->', fontsize = 14)
-    ax.set_zlabel('Dorsal -->', fontsize = 14)
+    ax.set_xlabel('Anterior -- Posterior', fontsize = 14)
+    ax.set_ylabel('Left -- Right', fontsize = 14)
+    ax.set_zlabel('Ventral--Dorsal', fontsize = 14)
     fig3d.tight_layout()
     return fig3d

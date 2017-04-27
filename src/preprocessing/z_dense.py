@@ -170,28 +170,24 @@ class z_dense_ref(object):
 
 
 
-    def frame_zalign(self, zf_coord, z_init = 0.0, search_range = 10.0, thresh = 1.50, crit = 0.80):
+    def frame_zalign(self, zf_coord, z_init = 0.0, search_range = 10.0, thresh = 1.50 ):
         """
         Purpose: align a frame's cell with 3-D reconstructed, redundancy removed distributions.
         zf_coord: the coordination of cells on the frame that is to be aligned.
         search_range: in which z-range should we search for the cells?
         thresh: threshold of lateral distance in the unit of pixels
-        crit: if the overall number of assigned cells exceeds crit, then the frame is aligned.
         return:
         """
         dist_3d = self.dist_3d # catch the dist_3d
         z_coord = dist_3d[:,0] # taking out the z coordinates of all the
 
-
-        # set the upper and lower bound of the search range
         z_upper = z_init+search_range*0.5
         z_lower = z_init-search_range*0.5
-
-        z_index = np.where(np.logical_and(z_coord > z_lower, z_coord < z_upper)) # taking out the indices
-
+        z_index = np.where(np.logical_and(z_coord > z_lower, z_coord < z_upper))[0]# taking out the indices
+        print("Cells to be identified:", zf_coord.shape)
         search_block = dist_3d[z_index, :] # only search for the search block
-        z_block = z_coord[z_index, :]
-        search_lateral = search_block[:,1:-1] # exclude the z-column and the fluorescence column
+        z_block = search_block[:,0]
+        search_lateral = search_block[:,[1,2]] # exclude the z-column and the fluorescence column
         dR = lateral_distance(search_lateral, zf_coord)
 
         red_pair = np.where(dR <= thresh)
@@ -201,14 +197,11 @@ class z_dense_ref(object):
 
         # This is a messy but magic block to detect ambiguities :D
         uind2, unique_indices, unique_counts = np.unique(ind2, return_index = True, return_counts = True) # if more than one cells are identified with each cell on zf_coord
-        ind2[unique_indices]
-
-
+        print(len(uind2),"out of",  len(ind2), "are unique.")
         n_detected = len(ind2)
         zf_3d = np.zeros((n_detected, 3)) #
         zf_3d[:,1:] = zf_coord[ind2,:]
         zf_3d[:,0] =  z_block[ind1]
-
 
         amb_count = np.where(unique_counts>1)[0] #
         if(amb_count.size): # there are ambiguities
@@ -219,12 +212,10 @@ class z_dense_ref(object):
                 ref_z = z_block[ind1[ref_ind]]
                 z_closest = np.min(np.abs(ref_z-z_init))
                 zf_3d[ref_ind, 0] = z_closest
-
         # then, remove the duplication
 
             zfu_ind = np.unique(zf_3d[:,0], return_index = True)[1] # only return the indices
             zf_3d = zf_3d[zfu_ind, :] # this is sorted in z-direction
-
 
         return zf_3d
 

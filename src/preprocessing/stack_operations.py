@@ -13,6 +13,8 @@ import os
 import src.shared_funcs.string_funcs as sfc
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+regist_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
+
 
 def pyfftw_container(ny, nx, bwd = False):
     '''
@@ -169,11 +171,12 @@ def reorient_tiff_RAS(imstack, fname):
     tf.write_tiff(rot_stack, fname)
 
 
-
+#--------------------------------Test the the stack operations---------------
 
 def main():
     # test slice splitting function
-    pass
+    refstack = tf.read_tiff(regist_path+'refbrain/Nov012016B3ZDref.tif')
+    reorient_tiff_RAS(refstack, regist_path+'refbrain/Nov012016B3ZDRASref.tif')
 
 
 if __name__ =='__main__':

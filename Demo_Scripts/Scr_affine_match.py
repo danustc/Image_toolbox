@@ -16,7 +16,7 @@ from src.visualization.brain_navigation import slice_display
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
 
-def dumb1():
+def main():
     '''
     0. load two slices, one reference and one rotated
     1. extract all the cells from each slice and save the output
@@ -50,4 +50,4 @@ def dumb1():
 
 
 if __name__ == '__main__':
-    dumb1()# 
+    main()# 

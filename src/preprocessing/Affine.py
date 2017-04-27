@@ -31,7 +31,6 @@ def triangle2afm(ts, td, mode='a'):
     pq = np.array([p1,q1, p2, q2, p3, q3])
 
     if mode == 'a':
-        print("Affine transformation.")
         # affine transformation, more degrees of freedom
         LT = np.zeros([6,6])
         LT[0] = [x1, y1, 0,0, 1.0, 0]
@@ -41,13 +40,10 @@ def triangle2afm(ts, td, mode='a'):
         LT[4] = [x3, y3, 0,0, 1.0, 0]
         LT[5] = [0, 0, x3, y3,0, 1.0]
         paras = linalg.solve(LT, pq)
-        print("The affine matrix:", LT)
-        print(paras)
         M = paras[:4].reshape([2,2])
         b = paras[4:]
 
     elif mode == 'r':
-        print("Rigid body transformation.")
         # rigid body transformation, less degrees of freedom
         LT = np.zeros([4,4])
         LT[0] = [x1, -y1, 1.0, 0]
@@ -73,7 +69,6 @@ def aff_read(tm_path, average = False):
     transform_method = txt_list[3] # it can be 'TRANSLATION', 'RIGID_BODY', 'AFFINE', and this method string serves as the landmark of the output file. 
     t_mode = trans_dic[transform_method]
     print("Transform method:", transform_method, t_mode)
-    # add transform dictionary
     n_frames = txt_list.count(transform_method)
     aff_mat = [] # affine matrix
     aff_vec = []
