@@ -44,33 +44,6 @@ def image_zoom_frame(fig_im, c_nw, c_se, cl = 'w'):
     # done with image_zoom_frame
 
 
-
-def slice_display(frame):
-    '''
-    display a frame with all its features.
-    '''
-
-    ny, nx = frame.shape
-    fh = 6
-    fig_im = plt.figure(figsize = (float(nx*fh/ny), fh))
-    ax = fig_im.add_subplot(111)
-    ax.imshow(frame, cmap = 'Greys_r')
-    ax.set_xlim([0,nx])
-    ax.set_ylim([0,ny])
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-    fig_im.gca().invert_yaxis()
-    fig_im.gca().invert_xaxis()
-    fig_im.tight_layout()
-
-    return fig_im
-
-
-
-
-
-
-
 def onclick_coord(event):
     """
     hand select coordinate on a figure and return it.

@@ -28,15 +28,17 @@ def min_window(shit_data, wd_width):
 # this is a good baseline calculation.
 
 
-def dff_raw(shit_data, ft_width):
+def dff_raw(shit_data, ft_width, ntruncate = 20):
     """
     calculate df_f for shit_sig.
+    ft_width: the time scale of features in the raw f(t). Unit: 1 (not in seconds)
+    ntruncate: the number of datapoits to be discarded.
     Get both F0 and df_f.
     """
-    s_filt = smooth_lpf(shit_data, ft_width)[1]
+    s_filt = smooth_lpf(shit_data[ntruncate:], ft_width)[1]
 
     f_base = min_window(s_filt, 6*ft_width)
-    dff_r = (shit_data-f_base)/f_base
+    dff_r = (shit_data[ntruncate:]-f_base)/f_base
 
     return dff_r, f_base
     # done with dff_raw
@@ -90,28 +92,11 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
 
     return fig
 
-def terrible_dffplot(dff_data, layout = (3,3),  dt = 0.625, sc_bar = 0.10):
-    '''
-    terrible_dffplot
-    '''
-
-    nr, nc = layout
-    fig = plt.figure(figsize = (nr*12/nc, 8))
-    tt = np.arange(len(dff_data))*dt
-    for ir in np.arange(nr):
-        for ic in np.arange(nc):
-            idx = ir*nr+ic
-            ax = fig.add_subplot(nr,nc, idx+1)
-            ax.plot(tt, dff_data[:,idx], color = 'g')
-            ax.set_xlim([0, tt[-1]])
-
-            ax.set_ylim([-0.18, 0.60])
-            ax.get_yaxis().set_visible(False)
-            ax.get_xaxis().set_visible(False)
-    plt.tight_layout()
-    plt.subplots_adjust(hspace = 0)
-
-    return fig
-
-
 # ------------------------------------Test the main functions--------------------------------------
+def main():
+    pass
+
+
+
+if __name__ == '__main__':
+    main()

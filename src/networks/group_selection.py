@@ -1,5 +1,7 @@
 '''
-Last modification: 03/23/2017 by Dan
+Last modification: 04/28/2017 by Dan
+This module contains network analysis. ... to be filled up.
+
 '''
 
 import numpy as np
