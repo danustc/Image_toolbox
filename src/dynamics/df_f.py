@@ -94,7 +94,7 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
 
 # ------------------------------------Test the main functions--------------------------------------
 def main():
-    pass
+    print('Tested!')
 
 
 
