@@ -1,5 +1,6 @@
 '''
 Created on 04/30/2017 by Dan, the visualization tools of statistical learning results of the data.
+Last update: 05/03/2017
 '''
 
 import sys
@@ -26,7 +27,7 @@ def PCA_scatter_matrix(pc_data, dim_select = None):
         tx = axes[nr,nr]
         tx.xaxis.set_visible(False)
         tx.yaxis.set_visible(False)
-        tx.annotate('PC '+ str(nr), (0.5, 0.5),xycoords = 'axes fraction', ha = 'center', va = 'center', fontsize = 14)
+        tx.annotate('PC '+ str(nr+1), (0.5, 0.5),xycoords = 'axes fraction', ha = 'center', va = 'center', fontsize = 14)
         for nc in np.arange(nr):
             # iterate over columns
             pc_col= pc_data[:,dim_select[nc]]
@@ -37,6 +38,9 @@ def PCA_scatter_matrix(pc_data, dim_select = None):
             if ax.is_first_col():
                 ax.yaxis.set_visible(True)
                 ax.yaxis.set_ticks_position('left')
+            if ax.is_last_row():
+                ax.xaxis.set_visible(True)
+                ax.xaxis.set_ticks_position('bottom')
 
             # plot the transposed half
             ax = axes[nc,nr]
@@ -44,6 +48,12 @@ def PCA_scatter_matrix(pc_data, dim_select = None):
             ax.yaxis.set_visible(False)
             ax.scatter(pc_col, pc_row, c = 'b', s = 5, cmap = plt.cm.spectral)
 
+            if ax.is_last_col():
+                ax.yaxis.set_visible(True)
+                ax.yaxis.set_ticks_position('right')
+            if ax.is_first_row():
+                ax.xaxis.set_visible(True)
+                ax.xaxis.set_ticks_position('top')
         # two-dimensional plot 
 
     return fig_pc

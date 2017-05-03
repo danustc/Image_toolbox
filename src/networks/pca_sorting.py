@@ -22,6 +22,23 @@ def pca_dff(dff_data, n_comp = 3):
     pc_dff.fit(dff_data)
     pc_trans = pc_dff.transform(dff_data)
     return pc_trans
+
+
+# to understand PCA better, let's write a PCA from scratch (Yay! )
+def pca_raw(data, n_comp = 3, var_cut = 0.95):
+    '''
+    data: uncentralized, unstandardlized data
+    n_comp: the number of components to be extracted.
+    var_cut: variance cut, ignore the contributions from minor principal components.
+    '''
+    N, P = data.shape # the number of measurements and the number of 'sensors'
+    c_data = data-data.mean(axis = 0) # centralization
+    U,s,V = np.linalg.svd(c_data) # svd 
+    lam = s**2/(N-1)
+    var_tot = lam.cumsum()/lam.sum() # 
+    
+
+
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():
