@@ -8,7 +8,7 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 from sklearn.decomposition import PCA
 import src.dynamics.df_f as df_f # the functions of calculating dff
-from src.visualization.stat_present import PCA_scatter_matrix
+from src.visualization.stat_present import PCA_scatter_matrix, PCA_trajectory_matrix
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
 
@@ -25,7 +25,7 @@ def pca_dff(dff_data, n_comp = 3):
 
 
 # to understand PCA better, let's write a PCA from scratch (Yay! )
-def pca_raw(data, n_comp = 3, var_cut = 0.95):
+def pca_raw(data, n_comp = None, var_cut = 0.95):
     '''
     data: uncentralized, unstandardlized data
     n_comp: the number of components to be extracted.
@@ -35,8 +35,14 @@ def pca_raw(data, n_comp = 3, var_cut = 0.95):
     c_data = data-data.mean(axis = 0) # centralization
     U,s,V = np.linalg.svd(c_data) # svd 
     lam = s**2/(N-1)
-    var_tot = lam.cumsum()/lam.sum() # 
-    
+    if n_comp is None:
+        var_tot = lam.cumsum()/lam.sum() # 
+        n_comp = np.searchsorted(var_tot, var_cut)+1 # the number of principal components that covers var_cut fraction of variance
+    CT = U[:,:n_comp]*lam[:n_comp] # the coefficients on the chosen PCs  
+    return CT, V
+
+
+# Next, try to remove the noisy cells which are not firin
 
 
 #----------------------------------------------Test the function-------------------------------------------
@@ -52,9 +58,11 @@ def main():
 
     TS_data = np.hstack((TS_data_09, TS_data_14))
 
-    dff_raw, f_base = df_f.dff_raw(TS_data, ft_width=4, ntruncate = 50)
-    pc_trans = pca_dff(dff_raw, n_comp = 5)
-    fig = PCA_scatter_matrix(pc_trans, dim_select = [0,1,2])
+    dff_raw, f_base = df_f.dff_raw(TS_data_09, ft_width=4, ntruncate = 50)
+    print(dff_raw.shape)
+    CT, V = pca_raw(dff_raw, var_cut = 0.95)
+    print(CT.shape)
+    fig = PCA_trajectory_matrix(CT, dim_select = [0,1,2,3,4])
     fig.show()
     fig.savefig(global_datapath+'pc_test')
 

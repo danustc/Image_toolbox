@@ -59,11 +59,53 @@ def PCA_scatter_matrix(pc_data, dim_select = None):
     return fig_pc
 
 
-def PCA_trajectory(pc_data, dim_select = None):
+def PCA_trajectory_matrix(pc_data, dim_select = None):
     '''
     PCA representation of df/f trajectories.
     to be filled later.
     '''
-    pass
+    if dim_select is None:
+        dim_select = np.arange(np.max(3, pc_data.shape[1]))
+
+    ndim = len(dim_select) # the dimension of dim_select
+    fig_pc, axes = plt.subplots(nrows = ndim, ncols = ndim, figsize = (2*ndim, 2*ndim))
+    fig_pc.subplots_adjust(hspace = 0.05, wspace = 0.05)
+    for nr in range(ndim):
+        #iterate over rows
+        pc_row = pc_data[:,dim_select[nr]]
+        tx = axes[nr,nr]
+        tx.xaxis.set_visible(False)
+        tx.yaxis.set_visible(False)
+        tx.annotate('PC '+ str(nr+1), (0.5, 0.5),xycoords = 'axes fraction', ha = 'center', va = 'center', fontsize = 14)
+        for nc in np.arange(nr):
+            # iterate over columns
+            pc_col= pc_data[:,dim_select[nc]]
+            ax = axes[nr,nc]
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            ax.plot(pc_col,pc_row, c = 'g', linewidth = 2 )
+            if ax.is_first_col():
+                ax.yaxis.set_visible(True)
+                ax.yaxis.set_ticks_position('left')
+            if ax.is_last_row():
+                ax.xaxis.set_visible(True)
+                ax.xaxis.set_ticks_position('bottom')
+
+            # plot the transposed half
+            ax = axes[nc,nr]
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            ax.plot(pc_row, pc_col, c = 'g', linewidth = 2)
+
+            if ax.is_last_col():
+                ax.yaxis.set_visible(True)
+                ax.yaxis.set_ticks_position('right')
+            if ax.is_first_row():
+                ax.xaxis.set_visible(True)
+                ax.xaxis.set_ticks_position('top')
+        # two-dimensional plot 
+
+    return fig_pc
+
 
 
