@@ -38,12 +38,24 @@ def pca_raw(data, n_comp = None, var_cut = 0.95):
     if n_comp is None:
         var_tot = lam.cumsum()/lam.sum() # 
         n_comp = np.searchsorted(var_tot, var_cut)+1 # the number of principal components that covers var_cut fraction of variance
-    CT = U[:,:n_comp]*lam[:n_comp] # the coefficients on the chosen PCs  
+    CT = U[:,:n_comp]*s[:n_comp] # the coefficients on the chosen PCs  
     return CT, V
 
 
 # Next, try to remove the noisy cells which are not firin
 
+
+
+def pca_group(data, n_group= 5, var_cut = 0.95):
+    '''
+    split the raw data set into several groups, and do PCA analysis for each group.
+    '''
+    N, P = data.shape
+    data_group = np.array_split(data, n_group, axis = 1) # split the raw data into several sections.
+
+
+
+    return CT, V
 
 #----------------------------------------------Test the function-------------------------------------------
 
@@ -58,7 +70,7 @@ def main():
 
     TS_data = np.hstack((TS_data_09, TS_data_14))
 
-    dff_raw, f_base = df_f.dff_raw(TS_data_09, ft_width=4, ntruncate = 50)
+    dff_raw, f_base = df_f.dff_raw(TS_data_09[:,:100], ft_width=4, ntruncate = 50)
     print(dff_raw.shape)
     CT, V = pca_raw(dff_raw, var_cut = 0.95)
     print(CT.shape)
