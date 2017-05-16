@@ -53,7 +53,9 @@ def pca_group(data, n_group= 5, var_cut = 0.95):
     N, P = data.shape
     data_group = np.array_split(data, n_group, axis = 1) # split the raw data into several sections.
 
-
+    for sgroup in data_group:
+        # do PCA analysis on each subgroup and merge all of them
+        pass
 
     return CT, V
 
