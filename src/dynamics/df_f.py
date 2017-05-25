@@ -62,36 +62,6 @@ def dff_expfilt(dff_r, dt, t_width = 2.0):
     # done with dff_expf
 
 
-def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
-    """
-    Present delta F/F data in nature style
-    """
-    n_time, n_cell = dff_data.shape
-    tt = np.arange(n_time)*dt
-
-    tmark = -dt*10
-
-
-    fig = plt.figure(figsize = (7,9))
-    for ii in np.arange(n_cell):
-        dff = dff_data[:,ii]
-        ax = fig.add_subplot(n_cell,1, ii+1)
-        ax.plot(tt, dff)
-        ax.plot([tmark,tmark], [0, sc_bar], color = 'k', linewidth = 3)
-        ax.set_xlim([-dt*20, tt[-1]])
-
-        ax.set_ylim([-0.05, 0.75])
-        ax.get_yaxis().set_visible(False)
-        ax.get_xaxis().set_visible(False)
-
-    ax.get_xaxis().set_visible(True)
-    ax.set_xlabel('time (s)', fontsize = 12)
-    plt.tight_layout()
-    plt.subplots_adjust(hspace = 0)
-#
-
-    return fig
-
 # ------------------------------------Test the main functions--------------------------------------
 def main():
     print('Tested!')

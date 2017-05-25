@@ -108,4 +108,77 @@ def PCA_trajectory_matrix(pc_data, dim_select = None):
     return fig_pc
 
 
+def pc_component_grid(V, npc = 3):
+    '''
+    visualize the first npcth principal components
+    '''
+    lx = 8
+    NV, NP = V.shape # the number of components and the number of dimensions
+    ndisplay = np.min([npc, NV])
+    fig = plt.figure(figsize = (lx, ndisplay*lx/NV) ) # figuresize
+    ax = fig.add_subplot(111)
+    ax.imshow(V[:ndisplay]**2,cmap = 'Greens')
+    ax.xaxis.set_visible(False)
+    ax.yaxis.set_visible(False)
+    ax.set_aspect('equal')
+
+    return fig
+
+
+def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
+    """
+    Present delta F/F data in nature style
+    """
+    n_time, n_cell = dff_data.shape
+    tt = np.arange(n_time)*dt
+
+    tmark = -dt*10
+
+
+    fig = plt.figure(figsize = (7,12))
+    for ii in np.arange(n_cell):
+        dff = dff_data[:,ii]
+        ax = fig.add_subplot(n_cell,1, ii+1)
+        ax.plot(tt, dff)
+        ax.plot([tmark,tmark], [0, sc_bar], color = 'k', linewidth = 3)
+        ax.set_xlim([-dt*20, tt[-1]])
+
+        ax.set_ylim([-0.05, sc_bar*5])
+        ax.get_yaxis().set_visible(False)
+        ax.get_xaxis().set_visible(False)
+
+    ax.get_xaxis().set_visible(True)
+    ax.set_xlabel('time (s)', fontsize = 12)
+    plt.tight_layout()
+    plt.subplots_adjust(hspace = 0)
+
+    return fig
+
+
+# Raster plot, color coded
+def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 's'):
+    '''
+    dff_ordered: df_f ordered from most active to least active
+    # rows:  # of time points
+    # columns: # of cells
+    Must be transposed before plotting.
+    fw: figure width
+    '''
+    NT, NC = dff_ordered.shape
+    # whether to display in the unit of 10 seconds or 1 min
+    if(tnuit == 's'):
+        time_tick = dt*np.arange(0, NT, 10)
+    elif(tnuis == 'm'):
+        time_tick = dt*np.arange(0, NT, 60)/60
+
+    fig = plt.figure(figsize = (fw, fw*NC/NT))
+    ax = fig.add_subplot(111)
+    rshow = ax.imshow(dff_ordered.T, cmap = 'Greens', interpolation = 'None')
+    ax.set_xticks(time_tick, fontsize = 12)
+    cbar = fig.colorbar(rshow, ax = ax, extend = 'max', orientation = 'vertical', pad = 0.02)
+    cbar.ax.tick_params(labelsize = 12)
+
+    return fig
+
+
 
