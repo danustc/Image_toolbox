@@ -117,10 +117,13 @@ def pc_component_grid(V, npc = 3):
     ndisplay = np.min([npc, NV])
     fig = plt.figure(figsize = (lx, ndisplay*lx/NV) ) # figuresize
     ax = fig.add_subplot(111)
-    ax.imshow(V[:ndisplay]**2,cmap = 'Greens')
-    ax.xaxis.set_visible(False)
-    ax.yaxis.set_visible(False)
+    ax.imshow(V[:ndisplay]**2,cmap = 'Greens', extent = [1, NP, NV, 1])
+    ax.set_xticks([1,NP])
+    ax.set_xticklabels(['Cell 1', 'Cell '+str(NP)])
+    ax.set_yticks([1, NV])
+    ax.set_yticklabels(['PC 1', 'PC '+str(NV)])
     ax.set_aspect('equal')
+    ax.tick_params(labelsize = 12)
 
     return fig
 
@@ -134,8 +137,7 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
 
     tmark = -dt*10
 
-
-    fig = plt.figure(figsize = (7,12))
+    fig = plt.figure(figsize = (7,10))
     for ii in np.arange(n_cell):
         dff = dff_data[:,ii]
         ax = fig.add_subplot(n_cell,1, ii+1)
@@ -149,6 +151,9 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
 
     ax.get_xaxis().set_visible(True)
     ax.set_xlabel('time (s)', fontsize = 12)
+    tax = fig.get_axes()[0]
+    tax.text(tmark, sc_bar*1.5, r'$\Delta F/F = $'+str(sc_bar), fontsize = 12)
+
     plt.tight_layout()
     plt.subplots_adjust(hspace = 0)
 
@@ -156,7 +161,7 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
 
 
 # Raster plot, color coded
-def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 's'):
+def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm'):
     '''
     dff_ordered: df_f ordered from most active to least active
     # rows:  # of time points
@@ -165,20 +170,47 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 's'):
     fw: figure width
     '''
     NT, NC = dff_ordered.shape
+    print(NT, NC)
     # whether to display in the unit of 10 seconds or 1 min
-    if(tnuit == 's'):
-        time_tick = dt*np.arange(0, NT, 10)
-    elif(tnuis == 'm'):
-        time_tick = dt*np.arange(0, NT, 60)/60
+    if(tunit == 's'):
+        time_tick = dt*np.arange(0, NT, 30)
+        t_max = dt*NT
+        t_label = 'Time (s)'
+    elif(tunit == 'm'):
+        time_tick = dt*np.arange(0., NT, 60./dt)/60.
+        t_max = dt*NT/60.
+        t_label = 'Time (min)'
 
-    fig = plt.figure(figsize = (fw, fw*NC/NT))
+    print(time_tick)
+    cell_tick = np.array([1,NC])
+    cell_tick_label = ['Cell 1', 'Cell '+str(NC)]
+
+    fig = plt.figure(figsize = (fw, fw*5*NC/NT))
     ax = fig.add_subplot(111)
-    rshow = ax.imshow(dff_ordered.T, cmap = 'Greens', interpolation = 'None')
-    ax.set_xticks(time_tick, fontsize = 12)
-    cbar = fig.colorbar(rshow, ax = ax, extend = 'max', orientation = 'vertical', pad = 0.02)
+    rshow = ax.imshow(dff_ordered.T, cmap = 'Greens', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
+    ax.set_xticks(time_tick)
+    ax.set_yticks(cell_tick)
+    ax.set_yticklabels(cell_tick_label)
+    ax.tick_params(labelsize = 12)
+    ax.set_xlabel(t_label, fontsize = 12)
+    cbar = fig.colorbar(rshow, ax = ax, orientation = 'vertical', pad = 0.02, aspect = NC/3)
     cbar.ax.tick_params(labelsize = 12)
 
     return fig
 
 
+def ic_plot(sig_recon, dt = 0.5, ccode = None):
+    NT, NC = sig_recon.shape # number of time points and independent components
+    fig, axes = plt.subplots(figsize = (8, 1.5*NC+0.5), nrows = NC, ncols = 1)
+    for icon in range(NC):
+        arow = axes[icon]
+        arow.plot(sig_recon[:,icon])
+        arow.get_xaxis().set_visible(False)
+        arow.tick_params(labelsize = 12)
 
+    arow.get_xaxis().set_visible(True)
+    arow.set_xlabel('Time (s)', fontsize = 12)
+    plt.tight_layout()
+    plt.subplots_adjust(hspace = 0)
+
+    return fig

@@ -6,9 +6,9 @@ Based on scikit-learn
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, FastICA
 import src.dynamics.df_f as df_f # the functions of calculating dff
-from src.visualization.stat_present import PCA_scatter_matrix, PCA_trajectory_matrix, pc_component_grid
+import src.visualization.stat_present as stat_present
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
 
@@ -43,7 +43,7 @@ def pca_raw(data, var_cut = 0.95):
 
 
 # Next, try to remove the noisy cells which are not firin
-def cell_sorting(V, nselect = 10):
+def cell_sorting(V):
     '''
     classifying the cells into active and non-active groups according to their V coefficients. V contains the principal vectors sorted by the eigen values.
     returns the most and least active nselect neurons.
@@ -51,10 +51,7 @@ def cell_sorting(V, nselect = 10):
     NV, NP = V.shape
     sv = np.sum(-V**2, axis = 0)
     arg_sv = np.argsort(sv)
-    print(sv[arg_sv])
-    return arg_sv[:nselect], arg_sv[-nselect:]
-
-
+    return arg_sv
 
 
 
@@ -72,6 +69,16 @@ def pca_group(data, n_group= 5, var_cut = 0.90):
     return CT, V
 
 
+def ica_dff(dff_data, n_comp = 4):
+    '''
+    directly use the ICA algorithm in sklearn
+    '''
+    dff_std = dff_data/dff_data.std(axis = 0)# standardize data
+    ica = FastICA(n_components = n_comp)
+    dff_recon = ica.fit_transform(dff_std) # reconstruct signals
+    a_mix = ica.mixing_ # the estimated mixing matrix
+    return dff_recon, a_mix
+
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():
@@ -82,25 +89,30 @@ def main():
     TS_18 = np.load(global_datapath + 'Oct25_B3_TS18.npz')
     TS_data_18 = TS_18['data']
 
-
-    dff_raw, f_base = df_f.dff_raw(TS_data_18[:,:100], ft_width=4, ntruncate = 40)
-    print(dff_raw.shape)
+    dff_raw, f_base = df_f.dff_raw(TS_data_18, ft_width=4, ntruncate = 20)
     CT, V = pca_raw(dff_raw, var_cut = 0.95)
-    print(CT.shape)
     print(V.shape)
-    fig = PCA_trajectory_matrix(CT, dim_select = [0,1,2,3,4])
+    fig = stat_present.PCA_trajectory_matrix(CT, dim_select = [0,1,2,3,4])
     fig.savefig(global_datapath+'pc_test_habe')
-    figv = pc_component_grid(V,npc = 37)
+    figv = stat_present.pc_component_grid(V,npc = 65)
     figv.savefig(global_datapath+'pc_celldistri')
-    asv, isv = cell_sorting(V, nselect=50)
+    a_sorted = cell_sorting(V)
+
+    nselect = 10
+    asv = a_sorted[:nselect]
+    isv = a_sorted[-nselect:]
     dff_select = dff_raw[:,asv]
-    figd = df_f.nature_style_dffplot(dff_select, dt = 0.5, sc_bar = 0.50)
+    figd = stat_present.nature_style_dffplot(dff_select, dt = 0.5, sc_bar = 0.50)
     figd.savefig(global_datapath+'most_active_100_10')
     dff_select = dff_raw[:,isv]
-    figd = df_f.nature_style_dffplot(dff_select, dt = 0.5, sc_bar = 0.10)
+    figd = stat_present.nature_style_dffplot(dff_select, dt = 0.5, sc_bar = 0.10)
     figd.savefig(global_datapath+'least_active_100_10')
-
-
+    figr = stat_present.dff_rasterplot(dff_raw[:,a_sorted[:100]])
+    figr.savefig(global_datapath+'raster_test', tunit = 'm')
+    #independent component analysis
+    dff_recon, a_mix = ica_dff(dff_raw[:, a_sorted[:70]],n_comp = 4)
+    figi = stat_present.ic_plot(dff_recon)
+    figi.savefig(global_datapath+'ica_test')
 
 if __name__ == '__main__':
     main()
