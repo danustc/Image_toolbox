@@ -1,12 +1,40 @@
 '''
 Created by Dan on 05/19/2017. For imaging display.
+Last modification: 06/02/2017
 '''
-import sys
-sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import numpy as np
 import matplotlib.pyplot as plt
-import src.preprocessing.tifffunc as tifffunc
+from tifffile import TiffFile, imsave
 
+
+def read_tiff(fname, nslice = None):
+    # the fname should include the absolute path and extension name
+    # nslice can be a number or an array, indicating multiple slices
+    with TiffFile(fname) as tif:
+        istack = tif.asarray()
+    if nslice is None:
+        return np.copy(istack)
+    else:
+        return np.copy(istack[nslice])
+
+
+def write_tiff(imstack, fname):
+    # assume that fname already has the extension.
+    imsave(fname, imstack.astype('uint16'))
+
+
+
+def crop_tiff(imstack,positions, cfname):
+    '''
+    crop a tiff image
+    imstack is already an np array
+    '''
+    yi = positions[0]
+    yf = positions[2]+ yi
+    xi = positions[1]
+    xf = positions[3]+ xi
+    cr_stack = imstack[:,yi:yf, xi:xf]
+    r
 def cmap_group(cm_list, n_group, axis = 0):
     '''
     cm_list: a list of cmap labels
@@ -85,14 +113,14 @@ def superplot(im_array, nrow, ncol, as_ratio = 1., cmaps = 'Greys_r', cm_axis = 
 
 
 
-# -----------------------Main function for testing -------------------
+# ----------------------- The main function -------------------
 
 def main():
-    impath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    test_stack = tifffunc.read_tiff(impath+'Oct25_B3_TS18.tif', nslice = np.arange(12))
-    print(test_stack.shape)
-    fig_pc = superplot(test_stack, 3, 4, 1.172, ['Greens_r', 'Reds_r', 'Greys_r'], 0, row_labels = ['group 1', 'group 2', 'group 3'], col_labels = ['Trial 1', 'Trial 2', 'Trial 3', 'Trial 4'], padding = [0.02, 0.02])
-    fig_pc.savefig(impath+'super_test')
+    #0. find where your image is. I take 12 slices from a tiff stack as an example and arrange the subplots in a 3 by 4 array.  
+    impath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/' # the folder containing your images
+    test_stack = read_tiff(impath+'A1_FB_ZD.tif', nslice = np.arange(0, 96, 8)) # read your tiff images 
+    fig_pc = superplot(test_stack, 3, 4, 1.172, ['Greens_r', 'Reds_r', 'Greys_r'], 0, row_labels = ['group 1', 'group 2', 'group 3'], col_labels = ['Trial 1', 'Trial 2', 'Trial 3', 'Trial 4'], padding = [0.02, 0.02]) # plot! :)
+    fig_pc.savefig(impath+'super_test') # save the figure. The default format is png. 
 
 
 if __name__ == '__main__':

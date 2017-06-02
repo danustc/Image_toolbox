@@ -74,7 +74,7 @@ def ica_dff(dff_data, n_comp = 4):
     directly use the ICA algorithm in sklearn
     '''
     dff_std = dff_data/dff_data.std(axis = 0)# standardize data
-    ica = FastICA(n_components = n_comp)
+    ica = FastICA(n_components = n_comp, max_iter = 300)
     dff_recon = ica.fit_transform(dff_std) # reconstruct signals
     a_mix = ica.mixing_ # the estimated mixing matrix
     return dff_recon, a_mix
@@ -94,7 +94,7 @@ def main():
     print(V.shape)
     fig = stat_present.PCA_trajectory_matrix(CT, dim_select = [0,1,2,3,4])
     fig.savefig(global_datapath+'pc_test_habe')
-    figv = stat_present.pc_component_grid(V,npc = 65)
+    figv = stat_present.pc_component_grid(V[:,:100],npc = 70)
     figv.savefig(global_datapath+'pc_celldistri')
     a_sorted = cell_sorting(V)
 
@@ -110,9 +110,9 @@ def main():
     figr = stat_present.dff_rasterplot(dff_raw[:,a_sorted[:100]])
     figr.savefig(global_datapath+'raster_test', tunit = 'm')
     #independent component analysis
-    dff_recon, a_mix = ica_dff(dff_raw[:, a_sorted[:70]],n_comp = 4)
+    dff_recon, a_mix = ica_dff(dff_raw[:, a_sorted[:70]],n_comp = 3)
     figi = stat_present.ic_plot(dff_recon)
-    figi.savefig(global_datapath+'ica_test')
+    figi.savefig(global_datapath+'ica_test_70')
 
 if __name__ == '__main__':
     main()

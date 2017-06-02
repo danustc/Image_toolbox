@@ -1,13 +1,11 @@
 """
 A wrapper designed for Dan's image processing.
 Based on Christoph Gohlke (UCI)'s tifffile module.
-Last modification: 04/04/17
+Last modification: 06/02/17
 """
 
 from tifffile import TiffFile, imsave
 import numpy as np
-import glob
-import os
 
 
 # read a tiff stack
@@ -21,13 +19,6 @@ def read_tiff(fname, nslice = None):
     else:
         return np.copy(istack[nslice])
 
-def intp_tiff(istack, ns1, ns2, nint = 1):
-    # linear interpolation of slices between
-    int_stack = np.zeros(shape = (nint,)+ istack.shape[1:])
-    for ii in np.arange(nint + 2):
-        alpha = ii/(nint + 1.)
-        int_stack[ii] = istack[ns1]*(1-alpha) + istack[ns2]*alpha
-    return int_stack.astype('uint16')  # return as unint16, tiff
 
 def write_tiff(imstack, fname):
     # assume that fname already has the extension.
@@ -35,9 +26,14 @@ def write_tiff(imstack, fname):
 
 
 
-
-def main():
-    impath = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
-
-if __name__ == '__main__':
-    main()
+def crop_tiff(imstack,positions, cfname):
+    '''
+    crop a tiff image
+    imstack is already an np array
+    '''
+    yi = positions[0]
+    yf = positions[2]+ yi
+    xi = positions[1]
+    xf = positions[3]+ xi
+    cr_stack = imstack[:,yi:yf, xi:xf]
+    return cr_stack

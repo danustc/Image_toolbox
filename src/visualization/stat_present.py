@@ -115,16 +115,16 @@ def pc_component_grid(V, npc = 3):
     lx = 8
     NV, NP = V.shape # the number of components and the number of dimensions
     ndisplay = np.min([npc, NV])
-    fig = plt.figure(figsize = (lx, ndisplay*lx/NV) ) # figuresize
+    fig = plt.figure(figsize = (lx, ndisplay*lx/NV+0.5) ) # figuresize
     ax = fig.add_subplot(111)
-    ax.imshow(V[:ndisplay]**2,cmap = 'Greens', extent = [1, NP, NV, 1])
+    ax.imshow(V[:ndisplay]**2,cmap = 'Greens', extent = [1, NP, NV, 1], aspect = 'auto')
     ax.set_xticks([1,NP])
     ax.set_xticklabels(['Cell 1', 'Cell '+str(NP)])
     ax.set_yticks([1, NV])
     ax.set_yticklabels(['PC 1', 'PC '+str(NV)])
     ax.set_aspect('equal')
     ax.tick_params(labelsize = 12)
-
+    plt.tight_layout()
     return fig
 
 
@@ -185,7 +185,7 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm'):
     cell_tick = np.array([1,NC])
     cell_tick_label = ['Cell 1', 'Cell '+str(NC)]
 
-    fig = plt.figure(figsize = (fw, fw*5*NC/NT))
+    fig = plt.figure(figsize = (fw, fw*4*NC/NT))
     ax = fig.add_subplot(111)
     rshow = ax.imshow(dff_ordered.T, cmap = 'Greens', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
     ax.set_xticks(time_tick)
@@ -196,6 +196,7 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm'):
     cbar = fig.colorbar(rshow, ax = ax, orientation = 'vertical', pad = 0.02, aspect = NC/3)
     cbar.ax.tick_params(labelsize = 12)
 
+    plt.tight_layout()
     return fig
 
 
