@@ -156,6 +156,19 @@ def stack_split(raw_stack, nsplit, dph = None):
     else:
         tf.write_tiff(substack, dph)
 
+def stack_propagate(raw_stack, mode = 'a'):
+    '''
+    do some operation on a raw stack. Output: a processed slice.
+    modes:  a---average
+            s--- sum
+            other modes to be filled up later .
+    '''
+    ns = raw_stack.shape[0]
+    if mode =='a':
+        return raw_stack.sum(axis = 0)/ns
+    elif mode =='s':
+        return raw_stack.sum(axis = 0)
+
 
 def reorient_tiff_RAS(imstack, fname):
     '''
