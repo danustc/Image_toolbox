@@ -1,7 +1,7 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package
-Last update: 04/23/2017
+Last update: 06/09/2017
 Now it really feels lousy. :( Try to use as few for loops as you can!
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 """
@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src.preprocessing.tifffunc import read_tiff
 from src.preprocessing.Red_detect import redund_detect_merge
+from skimage import filters
 from skimage.feature import blob_log
 from skimage.filters import threshold_local
 from src.shared_funcs.numeric_funcs import circ_mask_patch
@@ -126,6 +127,22 @@ class Cell_extract(object):
 
         self.valid_frames = np.where(self.bl_flag>0)[0]
         # end of the function stack_blobs
+
+    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40):
+        '''
+        nsamples: indice of slices that are selected for cell extraction
+        mode:   m --- mean of the selected slices, then extract cells from the single slice
+                a --- extract cells from all the slices and do the redundance removal
+                bg_sub:if true, subtract background.
+        '''
+        ext_stack=self.stack[nsamples]
+        if(mode == 'm'):
+            mean_slice = np.mean(ext_stack,axis = 0)
+        if(bg_sub > 0):
+            # subtract the background
+
+
+
 
     def stack_signal_propagate(self, n_frame = 0, verbose = False):
         """
