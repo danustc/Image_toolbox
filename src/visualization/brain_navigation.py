@@ -24,7 +24,7 @@ def slice_display(slice_blobs, title = None, ref_image = None):
         ny, nx = ref_image.shape
         figd = plt.figure(figsize = (6., 6.*ny/nx))
         ax = figd.add_subplot(111)
-        ax.imshow(ref_imagei, cmap = 'Greys_r')
+        ax.imshow(ref_image, cmap = 'Greys_r')
         ax.set_xlim([0,nx])
         ax.set_ylim([0,ny])
 
@@ -35,7 +35,7 @@ def slice_display(slice_blobs, title = None, ref_image = None):
             ax.scatter(fr[:,1], fr[:,0], c = global_ccode[ii], s = 20*(NS-ii))
             ii+=1
     else:
-        ax.scatter(slice_blobs[:,1], slice_blobs[:,0], c='g', s = 6)
+        ax.scatter(slice_blobs[:,1], slice_blobs[:,0], c='g', s = 10)
 
     ax.set_title(title, fontsize = 14)
     ax.get_xaxis().set_visible(False)

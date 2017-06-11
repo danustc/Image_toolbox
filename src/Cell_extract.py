@@ -16,6 +16,7 @@ from skimage import filters
 from skimage.feature import blob_log
 from skimage.filters import threshold_local
 from src.shared_funcs.numeric_funcs import circ_mask_patch
+from src.visualization.brain_navigation import slice_display
 
 
 OL_blob = 0.5
@@ -49,12 +50,13 @@ def frame_deblur(raw_frame, sig = 40 ):
     db_frame = raw_frame - ifilt*sca*0.999
     return db_frame
 
-def frame_blobs(filled_frame, bsize = 7, btolerance = 1, bsteps =5):
+def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7):
     '''
     extract blobs from a single frame. Added on 06/10/2017
+    cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
-    th = np.mean(filled_frame - np.std(filled_frame))/6.0
+    th = np.mean(filled_frame - np.std(filled_frame))/5.0
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
@@ -65,13 +67,16 @@ def frame_reextract(raw_frame, coords):
     """
     Let's make it simple: instead of extracting from the whole stack, just extract from one frame.
     So life's gonna be much easier!
+    coords: column 0 --- y coordinate
+            column 1 --- x coordinate
+            column 2 --- blob size
     """
     f_dims = raw_frame.shape
     n_cells = len(coords) # number of cells
 
     real_sig = np.zeros(n_cells)
 
-    for nc in np.arange(n_cells):
+    for nc in range(n_cells):
         cr = coords[nc,:2] # the real center on non-drift corrected frame
         dr = coords[nc,2]
         indm = circ_mask_patch(f_dims, cr, dr)
@@ -103,6 +108,8 @@ def stack_redundreduct(blob_stack, th= 4):
         n_blobs = len(data_ref)# merging extracted cells in several frames
         data_slice = data_ref
 
+    return data_merge
+
 
 
 # adjust the positions of cells 
@@ -123,7 +130,7 @@ def cell_list_afm(clist, afm, afb):
 #-----------------------------------------------------------------------------------
 class Cell_extract(object):
     # this class extracts
-    def __init__(self, im_stack, diam = 6):
+    def __init__(self, im_stack, diam = 10):
         self.stack = im_stack
         self.data_list = {}
         self.n_slice = im_stack.shape[0]
@@ -133,13 +140,18 @@ class Cell_extract(object):
 
 
     def image_blobs(self, n_frame):
-        """
+        '''
+        Last update: 06/11/2017.
         Extract number of blobs from the frame n_frame.
-        Updated: self.data_list
-        """
+        Updated: self.data_list; a data_slice is returned.
+        each data_slice is a 5-column array: z, y, x, dr, signal intensity.
+        This is only called by the function stack_blobs, which extracts blobs from each slice individually.
+        '''
         im0 = self.stack[n_frame]
         # comment on 09/05: we need a smarter way to do the threshold setting.
         cblobs = frame_blobs(im0, self.diam)
+        signal_int = frame_reextract(im0, cblobs)
+
         n_blobs = cblobs.shape[0]
         if(n_blobs == 0):
             raise ValueError("This slice contains no blobs or has not been processed yet. ")
@@ -148,24 +160,13 @@ class Cell_extract(object):
         else:
             frame_size = self.frame_size
             self.bl_flag[n_frame] = n_blobs
-            data_slice = np.empty([n_blobs, 5]) # initialize an empty array
-            # also, remove blobs that are on the margin
+            data_slice = np.zeros((n_blobs, 5))
+            data_slice[:,0] = n_frame # set the z-coordinate
+            data_slice[:,1:4] = cblobs
+            data_slice[:,4] =signal_int
 
-            for ii in np.arange(n_blobs):
-                blob = cblobs[ii]
-                # going through all blobs in list
-                cr = blob[0:2]
-                dr = blob[-1]
-#                 mask = circ_mask([self.ny, self.nx], cr, dr)
-                mask = circ_mask_patch(frame_size, cr, dr)
-                signal_int = im0[mask].mean() # replace sum() with mean()
-                data_slice[ii] = np.array([blob[0], blob[1], n_frame, dr, signal_int])
-
-        # also, update self.data_list here instead of in stack_blobs, so you can use it right after single-frame processing!
         kwd = 's_'+ str(n_frame).zfill(3)
         self.data_list[kwd] = data_slice
-        return data_slice
-        # done with image_blobs
 
 
     def stack_blobs(self, msg = False):
@@ -184,7 +185,7 @@ class Cell_extract(object):
         self.valid_frames = np.where(self.bl_flag>0)[0]
         # end of the function stack_blobs
 
-    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = True ):
+    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 4):
         '''
         nsamples: indice of slices that are selected for cell extraction
         mode:   m --- mean of the selected slices, then extract cells from the single slice
@@ -192,7 +193,7 @@ class Cell_extract(object):
                 bg_sub:if true, subtract background.
         '''
         single_slice = False
-        ext_stack=self.stack[nsamples]
+        ext_stack= self.stack[nsamples] # copy a few slices and do background subtraction so that more blobs can be extracted.
         n_ext = len(nsamples)
         if(mode == 'm'):
             mean_slice = np.mean(ext_stack,axis = 0)
@@ -204,96 +205,44 @@ class Cell_extract(object):
                 cblobs = frame_blobs(db_slice,self.diam)
             else:
                 # this is where I left on 06/10/2017.
-                cblobs = []
+                blobs_stack = []
                 for nz in range(n_ext):
+                    sample_slice = ext_stack[nz]
                     db_slice = frame_deblur(sample_slice, bg_sub)
                     ext_stack[nz] = db_slice # extraction performed
                     cs_blobs = frame_blobs(db_slice,self.diam)
-                    cblobs.append(cs_blobs)
+                    blobs_stack.append(cs_blobs)
 
-            if red_reduct:
                 # redundance reduction
+            if (red_reduct > 0):
+                # do the redundancy removal on the list
+                cblobs = stack_redundreduct(blobs_stack, red_reduct)
         return cblobs
 
 
-    def stack_signal_propagate(self, blob_lists, verbose = False):
-        """
+    def stack_signal_propagate(self, blob_lists):
+        '''
         OMG... This so badly written.
-        """
-        if(np.isscalar(n_frame)):
-            if self.bl_flag[n_frame]>0: # if the cell extraction is already done
-                kwd = 's_'+ str(n_frame).zfill(3)
-                data_slice = self.data_list[kwd]
-            else:
-                data_slice = self.image_blobs(n_frame) # extract blobs from the selected frame first
-            n_blobs = self.bl_flag[n_frame]
-        else:
-            # Added on 04/13/2017           
-            # if we have multiple slices
-            data_ref = self.image_blobs(n_frame[0])
-            print("Initial extraction:",data_ref.shape)
-            for nf in n_frame[1:]:
-                # extract cells from each frame, detect redundancy, then merge
-                data_fol = self.image_blobs(nf)
-                ind_ref, ind_fol = redund_detect_merge(data_ref,data_fol, thresh = 5)
-               # merge the two slice; append the redundant ones behind 
-                nr_ref = len(ind_ref)
-                nr_fol = len(ind_fol)
-                mask_ref = np.array([ir in ind_ref for ir in np.arange(len(data_ref))])
-                mask_fol = np.array([io in ind_fol for io in np.arange(len(data_fol))])
-                dr_unique = data_ref[~mask_ref] # the unique part in data_ref
-                df_unique = data_fol[~mask_fol] # the unique part in data_fol
-                if(np.isscalar(ind_ref)):
-                    data_redund = np.array([data_ref[ind_ref, :]])
-                else:
-                    data_redund = data_ref[ind_ref,:]
-                data_merge = np.concatenate((dr_unique, df_unique, data_redund), axis = 0 )
-                data_ref = data_merge
-                if verbose:
-                    print("t_slice:", nf)
-                    print("direct extraction:", data_fol.shape)
-                    print("level of redundancy:", data_redund.shape)
-                    print("unique slice nblobs:", dr_unique.shape, df_unique.shape)
-                    print("overall nblobs:", data_merge.shape)
-            n_blobs = len(data_ref)# merging extracted cells in several frames
-            data_slice = data_ref
+        blob_lists: it contains 3 columns: y, x, dr.
+        '''
+        stack = self.stack
+        n_blobs = len(blob_lists)# merging extracted cells in several frames
             # ----- end else, n_frame is an array instead of a slice number
 
         blob_time_stack = dict()
-        coords = data_slice[:,:2] # takenout the y and x coordinates as maps
+        coords = blob_lists[:, :2]
         blob_time_stack['xy'] = coords
-        dr_min = np.min(data_slice[:,3])-0.5 # get an uniform dr.
         train_signal = np.zeros((self.n_slice, n_blobs))
 
-        for z_frame in np.arange(self.n_slice):
+        for z_frame in range(self.n_slice):
             self.bl_flag[z_frame] = n_blobs
-            z_signal = self.image_signal_propagate(z_frame, coords, dr_min)
+            z_signal = frame_reextract(stack[z_frame], blob_lists)
             train_signal[z_frame, :] = z_signal
 
         blob_time_stack['data'] = train_signal
 
         return blob_time_stack
     # done with stack_signal_propagate
-
-
-    def image_signal_propagate(self,z_frame, maps, dr):
-        """
-        Added on 08/18 to replace image_signal_integ.
-        The idea is similar to that in the image_blobs
-        maps: the (y,x) coordinates
-        return: only fluorescence instead of coordinate and fluorescence.
-        """
-        im0 = self.stack[z_frame]
-        frame_size = self.frame_size
-        nblobs = maps.shape[0]
-        f_slice = np.zeros(nblobs)
-        ii = 0
-        for coord in maps:
-            mask = circ_mask_patch(frame_size, coord, dr)
-            f_slice[ii] = im0[mask].mean()
-            ii += 1
-
-        return f_slice
 
 
     def save_data_list(self, dph):
@@ -341,22 +290,21 @@ def main():
     The main function for testing the cell extraction code.
     '''
     tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    TS_slice9 = 'TS_folder/rg_A1_FB_TS_ZP_9.tif'
-    TS_slice14 = 'TS_folder/rg_A1_FB_TS_ZP_14.tif'
-    ZD_stack = 'A1_FB_ZD.tif'
-    zstack = read_tiff(tf_path+ZD_stack).astype('float64')
-    CEz = Cell_extract(zstack)
-    CEz.stack_blobs(msg=True)
-    CEz.save_data_list(tf_path+'A1_FB_ZD')
+    TS_stack = 'TS_folder/rg_A1_TS_Compare_ZP_1.tif'
+    #ZD_stack = 'A1_FB_ZD.tif'
+    #zstack = read_tiff(tf_path+ZD_stack).astype('float64')
+    #CEz = Cell_extract(zstack)
+    #CEz.stack_blobs(msg=True)
+    #CEz.save_data_list(tf_path+'A1_FB_ZD')
 # 
-    tstack9 = read_tiff(tf_path+TS_slice9).astype('float64')
-    tstack14 = read_tiff(tf_path+TS_slice14).astype('float64')
-    CEt = Cell_extract(tstack9)
-    bt_stack = CEt.stack_signal_propagate(n_frame = np.arange(5), verbose = True)
-    np.savez(tf_path+'TS_9', **bt_stack)
-    CEt.stack_reload(tstack14) # reload the stack 14
-    bt_stack = CEt.stack_signal_propagate(n_frame = np.arange(5), verbose = True)
-    np.savez(tf_path+'TS_14', **bt_stack)
+    tstack = read_tiff(tf_path+TS_stack, np.arange(400)).astype('float64')
+    CEt = Cell_extract(tstack)
+    ext_blobs = CEt.extract_sampling(nsamples = [10, 100, 200, 300], mode = 'a', red_reduct = 5 )
+    print(ext_blobs.shape)
+    bt_stack = CEt.stack_signal_propagate(ext_blobs)
+    np.savez(tf_path+'Compare_test', **bt_stack)
+    figd = slice_display(ext_blobs, title = "extraction", ref_image = tstack[100])
+    figd.savefig(tf_path + 'extracted_blobs')
 
 if __name__ == '__main__':
     main()
