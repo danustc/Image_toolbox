@@ -8,6 +8,7 @@ The class is supposed to have nothing to do with file name issue. I need to addr
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 from src.preprocessing.tifffunc import read_tiff
 from src.preprocessing.Red_detect import redund_detect_merge
@@ -19,6 +20,27 @@ from src.shared_funcs.numeric_funcs import circ_mask_patch
 
 OL_blob = 0.5
 magni_lateral = 0.295 # 0.295 micron per pixel
+
+# let's have some small handy functions
+def frame_deblur(raw_frame, sig = 40, ofst=0):
+    '''
+    raw_frame: a single frame of image
+    sig: the width of gaussian filter
+    '''
+    raw_valid = np.nonzero(raw_frame).sort()
+    rb_y, rb_x = np.where(raw_frame==0)
+    nblank = len(rb_y)
+    rb_fill = random.shuffle(raw_valid[:nblank])
+    raw_frame[rb_y, rb_x] = rb_fill
+    ifilt = filters.gaussian(raw_frame, sigma = sig)
+    iratio = raw_frame/ifilt
+    nmin = np.argmin(iratio)
+    gmin_ind = np.unravel_index(nmin, raw_frame.shape)
+
+    sca =raw_frame[gmin_ind]/ifilt[gmin_ind]
+    db_frame = raw_frame - ifilt*sca*0.999
+    return db_frame
+
 
 def frame_reextract(raw_frame, coords):
     """
@@ -135,11 +157,20 @@ class Cell_extract(object):
                 a --- extract cells from all the slices and do the redundance removal
                 bg_sub:if true, subtract background.
         '''
+        single_slice = False
         ext_stack=self.stack[nsamples]
         if(mode == 'm'):
             mean_slice = np.mean(ext_stack,axis = 0)
+            single_slice = True
         if(bg_sub > 0):
             # subtract the background
+            if single_slice:
+                db_slice = frame_deblur(mean_slice, bg_sub)
+            else:
+                for sample_slice in ext_stack:
+                    db_slice = frame_deblur(sample_slice, bg_sub)
+                    ext_stack[]
+
 
 
 
