@@ -175,13 +175,37 @@ class pipeline_tstacks(object):
             self.CE_dpt = Cell_extract(im_stack = None, diam = 9) # the default diameter of the blob: 9
         return
 
-    def load_file(self, nfile):
-        # load the nfileth data file.
-        self.current_file = self.raw_list[nfile]
+    def load_file(self, nfile, size_th = 600):
+        '''
+        Load the nfileth data file.
+        size_th: threshold of the data file. Unit: MB.
+        '''
+        fname = self.raw_list[nfile]
+        stack_size, stack_shape, self.tif_handle = tiff_describe(fname, handle_open = True)
+        if(stack_size > size_th):
+            self.stepload = True
+            n_groups = int(stack_size/size_th)+1
+            nslices = stack_shape[0]
+            ss_slices = int(nslices/n_groups)+1 # number of slices to import everytime
+            stack_cut = np.zeros(n_groups + 1)
+            stack_cut[:n_groups] = np.arange(nslices, step = ss_slices)
+            stack_cut[-1] = nslices # the cutting-off positions
+            self.stack_cut = stack_cut
+        else:
+            self.stepload = False
+
+        self.stack_shape = stack_shape
+        self.current_file = fname
 
 
-
-    def sampling(self,)
+    def sampling(self, nsamples):
+        '''
+        Read nsamples from the filehandle
+        nsamples is an array or a list
+        '''
+        sample_ext = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
+        self.CE_dpt.stack_reload(sample_ext)
+        self.CE.dpt.
 
 
     def process(nfile, size_th = 500):
@@ -194,10 +218,6 @@ class pipeline_tstacks(object):
         if(stack_size > size_th):
             # the stack is too large to read. 
             n_groups = int(stack_size/size_th) + 1
-            ss_slices = int(nslices/n_groups)+1 # number of slices to import everytime
-            stack_cut = np.zeros(n_groups + 1)
-            stack_cut[:n_groups] = np.arange(nslices, step = ss_slices)
-            stack_cut[-1] = nslices # the cutting-off positions
             si = stack_cut[0]
             for n_step in range(n_groups):
                 sf = stack_cut[n_step+1]
