@@ -22,16 +22,24 @@ OL_blob = 0.5
 magni_lateral = 0.295 # 0.295 micron per pixel
 
 # let's have some small handy functions
-def frame_deblur(raw_frame, sig = 40, ofst=0):
+def blank_refill(raw_frame):
     '''
-    raw_frame: a single frame of image
-    sig: the width of gaussian filter
+    If there are zero pixels, refill them.
     '''
     raw_valid = np.nonzero(raw_frame).sort()
     rb_y, rb_x = np.where(raw_frame==0)
     nblank = len(rb_y)
     rb_fill = random.shuffle(raw_valid[:nblank])
     raw_frame[rb_y, rb_x] = rb_fill
+
+    return raw_frame
+
+
+def frame_deblur(raw_frame, sig = 40 ):
+    '''
+    raw_frame: a single frame of image
+    sig: the width of gaussian filter
+    '''
     ifilt = filters.gaussian(raw_frame, sigma = sig)
     iratio = raw_frame/ifilt
     nmin = np.argmin(iratio)
@@ -40,6 +48,17 @@ def frame_deblur(raw_frame, sig = 40, ofst=0):
     sca =raw_frame[gmin_ind]/ifilt[gmin_ind]
     db_frame = raw_frame - ifilt*sca*0.999
     return db_frame
+
+def frame_blobs(filled_frame, bsize = 7, btolerance = 1, bsteps =5):
+    '''
+    extract blobs from a single frame
+    '''
+    # now, let's calculate threshold
+    th = np.mean(filled_frame - np.std(filled_frame))/6.0
+    mx_sig = bsize + btolerance
+    mi_sig = bsize - btolerance
+    cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
+    return cblobs
 
 
 def frame_reextract(raw_frame, coords):
@@ -84,7 +103,7 @@ class Cell_extract(object):
         self.n_slice = im_stack.shape[0]
         self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for
         self.frame_size = np.array(im_stack.shape[1:])
-        self.blobset = [diam+1, diam-1, diam]
+        self.diam = diam
 
 
     def image_blobs(self, n_frame):
@@ -92,20 +111,9 @@ class Cell_extract(object):
         Extract number of blobs from the frame n_frame.
         Updated: self.data_list
         """
-
         im0 = self.stack[n_frame]
-        im_ept = np.where(im0 == 0)
-        VI = np.floor(np.std(im0)/10) # variability of the pixels 
-        im0[im_ept] = np.random.randint(VI)+10
-        mx_sig = self.blobset[0]
-        mi_sig = self.blobset[1]
-        nsig = self.blobset[2]
         # comment on 09/05: we need a smarter way to do the threshold setting.
-        block_size = 55
-        th = (np.mean(im0)-np.std(im0))/5.0
-        print("threshold:", th)
-        cblobs = blob_log(im0,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=nsig, threshold = th, overlap = OL_blob)
-
+        cblobs = frame_blobs(im0, self.diam)
         n_blobs = cblobs.shape[0]
         if(n_blobs == 0):
             raise ValueError("This slice contains no blobs or has not been processed yet. ")
@@ -159,6 +167,7 @@ class Cell_extract(object):
         '''
         single_slice = False
         ext_stack=self.stack[nsamples]
+        n_ext = len(nsamples)
         if(mode == 'm'):
             mean_slice = np.mean(ext_stack,axis = 0)
             single_slice = True
@@ -166,10 +175,11 @@ class Cell_extract(object):
             # subtract the background
             if single_slice:
                 db_slice = frame_deblur(mean_slice, bg_sub)
+                cblobs = frame_blobs(db_slice,self.diam)
             else:
-                for sample_slice in ext_stack:
+                for nz in range(n_ext):
                     db_slice = frame_deblur(sample_slice, bg_sub)
-                    ext_stack[]
+                    ext_stack[nz] = db_slice # extraction performed
 
 
 
@@ -177,6 +187,7 @@ class Cell_extract(object):
 
     def stack_signal_propagate(self, n_frame = 0, verbose = False):
         """
+        OMG... This so badly written.
         Assume that all the slices are aligned and morphologically the same. We only extract cells
         from one slice (usually the first one), and integrate the values at the same sites at the rest
         slices.This method should not be used in z-stacks.
