@@ -51,7 +51,7 @@ def frame_deblur(raw_frame, sig = 40 ):
 
 def frame_blobs(filled_frame, bsize = 7, btolerance = 1, bsteps =5):
     '''
-    extract blobs from a single frame
+    extract blobs from a single frame. Added on 06/10/2017
     '''
     # now, let's calculate threshold
     th = np.mean(filled_frame - np.std(filled_frame))/6.0
@@ -78,6 +78,32 @@ def frame_reextract(raw_frame, coords):
         real_sig[nc] = np.mean(raw_frame[indm]) # is it OK for replacing dr with
 
     return real_sig
+
+def stack_redundreduct(blob_stack, th= 4):
+    '''
+    blob_stack: a list of blobs
+    thresh: threshold of redundance detection
+    '''
+    len_stack = len(blob_stack)
+    data_ref = blob_stack[0]
+    for data_fol in blob_stack[1:]:
+        ind_ref, ind_fol = redund_detect_merge(data_ref,data_fol, thresh = th)
+        nr_ref = len(ind_ref)
+        nr_fol = len(ind_fol)
+        mask_ref = np.array([ir in ind_ref for ir in np.arange(len(data_ref))])
+        mask_fol = np.array([io in ind_fol for io in np.arange(len(data_fol))])
+        dr_unique = data_ref[~mask_ref] # the unique part in data_ref
+        df_unique = data_fol[~mask_fol] # the unique part in data_fol
+        if(np.isscalar(ind_ref)):
+            data_redund = np.array([data_ref[ind_ref, :]])
+        else:
+            data_redund = data_ref[ind_ref,:]
+        data_merge = np.concatenate((dr_unique, df_unique, data_redund), axis = 0 )
+        data_ref = data_merge
+        n_blobs = len(data_ref)# merging extracted cells in several frames
+        data_slice = data_ref
+
+
 
 # adjust the positions of cells 
 def cell_list_afm(clist, afm, afb):
@@ -158,7 +184,7 @@ class Cell_extract(object):
         self.valid_frames = np.where(self.bl_flag>0)[0]
         # end of the function stack_blobs
 
-    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40 ):
+    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = True ):
         '''
         nsamples: indice of slices that are selected for cell extraction
         mode:   m --- mean of the selected slices, then extract cells from the single slice
@@ -177,13 +203,17 @@ class Cell_extract(object):
                 db_slice = frame_deblur(mean_slice, bg_sub)
                 cblobs = frame_blobs(db_slice,self.diam)
             else:
+                # this is where I left on 06/10/2017.
+                cblobs = []
                 for nz in range(n_ext):
                     db_slice = frame_deblur(sample_slice, bg_sub)
                     ext_stack[nz] = db_slice # extraction performed
-                    cblobs = frame_blobs(db_slice,self.diam)
+                    cs_blobs = frame_blobs(db_slice,self.diam)
+                    cblobs.append(cs_blobs)
 
-
-
+            if red_reduct:
+                # redundance reduction
+        return cblobs
 
 
     def stack_signal_propagate(self, blob_lists, verbose = False):
