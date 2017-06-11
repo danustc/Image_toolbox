@@ -158,7 +158,7 @@ class Cell_extract(object):
         self.valid_frames = np.where(self.bl_flag>0)[0]
         # end of the function stack_blobs
 
-    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40):
+    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40 ):
         '''
         nsamples: indice of slices that are selected for cell extraction
         mode:   m --- mean of the selected slices, then extract cells from the single slice
@@ -180,23 +180,15 @@ class Cell_extract(object):
                 for nz in range(n_ext):
                     db_slice = frame_deblur(sample_slice, bg_sub)
                     ext_stack[nz] = db_slice # extraction performed
+                    cblobs = frame_blobs(db_slice,self.diam)
 
 
 
 
 
-    def stack_signal_propagate(self, n_frame = 0, verbose = False):
+    def stack_signal_propagate(self, blob_lists, verbose = False):
         """
         OMG... This so badly written.
-        Assume that all the slices are aligned and morphologically the same. We only extract cells
-        from one slice (usually the first one), and integrate the values at the same sites at the rest
-        slices.This method should not be used in z-stacks.
-        Procedures:
-        0 --- calculate the blobs in the first slice
-        1 --- replace the radius with the mininum radius
-        2 --- assign cblobs to the clists
-        3 --- image_signal_integ
-        Update on 08/19. Output: a dict. ['xy']: coordinates; ['data']: fluorescence signal.
         """
         if(np.isscalar(n_frame)):
             if self.bl_flag[n_frame]>0: # if the cell extraction is already done
