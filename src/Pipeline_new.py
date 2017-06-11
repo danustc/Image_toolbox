@@ -12,7 +12,7 @@ import numpy as np
 sys.path.append(package_path)
 import src.preprocessing.tifffunc as tifffunc
 
-from src.Cell_extract import Cell_extract, frame_reextract
+from src.Cell_extract import *
 
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -153,7 +153,7 @@ class pipeline_tstacks(object):
     3. Report progress.
     '''
 
-    def __init__(self, work_folder, fname_flags = '_ZP_'):
+    def __init__(self, work_folder, fname_flags = '_ZP_', cdiam = 9):
         '''
         work_folder: the folder that contains all the .tif files
         '''
@@ -172,7 +172,7 @@ class pipeline_tstacks(object):
                             1 --- processed
                             -1 --- error
             '''
-            self.CE_dpt = Cell_extract(im_stack = None, diam = 9) # the default diameter of the blob: 9
+            self.CE_dpt = Cell_extract(im_stack = None, diam = cdiam) # the default diameter of the blob: 9
         return
 
     def load_file(self, nfile, size_th = 600):
@@ -198,40 +198,43 @@ class pipeline_tstacks(object):
         self.current_file = fname
 
 
-    def sampling(self, nsamples):
+    def sampling(self, nsamples, verbose = True):
         '''
         Read nsamples from the filehandle
         nsamples is an array or a list
         '''
-        sample_ext = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
-        self.CE_dpt.stack_reload(sample_ext)
-        self.CE.dpt.
+        sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
+        blobs_sample = stack_blobs(sample_stack,cdiam, bg_sub = 40)
+        self.cblobs = stack_redundreduct(blobs_sample, th = 4) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
+        if verbose:
+            print("Done with sampling! Number of blobs:", cblobs.shape[0])
 
     def process(nfile, size_th = 500):
         '''
         If size_th > 500 GB, load stepwize
         '''
-        self.current_file = self.raw_list[nfile]
         fname = self.current_file
-        stack_size, nslices = tifffunc.tiff_describe(fname)
-        if(stack_size > size_th):
-            # the stack is too large to read. 
-            n_groups = int(stack_size/size_th) + 1
-            si = stack_cut[0]
+        # stepload or one-time load?
+        if(self.stepload):
+            signal_series = [] # create an empty list, which should be merged later
+            si = self.stack_cut[0]
             for n_step in range(n_groups):
                 sf = stack_cut[n_step+1]
-                substack = tifffunc.read_tiff(fname, nslice = np.arange(si, sf))
-                '''
-                An extraction class should be initialized in the __init__ function. However, the stack can remain empty and loaded later.
+                substack = self.tif_handle.asarray()[np.arange(si, sf)] # this is a pretty risky approach, hopefully it can work! @_@
+                self.CE_dpt.stack_reload(substack)
+                sub_time_series = self.CE_dpt.stack_signal_propagate(cblobs) # return
+                signal_series.append(sub_time_series)
 
-                '''
                 si = sf
+            # now, let's concatenate the substacks in the list and compile it into a new dataset 
+            ts_signal = np.concatenate(tuple(signal_series), axis = 0)
+            self.ts_dataset = position_signal_compile(cblobs, ts_signal)
 
 
-
-        else:
-            raw_stack = tifffunc.read_tiff(fname)
+        else: # one-time load
+            raw_stack = self.tif_handle.asarray()
+            self.CE_dpt.stack_reload(raw_stack)
 
 
 

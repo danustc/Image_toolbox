@@ -111,6 +111,18 @@ def stack_redundreduct(blob_stack, th= 4):
     return data_merge
 
 
+def stack_blobs(small_stack, diam, bg_sub = 40):
+    '''
+    just extract all the blobs from a small stack and return as a list after background subtraction
+    '''
+    blobs_stack = []
+    for sample_slice in small_stack:
+        db_slice = frame_deblur(sample_slice, bg_sub)
+        cs_blobs = frame_blobs(db_slice, diam)
+        blobs_stack.append(cs_blobs)
+
+    return blobs_stack
+
 
 # adjust the positions of cells 
 def cell_list_afm(clist, afm, afb):
@@ -125,6 +137,20 @@ def cell_list_afm(clist, afm, afb):
     b_tile = p.tile(afb,(n_cells, 1)).T
     tc_list = np.matmul(afm, xy_coord) +b_tile
     return tc_list
+
+
+def position_signal_compile(coords, signals):
+    '''
+    a small function compiles the coordinates and the signals (raw F), which forms a dictionary
+    '''
+    blob_time_stack = dict()
+    blob_time_stack['xy'] = coords
+    blob_time_stack['data'] = signals
+    return blob_time_stack
+
+
+
+
 
 
 #-----------------------------------------------------------------------------------
@@ -200,6 +226,7 @@ class Cell_extract(object):
         mode:   m --- mean of the selected slices, then extract cells from the single slice
                 a --- extract cells from all the slices and do the redundance removal
                 bg_sub:if true, subtract background.
+                the core part is rewrapped into an independent function.
         '''
         single_slice = False
         ext_stack= self.stack[nsamples] # copy a few slices and do background subtraction so that more blobs can be extracted.
@@ -213,20 +240,16 @@ class Cell_extract(object):
                 db_slice = frame_deblur(mean_slice, bg_sub)
                 cblobs = frame_blobs(db_slice,self.diam)
             else:
-                # this is where I left on 06/10/2017.
-                blobs_stack = []
-                for nz in range(n_ext):
-                    sample_slice = ext_stack[nz]
-                    db_slice = frame_deblur(sample_slice, bg_sub)
-                    ext_stack[nz] = db_slice # extraction performed
-                    cs_blobs = frame_blobs(db_slice,self.diam)
-                    blobs_stack.append(cs_blobs)
+                blobs_sample = stack_blobs(ext_stack, self.diam, bg_sub)
 
                 # redundance reduction
                 if (red_reduct > 0):
                 # do the redundancy removal on the list
-                    cblobs = stack_redundreduct(blobs_stack, red_reduct)
+                    cblobs = stack_redundreduct(blobs_sample, red_reduct)
+                else:
+                    return blobs_sample
         return cblobs
+
 
 
     def stack_signal_propagate(self, blob_lists):
@@ -237,10 +260,6 @@ class Cell_extract(object):
         stack = self.stack
         n_blobs = len(blob_lists)# merging extracted cells in several frames
             # ----- end else, n_frame is an array instead of a slice number
-
-        blob_time_stack = dict()
-        coords = blob_lists[:, :2]
-        blob_time_stack['xy'] = coords
         train_signal = np.zeros((self.n_slice, n_blobs))
 
         for z_frame in range(self.n_slice):
@@ -250,7 +269,7 @@ class Cell_extract(object):
 
         blob_time_stack['data'] = train_signal
 
-        return blob_time_stack
+        return train_signal
     # done with stack_signal_propagate
 
 
