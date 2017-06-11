@@ -19,7 +19,7 @@ from src.shared_funcs.numeric_funcs import circ_mask_patch
 from src.visualization.brain_navigation import slice_display
 
 
-OL_blob = 0.5
+OL_blob = 0.3
 magni_lateral = 0.295 # 0.295 micron per pixel
 
 # let's have some small handy functions
@@ -56,7 +56,7 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7):
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
-    th = np.mean(filled_frame - np.std(filled_frame))/5.0
+    th = np.mean(filled_frame - np.std(filled_frame))/7.0
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
@@ -78,7 +78,7 @@ def frame_reextract(raw_frame, coords):
 
     for nc in range(n_cells):
         cr = coords[nc,:2] # the real center on non-drift corrected frame
-        dr = coords[nc,2]
+        dr = coords[nc,2]-1 # shrink the blob size to reduce the influence brought up by the sample shifts
         indm = circ_mask_patch(f_dims, cr, dr)
         real_sig[nc] = np.mean(raw_frame[indm]) # is it OK for replacing dr with
 
@@ -130,7 +130,7 @@ def cell_list_afm(clist, afm, afb):
 #-----------------------------------------------------------------------------------
 class Cell_extract(object):
     # this class extracts
-    def __init__(self, im_stack, diam = 10):
+    def __init__(self, im_stack, diam = 9):
         self.stack = im_stack
         self.data_list = {}
         self.n_slice = im_stack.shape[0]
@@ -214,9 +214,9 @@ class Cell_extract(object):
                     blobs_stack.append(cs_blobs)
 
                 # redundance reduction
-            if (red_reduct > 0):
+                if (red_reduct > 0):
                 # do the redundancy removal on the list
-                cblobs = stack_redundreduct(blobs_stack, red_reduct)
+                    cblobs = stack_redundreduct(blobs_stack, red_reduct)
         return cblobs
 
 
@@ -281,7 +281,6 @@ class Cell_extract(object):
         self.frame_size = np.array([ny,nx])
         self.bl_flag = np.zeros(self.n_slice)
         self.data_list.clear()
-        print("reload completed.")
         # ----- reload the im_stack
 
 
@@ -299,7 +298,7 @@ def main():
 # 
     tstack = read_tiff(tf_path+TS_stack, np.arange(400)).astype('float64')
     CEt = Cell_extract(tstack)
-    ext_blobs = CEt.extract_sampling(nsamples = [10, 100, 200, 300], mode = 'a', red_reduct = 5 )
+    ext_blobs = CEt.extract_sampling(nsamples = [4, 5, 6, 7, 8 ], mode = 'a', red_reduct = 5 )
     print(ext_blobs.shape)
     bt_stack = CEt.stack_signal_propagate(ext_blobs)
     np.savez(tf_path+'Compare_test', **bt_stack)
