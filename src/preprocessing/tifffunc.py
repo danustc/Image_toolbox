@@ -25,6 +25,11 @@ def tiff_describe(fname):
     return stack_size, slice_number
 
 
+def tiff_handlepass(fname):
+    '''
+    for large tiff stacks, open a TiffFile class and pass the tif handle to the user. Note that the tif handle is open, so please close it after use!
+    '''
+
 def read_tiff(fname, nslice = None):
     # the fname should include the absolute path and extension name
     # nslice can be a number or an array, indicating multiple slices

@@ -3,17 +3,16 @@ Created by Dan on 08/15/2016, a test of data processing pipeline
 Last update: 06/11/2017, some major changes are made.
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
 """
+package_path = '/home/sillycat/Programming/Python/Image_toolbox/'
+
 import os
 import sys
 import glob
 import numpy as np
-from string_funcs import path_leaf, number_strip
+sys.path.append(package_path)
+import src.preprocessing.tifffunc as tifffunc
 
-from Cell_extract import Cell_extract, frame_reextract
-from Background_correction import Deblur
-from Alignments import Drift_correction, cross_alignment
-import tifffunc
-
+from src.Cell_extract import Cell_extract, frame_reextract
 
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -173,12 +172,47 @@ class pipeline_tstacks(object):
                             1 --- processed
                             -1 --- error
             '''
+            self.CE_dpt = Cell_extract(im_stack = None, diam = 9) # the default diameter of the blob: 9
         return
+
+    def load_file(self, nfile):
+        # load the nfileth data file.
+        self.current_file = self.raw_list[nfile]
+
+
+
+    def sampling(self,)
 
 
     def process(nfile, size_th = 500):
         '''
-        If size_th > 500 GB, load stepwize 
+        If size_th > 500 GB, load stepwize
         '''
         self.current_file = self.raw_list[nfile]
+        fname = self.current_file
+        stack_size, nslices = tifffunc.tiff_describe(fname)
+        if(stack_size > size_th):
+            # the stack is too large to read. 
+            n_groups = int(stack_size/size_th) + 1
+            ss_slices = int(nslices/n_groups)+1 # number of slices to import everytime
+            stack_cut = np.zeros(n_groups + 1)
+            stack_cut[:n_groups] = np.arange(nslices, step = ss_slices)
+            stack_cut[-1] = nslices # the cutting-off positions
+            si = stack_cut[0]
+            for n_step in range(n_groups):
+                sf = stack_cut[n_step+1]
+                substack = tifffunc.read_tiff(fname, nslice = np.arange(si, sf))
+                '''
+                An extraction class should be initialized in the __init__ function. However, the stack can remain empty and loaded later.
+
+                '''
+                si = sf
+
+
+
+        else:
+            raw_stack = tifffunc.read_tiff(fname)
+
+
+
 

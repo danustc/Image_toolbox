@@ -130,12 +130,21 @@ def cell_list_afm(clist, afm, afb):
 #-----------------------------------------------------------------------------------
 class Cell_extract(object):
     # this class extracts
-    def __init__(self, im_stack, diam = 9):
-        self.stack = im_stack
+    def __init__(self, im_stack = None, diam = 9):
+        '''
+        im_stack: None or a fully loaded stack
+        '''
+        if im_stack is None:
+            print("No stack is loaded.")
+            self.is_empty = True
+        else:
+            self.stack = im_stack
+            self.n_slice = im_stack.shape[0]
+            self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for
+            self.frame_size = np.array(im_stack.shape[1:])
+            self.is_empty = False
+
         self.data_list = {}
-        self.n_slice = im_stack.shape[0]
-        self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for
-        self.frame_size = np.array(im_stack.shape[1:])
         self.diam = diam
 
 
