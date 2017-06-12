@@ -267,8 +267,6 @@ class Cell_extract(object):
             z_signal = frame_reextract(stack[z_frame], blob_lists)
             train_signal[z_frame, :] = z_signal
 
-        blob_time_stack['data'] = train_signal
-
         return train_signal
     # done with stack_signal_propagate
 
