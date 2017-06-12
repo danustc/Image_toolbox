@@ -1,17 +1,23 @@
 """
 Created by Dan on 08/15/2016, a test of data processing pipeline
-Last update: 04/16/2017
+Last update: 06/12/2017, some major changes are made.
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
+This is the windows version. Don't mix it with Ubuntu!
 """
+package_path = '/c/Users/Admin/Documents/Github/Image_toolbox/src/'
+
 import os
 import sys
 import glob
 import numpy as np
-import traceback
-import functools
+sys.path.append(package_path)
+import src.preprocessing.tifffunc as tifffunc
+
+from src.Cell_extract import *
+
 # -----------------------------------------Big classes-------------------------------------------------
 
-class Pipeline(object):
+class pipeline_zstacks(object):
     """
     This pipeline processes all the zstacks inside a folder.
     Procedure:
@@ -137,147 +143,145 @@ class Pipeline(object):
 
         print("All done.")
 
-#--------------------------------the counterpart for tstacks---------------------------------
-
-
+#--------------------------------the counterpart for tstacks--------------------------------
 
 class pipeline_tstacks(object):
-    """
-    Still not quite sure if I should merge the two pipeline classes into one.
-    """
-    def __init__(self, folder_path, zp_flags = 'ZP'):
-        self.work_folder = folder_path # folder path should be a folder
-        try:
-            tif_list = glob.glob(self.work_folder+ '*'+ zp_flags +'*.tif')
-            tif_list.sort(key = os.path.getmtime)
-            self.zp_flag = -np.ones(len(tif_list)).astype('int16') # all zero, if any time point is converted, then the element is set to True.
-            self.dims = None
-            name_base = path_leaf(tif_list[0])[:-4]
-            parse_name = name_base.split('_') # get an array of list that
-            self.prefix_t = ''.join(parse_name[:-1]) + '_'
-            self.tif_list = tif_list
+    '''
+    Goal: process all the t-stacks in a folder
+    0. Initialize: load the folder and load the files
+    1. extract cells and calculate the signals in each t-stack. If t-stack is too large, do this in steps.
+    2. Concatenate the processed key-values in a large dataset, then save.
+    3. Report progress.
+    '''
 
-            iflag = 0
-            for ts_name in self.tif_list:
-                ts_tail = path_leaf(ts_name)[:-4]
-                ZP_number = int(ts_tail.split('_')[-1]) # get the time point number
-                self.zp_flag[iflag] = ZP_number
-                iflag += 1
+    def __init__(self, work_folder, fname_flags = '_ZP_', cdiam = 9):
+        '''
+        work_folder: the folder that contains all the .tif files
+        '''
+        self.work_folder = work_folder
+        self.raw_list = glob.glob(work_folder + '*'+fname_flags + '*.tif')
+        self.current_file = None # which data set am I working on?
+        self.cdiam = cdiam
 
-            if(np.any(self.zp_flag<0) == True):
-                print("File name mistake. please check! ")
-            else:
-                print("Initialization completed! All the time-point numbers are extracted.")
-                print("t-stack orders:", self.zp_flag)
-                self.n_ZP = len(self.zp_flag) # number of time points
-                self.pro_flag = np.zeros(self.n_ZP).astype('bool')
-
-        except ValueError:
-            print("Error! The selected folder has no required files.")
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-        # done with __init__
-
-
-
-
-    def tstack_prepro(self, list_num = 0, deblur = 30, align = True, ext_all=False):
-        """
-        This part is similar to the zstack_prepro one in the first class.
-        list_num: the number in the tif-list
-        deblur: whether background subtraction should be performed first? If deblur > 0, yes.
-        align: whether drift correction should be performed?
-        ext_all: do cell extraction from only the first slice or all the slices?
-        """
-        ts_name = self.tif_list[list_num]
-        print(self.zp_flag[list_num])
-        postfix_num = format(self.zp_flag[list_num], '03d') # take out the time point number
-        raw_stack = tifffunc.read_tiff(ts_name).astype('float64')
-
-
-        if(deblur>0):
-            prefix = 'db_'
-            t_DB = Deblur(raw_stack, sig = deblur) # deblur
-            t_DB.stack_high_trunc()
-            t_dbstack = t_DB.get_stack()
-            print("deblurred!")
-
-            if(self.dims is None):
-                self.dims = t_DB.px_num # he
+        Nfile = len(self.raw_list)
+        if (Nfile ==0):
+            print("Error! The folder does not contain any files.")
         else:
-            prefix = ''
-            t_dbstack = raw_stack
-            # directly load
-        if(align):
-            prefix += 'al_'
-            t_DC = Drift_correction(t_dbstack)
-            t_DC.drift_correct(offset=0, ref_first=True, roll_back= False) # not rolling back
-            t_slice0 = t_DC.get_stack()[0]
-            drift_list = t_DC.get_drift().astype('int')
-            nz = len(drift_list)
-            # Now, let's roll back the original stack
-            for iz in np.arange(1, nz):
-                # what's the purpose of rolling back afterward?
-                drift = drift_list[iz]
-                raw_stack[iz] = np.roll(raw_stack[iz], -drift[0], axis = 0)
-                raw_stack[iz] = np.roll(raw_stack[iz], -drift[1], axis = 1)
+            self.Nfile = Nfile
+            print("There are", Nfile, "image stacks to be processed.")
+            self.process_log= np.zeros(Nfile)
+            '''
+            process_log:    0 --- unprocessed
+                            1 --- loaded
+                            2 --- sampled
+                            3 --- extracted
+                            -1 --- error
+            '''
+            self.CE_dpt = Cell_extract(im_stack = None, diam = cdiam) # the default diameter of the blob: 9
+        return
 
-            raw_stack[0] = t_slice0
-#             raw_stack = t_DC.get_stack()
-
+    def load_file(self, nfile, size_th = 600, verbose = True):
+        '''
+        Load the nfileth data file.
+        size_th: threshold of the data file. Unit: MB.
+        '''
+        fname = self.raw_list[nfile]
+        stack_size, stack_shape, self.tif_handle = tifffunc.tiff_describe(fname, handle_open = True)
+        if(stack_size > size_th):
+            self.stepload = True
+            n_groups = int(stack_size/size_th)+1
+            nslices = stack_shape[0]
+            ss_slices = int(nslices/n_groups)+1 # number of slices to import everytime
+            stack_cut = np.zeros(n_groups + 1)
+            stack_cut[:n_groups] = np.arange(nslices, step = ss_slices)
+            stack_cut[-1] = nslices # the cutting-off positions
+            self.stack_cut = stack_cut
+            self.n_groups = n_groups
+            if verbose:
+                print("number of group:", n_groups)
+                print("Cutting-off places:", stack_cut)
         else:
-            raw_stack[0] = t_dbstack[0]
+            self.stepload = False
 
 
-        # Comment on 09/16/16: Here I no longer resave the rolled-back stacks.
-#         if(prefix != ''):
-#             t_writename = self.work_folder + self.prefix_t+prefix + postfix_num+'.tif'
-#             tifffunc.write_tiff(t_newstack,t_writename)
-
-        # ---------------Time for cell extraction! --------------------
-        np_fname = self.work_folder+self.prefix_t+ prefix + postfix_num
-        t_CE = Cell_extract(raw_stack)
+        self.stack_shape = stack_shape
+        self.current_file = nfile
 
 
+    def sampling(self, nsamples, verbose = True):
+        '''
+        Read nsamples from the filehandle
+        nsamples is an array or a list
+        '''
+        sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
-        if(ext_all):
-            t_CE.stack_blobs(msg = False)
-            t_CE.save_data_list(np_fname)
-        else: # only extract cells in the first slice and assume that they persist in the rest
-            # update on 08/19: save npz instead of npy.
+        blobs_sample = stack_blobs(sample_stack, self.cdiam, bg_sub = 40)
+        self.cblobs = stack_redundreduct(blobs_sample, th = 4) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
+        if verbose:
+            print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
 
-            blob_time_stack = t_CE.stack_signal_propagate(0)
-            np.savez(np_fname, **blob_time_stack)
-        # save as npz
-        self.pro_flag[list_num] = True
+    def process(self, verbose = True):
+        '''
+        suppose the sampling has been done, and current file has been processed.
+        If size_th > 500 GB, load stepwize
+        '''
+        cblobs = self.cblobs
+        fname_stem = os.path.splitext(self.raw_list[self.current_file])
+        # stepload or one-time load?
+        if(self.stepload):
+            signal_series = [] # create an empty list, which should be merged later
+            si = self.stack_cut[0]
+            for n_step in range(self.n_groups):
+                sf = self.stack_cut[n_step+1]
+                substack = self.tif_handle.asarray()[np.arange(si, sf).astype('uint16')] # this is a pretty risky approach, hopefully it can work! @_@
+                self.CE_dpt.stack_reload(substack)
+                sub_time_series = self.CE_dpt.stack_signal_propagate(cblobs) # return
+                signal_series.append(sub_time_series)
+                si = sf
+                if verbose:
+                    print("Processed step ", n_step)
+            # now, let's concatenate the substacks in the list and compile it into a new dataset 
+            ts_signal = np.concatenate(tuple(signal_series), axis = 0)
 
-        return postfix_num # just for information, this returning is useless.
-        # done with zstack_prepro
+        else: # one-time load
+            raw_stack = self.tif_handle.asarray()
+            self.CE_dpt.stack_reload(raw_stack)
+            ts_signal = self.CE_dpt.stack_signal_propagate(cblobs)
+
+        self.ts_dataset = position_signal_compile(cblobs, ts_signal)
+        np.savez(fname_stem, **self.ts_dataset)
+        self.tif_handle.filehandle.close()
+        self.tif_handle.close() # close the tif handle 
+        self.tif_handle = None
+        self.process_log[self.current_file] = 3
 
 
+    def run_pipeline(self, n_samples, verbose = True):
+        '''
+        run the pipeline
+        '''
+        for zp in range(self.Nfile):
+            '''
+            0 --- load file
+            1 --- Sampling
+            2 --- cell extraction and save
+            '''
+            self.load_file(zp)
+            if verbose:
+                print("Current file:", self.current_file)
+            self.sampling(n_samples)
+            self.process()
 
-    def tstack_zseries(self, deblur = 30, align = True, ext_all = False):
-        """
-        preprocess all the single zstacks. Should t-alignment be carried out here?
-        0. Regardless of the orders in self.tp_flag prepreocess all the zstacks
-        1. Reconstruct t-stacks based on the TP number, do the drift correction, realign as t-stacks. (must save the number of drifts.)
-        2. Correct the cell positions accordingly, resave as '.npz'. (That part is kinda tricky.)
+    # should I also define an exit function? 
 
-        """
-        for iflag in np.arange(self.n_ZP):
-            postfix_num = self.tstack_prepro(iflag, deblur, align, ext_all)
-            print("Processed time point:", postfix_num)
-
-
-        print("All done.")
-        # done with tstack_zseries
-
+# -----------------------The main test function -----------------------
 def main():
-    '''
-    The main executive function
-    '''
-    print("Pipeline executed.")
+    data_path = '/d/Data/2017-06-06/A1_TS_Compare/'
+
+    n_samples = [5, 10, 15, 20]
+    pt = pipeline_tstacks(data_path)
+    pt.run_pipeline(n_samples)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
