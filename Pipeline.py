@@ -1,23 +1,17 @@
 """
 Created by Dan on 08/15/2016, a test of data processing pipeline
-Last update: 10/26/2016
+Last update: 04/16/2017
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
 """
 import os
 import sys
 import glob
 import numpy as np
-from string_funcs import path_leaf, number_strip
-
-from Cell_extract import Cell_extract, frame_reextract
-from Background_correction import Deblur
-from Alignments import Drift_correction, cross_alignment
-import tifffunc
-
-
+import traceback
+import functools
 # -----------------------------------------Big classes-------------------------------------------------
 
-class pipeline_zstacks(object):
+class Pipeline(object):
     """
     This pipeline processes all the zstacks inside a folder.
     Procedure:
@@ -277,3 +271,13 @@ class pipeline_tstacks(object):
 
         print("All done.")
         # done with tstack_zseries
+
+def main():
+    '''
+    The main executive function
+    '''
+    print("Pipeline executed.")
+
+
+if __name__=='__main__':
+    main()
