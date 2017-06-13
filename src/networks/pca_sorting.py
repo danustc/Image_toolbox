@@ -79,6 +79,31 @@ def ica_dff(dff_data, n_comp = 4):
     a_mix = ica.mixing_ # the estimated mixing matrix
     return dff_recon, a_mix
 
+
+def group_varsplit(dff_data, arg_sv, var_contrast = 0.95):
+    '''
+    dff_data: the DF/F data of all the cells
+    arg_sv: the indices of cells ranked by importance
+    var_contrast: the variance of the first group should cover how much percentage of the overall variance?
+    This is a test algorithm, function is not guaranteed.
+    '''
+    NT, NP = dff_data.shape
+    ncut = int(NP/2)+1
+    ind_front = arg_sv[:ncut] # split arg_sv into two groups
+    int_back = arg_sv[ncut:]
+
+    dff_front = dff_data[:, ind_front]
+    dff_back = dff_data[:, ind_back]
+    cov_front = np.cov(dff_front, rowvar =False) # calculate the covariances
+    cov_back = np.cov(dff_back, rowvar = False)
+
+
+
+
+
+
+
+
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():

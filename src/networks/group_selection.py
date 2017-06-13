@@ -3,30 +3,24 @@ Last modification: 04/28/2017 by Dan
 This module contains network analysis. ... to be filled up.
 
 '''
-
+import glob
 import numpy as np
+import random
+from pca_sorting import *
 
-def spatial_cell_selection(coord_data, coordinates, tolerance = 5):
+
+def group_pca_sorting(raw_signals, dim_red = 0.50, Niter = 3, var_cut = 0.95):
     '''
-    data: contains the coordinates, column0: y, column1:x
-    coordinates: the centers of selection
-    tolerance: allowed error from the center, in pixels
+    raw_signals: a large matrix with # of columns larger than # of rows.
+    dim_red: each group has # of columns as a fraction of # of rows.
+    Niter: the iterations of shuffling and re-sorting
+    var_cut: the fraction of overall variance
     '''
-    yc = coord_data[:,0]
-    xc = coord_data[:,1]
+    NT, NP = raw_signals.shape
+    ind_mark = np.arange(NP) # the index marker array
 
-    [YS, YC] = np.meshgrid(coordinates[:,0], yc)
-    [XS, XC] = np.meshgrid(coordinates[:,1], xc)
+    for ni in range(Niter):
+        pass
 
-    r_diff = np.sqrt((YC-YS)**2 + (XC-XS)**2)
+    return group
 
-    CC, SS = np.where(r_diff < tolerance)
-
-    return CC
-
-def activity_var_selection(dff_data, display = True):
-    '''
-    select the high-activity cells based on the variance of the Delta f/f.
-    Score the activity for each neuron, try to find possible pattern.
-    Return the score list and estimated cut-off 
-    '''
