@@ -18,7 +18,7 @@ from src.shared_funcs.numeric_funcs import circ_mask_patch
 from src.visualization.brain_navigation import slice_display
 
 
-OL_blob = 0.3
+OL_blob = 0.2
 magni_lateral = 0.295 # 0.295 micron per pixel
 
 # let's have some small handy functions
@@ -55,7 +55,7 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7):
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
-    th = np.mean(filled_frame - np.std(filled_frame))/7.0
+    th = np.mean(filled_frame - np.std(filled_frame))/6.0
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
@@ -219,7 +219,7 @@ class Cell_extract(object):
         self.valid_frames = np.where(self.bl_flag>0)[0]
         # end of the function stack_blobs
 
-    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 4):
+    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 5):
         '''
         nsamples: indice of slices that are selected for cell extraction
         mode:   m --- mean of the selected slices, then extract cells from the single slice
@@ -313,7 +313,8 @@ def main():
     '''
     The main function for testing the cell extraction code.
     '''
-    tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+    tf_path = 'D:\Data/2017-06-06/A2_TS_Compare\\'
+    #tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
     TS_stack = 'TS_folder/rg_A1_TS_Compare_ZP_1.tif'
     #ZD_stack = 'A1_FB_ZD.tif'
     #zstack = read_tiff(tf_path+ZD_stack).astype('float64')
