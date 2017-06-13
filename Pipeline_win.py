@@ -226,7 +226,7 @@ class pipeline_tstacks(object):
         If size_th > 500 GB, load stepwize
         '''
         cblobs = self.cblobs
-        fname_stem = os.path.splitext(self.raw_list[self.current_file])
+        fname_stem = os.path.splitext(self.raw_list[self.current_file])[0]
         # stepload or one-time load?
         if(self.stepload):
             signal_series = [] # create an empty list, which should be merged later
@@ -276,7 +276,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_path = '/d/Data/2017-06-06/A1_TS_Compare/'
+    data_path = 'D:\Data/2017-06-06/A2_TS_Compare\\'
 
     n_samples = [5, 10, 15, 20]
     pt = pipeline_tstacks(data_path)

@@ -14,7 +14,6 @@ from src.preprocessing.tifffunc import read_tiff
 from src.preprocessing.Red_detect import redund_detect_merge
 from skimage import filters
 from skimage.feature import blob_log
-from skimage.filters import threshold_local
 from src.shared_funcs.numeric_funcs import circ_mask_patch
 from src.visualization.brain_navigation import slice_display
 
