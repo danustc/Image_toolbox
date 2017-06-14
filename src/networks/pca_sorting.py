@@ -88,19 +88,50 @@ def group_varsplit(dff_data, arg_sv, var_contrast = 0.95):
     This is a test algorithm, function is not guaranteed.
     '''
     NT, NP = dff_data.shape
-    ncut = int(NP/2)+1
-    ind_front = arg_sv[:ncut] # split arg_sv into two groups
-    int_back = arg_sv[ncut:]
 
-    dff_front = dff_data[:, ind_front]
-    dff_back = dff_data[:, ind_back]
-    cov_front = np.cov(dff_front, rowvar =False) # calculate the covariances
-    cov_back = np.cov(dff_back, rowvar = False)
+    cov_sum = np.cov(dff_data[:,arg_sv])
+    cov_diag = np.diag(cov_sum) # the diagonal elements of the covariance matrix 
+    cov_accumu = np.cumsum(cov_diag)  # the accumulated covariance.
+    cut_ind = np.searchsorted(cov_accumu, var_contrast)
 
-
-
+    arg_head = arg_sv[:cut_ind]
+    arg_rear = arg_sv[cut_ind:]
+    return arg_head, arg_rear
 
 
+# --------------------------------# The class of group split 
+
+class group_pca(object):
+    '''
+    Perform PCA on a group of data with more columns on rows
+    '''
+    def __init__(self, raw_data, gvar= 0.95):
+        '''
+        Load data. Specify the variance cut-off.
+        '''
+        self.gvar = gvar
+        self.set_data(raw_data)
+        self.groups = None
+
+    def set_data(self, raw_data):
+        self.data = raw_data
+        self.NT, self.NP = raw_data.shape
+
+    def group_division(self, n_group = None):
+        '''
+        separate the data into several groups
+        '''
+        if n_group is None:
+            ndiv = int(2*self.NP/self.NT) # suggested divisions based on the data dimensions
+        self.groups = np.array_split(self.data, n_group, axis = 1)
+
+    def subgroup_pca(self):
+        '''
+        Perform PCA on each of the subgroups
+        '''
+        for sgroup in self.groups:
+            # perform PCA
+            pass
 
 
 
