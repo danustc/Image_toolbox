@@ -8,7 +8,6 @@ The class is supposed to have nothing to do with file name issue. I need to addr
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-import random
 import matplotlib.pyplot as plt
 from src.preprocessing.tifffunc import read_tiff
 from src.preprocessing.Red_detect import redund_detect_merge
@@ -26,13 +25,20 @@ def blank_refill(raw_frame):
     '''
     If there are zero pixels, refill them.
     '''
-    raw_valid = np.nonzero(raw_frame).sort()
     rb_y, rb_x = np.where(raw_frame==0)
-    nblank = len(rb_y)
-    rb_fill = random.shuffle(raw_valid[:nblank])
-    raw_frame[rb_y, rb_x] = rb_fill
+    if rb_y.size ==0:
+        print("No empty pixels.")
+        return raw_frame
+    else:
+        raw_valid = np.sort(raw_frame[np.nonzero(raw_frame)])
+        nblank = len(rb_y)
+        print("The lowest valid pixels:")
+        fill_values = raw_valid[:nblank]
+        np.random.shuffle(fill_values)
+        print(fill_values)
+        raw_frame[rb_y, rb_x] = fill_values
 
-    return raw_frame
+        return raw_frame
 
 
 def frame_deblur(raw_frame, sig = 40 ):
@@ -178,10 +184,10 @@ class Cell_extract(object):
 
     def image_blobs(self, n_frame, bg_sub):
         '''
-        Last update: 06/11/2017.
+        Last update: 06/14/2017.
         Extract number of blobs from the frame n_frame.
         Updated: self.data_list; a data_slice is returned.
-        each data_slice is a 5-column array: z, y, x, dr, signal intensity.
+        each data_slice is a 5-column array: y, x, z,dr, signal intensity.
         This is only called by the function stack_blobs, which extracts blobs from each slice individually.
         '''
         im0 = frame_deblur(self.stack[n_frame], bg_sub)
@@ -191,9 +197,10 @@ class Cell_extract(object):
         n_blobs = cblobs.shape[0]
         frame_size = self.frame_size
         if n_blobs > 0:
-            data_slice = np.zeros((n_blobs, 4))
-            data_slice[:,:3] = cblobs
-            data_slice[:,3] =signal_int
+            data_slice = np.zeros((n_blobs, 5))
+            data_slice[:,2] = n_frame
+            data_slice[:,[0,1,3]] = cblobs
+            data_slice[:,4] =signal_int
 
             kwd = 's_'+ str(n_frame).zfill(3)
             self.data_list[kwd] = data_slice
@@ -291,12 +298,19 @@ class Cell_extract(object):
 
 
 
-    def stack_reload(self, new_stack):
+    def stack_reload(self, new_stack, refill = True):
         """
         Updates the image stack saved in the class, reset everything
         """
-        self.stack = new_stack
-        self.n_slice, ny, nx = new_stack.shape
+        n_slice, ny, nx = new_stack.shape
+        if refill: #refill the blank pixels
+            ref_stack = np.zeros_like(new_stack)
+            for nz in range(n_slice):
+                ref_stack[nz] = blank_refill(new_stack[nz])
+            self.stack = ref_stack
+        else:
+            self.stack = new_stack
+        self.n_slice = n_slice
         self.frame_size = np.array([ny,nx])
         self.redund = True
         self.data_list.clear()
