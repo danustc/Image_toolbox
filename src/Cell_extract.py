@@ -49,7 +49,7 @@ def frame_deblur(raw_frame, sig = 40 ):
     db_frame = raw_frame - ifilt*sca*0.999
     return db_frame
 
-def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7):
+def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7, verbose = False):
     '''
     extract blobs from a single frame. Added on 06/10/2017
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
@@ -59,6 +59,8 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7):
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
+    if verbose:
+        print("# of blobs:", cblobs.shape[0])
     return cblobs
 
 
@@ -113,11 +115,12 @@ def stack_redundreduct(blob_stack, th= 4):
 def stack_blobs(small_stack, diam, bg_sub = 40):
     '''
     just extract all the blobs from a small stack and return as a list after background subtraction
+    btolerance is always considered 2
     '''
     blobs_stack = []
     for sample_slice in small_stack:
         db_slice = frame_deblur(sample_slice, bg_sub)
-        cs_blobs = frame_blobs(db_slice, diam)
+        cs_blobs = frame_blobs(db_slice, bsize = diam, verbose = verbose)
         blobs_stack.append(cs_blobs)
 
     return blobs_stack
@@ -170,9 +173,10 @@ class Cell_extract(object):
 
         self.data_list = dict()
         self.diam = diam
+        self.redund = True
 
 
-    def image_blobs(self, n_frame):
+    def image_blobs(self, n_frame, bg_sub):
         '''
         Last update: 06/11/2017.
         Extract number of blobs from the frame n_frame.
@@ -180,8 +184,7 @@ class Cell_extract(object):
         each data_slice is a 5-column array: z, y, x, dr, signal intensity.
         This is only called by the function stack_blobs, which extracts blobs from each slice individually.
         '''
-        im0 = self.stack[n_frame]
-        # comment on 09/05: we need a smarter way to do the threshold setting.
+        im0 = frame_deblur(self.stack[n_frame], bg_sub)
         cblobs = frame_blobs(im0, self.diam)
         signal_int = frame_reextract(im0, cblobs)
 
@@ -196,17 +199,19 @@ class Cell_extract(object):
             self.data_list[kwd] = data_slice
         return n_blobs
 
-    def stack_blobs(self, msg = False):
+    def stack_blobs(self, bg_sub=40, verbose = True):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         Update on 08/16: make the radius of blobs uniform.
         Update on 08/18: merge with the stack_signal_integ
         """
-
-        for n_frame in np.arange(self.n_slice):
-            n_blobs = self.image_blobs(n_frame)
-            if msg:
-                print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
+        for n_frame in range(self.n_slice):
+            '''
+            extract blobs from each frame and save into data_list
+            '''
+            n_blobs = self.image_blobs(n_frame, bg_sub)
+            if verbose:
+                print("# blobs in slice", n_frame, ": ", n_blobs)
 
 
     def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 5):
@@ -293,7 +298,7 @@ class Cell_extract(object):
         self.stack = new_stack
         self.n_slice, ny, nx = new_stack.shape
         self.frame_size = np.array([ny,nx])
-        self.bl_flag = np.zeros(self.n_slice)
+        self.redund = True
         self.data_list.clear()
         # ----- reload the im_stack
 

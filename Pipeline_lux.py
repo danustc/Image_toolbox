@@ -63,6 +63,7 @@ class pipeline_zstacks(object):
         stack_size, self.stack_shape, self.tif_handle = tifffunc.tiff_describe(fname, handle_open = True)
         if verbose:
             print('Loaded file:', self.raw_list[nfile])
+            print('Stack shape:', self.stack_shape)
         self.current_file = nfile
 
 
@@ -75,13 +76,13 @@ class pipeline_zstacks(object):
 
         raw_stack = self.tif_handle.asarray()
         self.CE_dpt.stack_reload(raw_stack)
-        zd_signal = self.CE_dpt.stack_blobs()
+        self.CE_dpt.stack_blobs(bg_sub = 40, verbose = True)
 
-        np.savez(fname_stem, **self.ts_dataset)
         self.tif_handle.filehandle.close()
         self.tif_handle.close() # close the tif handle 
         self.tif_handle = None
         self.process_log[self.current_file] = 3
+        self.CE_dpt.save_data_list(fname_stem)
 
         if verbose:
             print("Done with file:", fname_stem)
