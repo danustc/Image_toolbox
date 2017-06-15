@@ -1,5 +1,6 @@
 """
-Last update: 04/25/2016
+Last update: 06/15/2017
+A global view of cell distribution in the whole set of data
 Test affine transformation
 """
 
@@ -14,6 +15,9 @@ import src.preprocessing.Affine as Affine
 from src.visualization.brain_navigation import slice_display,stack_display
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+
+
+
 
 
 def dumb1(ariz_list = [], rota_list = []):

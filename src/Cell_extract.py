@@ -165,11 +165,10 @@ class Cell_extract(object):
         else:
             self.stack = im_stack
             self.n_slice = im_stack.shape[0]
-            self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for
             self.frame_size = np.array(im_stack.shape[1:])
             self.is_empty = False
 
-        self.data_list = {}
+        self.data_list = dict()
         self.diam = diam
 
 
@@ -187,21 +186,15 @@ class Cell_extract(object):
         signal_int = frame_reextract(im0, cblobs)
 
         n_blobs = cblobs.shape[0]
-        if(n_blobs == 0):
-            raise ValueError("This slice contains no blobs or has not been processed yet. ")
-            self.bl_flag[n_frame] = -1
-            return
-        else:
-            frame_size = self.frame_size
-            self.bl_flag[n_frame] = n_blobs
-            data_slice = np.zeros((n_blobs, 5))
-            data_slice[:,0] = n_frame # set the z-coordinate
-            data_slice[:,1:4] = cblobs
-            data_slice[:,4] =signal_int
+        frame_size = self.frame_size
+        if n_blobs > 0:
+            data_slice = np.zeros((n_blobs, 4))
+            data_slice[:,:3] = cblobs
+            data_slice[:,3] =signal_int
 
-        kwd = 's_'+ str(n_frame).zfill(3)
-        self.data_list[kwd] = data_slice
-
+            kwd = 's_'+ str(n_frame).zfill(3)
+            self.data_list[kwd] = data_slice
+        return n_blobs
 
     def stack_blobs(self, msg = False):
         """
@@ -211,13 +204,10 @@ class Cell_extract(object):
         """
 
         for n_frame in np.arange(self.n_slice):
-            self.image_blobs(n_frame)
+            n_blobs = self.image_blobs(n_frame)
             if msg:
-                n_blobs = self.bl_flag[n_frame].astype('int64')
                 print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
 
-        self.valid_frames = np.where(self.bl_flag>0)[0]
-        # end of the function stack_blobs
 
     def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 5):
         '''
@@ -262,7 +252,6 @@ class Cell_extract(object):
         train_signal = np.zeros((self.n_slice, n_blobs))
 
         for z_frame in range(self.n_slice):
-            self.bl_flag[z_frame] = n_blobs
             z_signal = frame_reextract(stack[z_frame], blob_lists)
             train_signal[z_frame, :] = z_signal
 
@@ -313,18 +302,12 @@ def main():
     '''
     The main function for testing the cell extraction code.
     '''
-    tf_path = 'D:\Data/2017-06-06/A2_TS_Compare\\'
-    #tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    TS_stack = 'TS_folder/rg_A1_TS_Compare_ZP_1.tif'
-    #ZD_stack = 'A1_FB_ZD.tif'
-    #zstack = read_tiff(tf_path+ZD_stack).astype('float64')
-    #CEz = Cell_extract(zstack)
-    #CEz.stack_blobs(msg=True)
-    #CEz.save_data_list(tf_path+'A1_FB_ZD')
-# 
+    #tf_path_win = 'D:\Data/2017-06-06/A2_TS_Compare\\'
+    tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+    TS_stack = 'TS_folder/rg_A1_TS_Compare_ZP_2.tif'
     tstack = read_tiff(tf_path+TS_stack, np.arange(400)).astype('float64')
     CEt = Cell_extract(tstack)
-    ext_blobs = CEt.extract_sampling(nsamples = [4, 5, 6, 7, 8 ], mode = 'a', red_reduct = 5 )
+    ext_blobs = CEt.extract_sampling(nsamples = [4, 5, 6, 7, 8 ], mode = 'a', red_reduct = 6 )
     print(ext_blobs.shape)
     bt_stack = CEt.stack_signal_propagate(ext_blobs)
     np.savez(tf_path+'Compare_test', **bt_stack)
