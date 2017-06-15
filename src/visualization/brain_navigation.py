@@ -85,3 +85,53 @@ def stack_display(zstack_3d, cl = 'b'):
     ax.set_zlabel('Ventral--Dorsal', fontsize = 14)
     fig3d.tight_layout()
     return fig3d
+
+
+
+# ------------------------Classes------------------------
+class region_view(object):
+    '''
+    Visualize a brain region and navigate through it.
+    Data to read: extracted cells and key values
+    Each file should be a python dictionary, which contains the coordinates and tthe key values
+    '''
+    def __init__(self, data_pk):
+        '''
+        data_pk:    'coord' -- coordinates
+                    'data'  -- fluorescence signal (raw_f)
+                    'dff'   -- calculated DeltaF/F
+        '''
+        self._check_data_(data_pk)
+        # done with initialization
+
+    def _check_data_(self,data_pk, verbose = True):
+        '''
+        Check the type of loaded data by keys
+        '''
+        if('xy' in data_pk):
+            self.dim= 2 # 2D slice
+        elif('coord' in data_pk):
+            self.dim = 3 # 3D stack
+
+        if('dff' in data_pk):
+            self.sig = 'D' # Delta F/F
+            self.data = data_pk['dff']
+        else:
+            self.sig = 'F' # raw F
+            self.data = data_pk['data']
+
+
+    def reload_data(self, new_data):
+        '''
+        reload the data and clear the old data
+        '''
+        self._check_data_(new_data)
+
+    def load_refimage(self, rf_image):
+        '''
+        load a reference image.
+        '''
+        self.ref_im = rf_image
+
+    # left on 06/14/2017, to be finished
+
