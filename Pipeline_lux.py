@@ -75,7 +75,7 @@ class pipeline_zstacks(object):
         fname_stem = os.path.splitext(self.raw_list[self.current_file])[0]
 
         raw_stack = self.tif_handle.asarray()
-        self.CE_dpt.stack_reload(raw_stack)
+        self.CE_dpt.stack_reload(raw_stack, refill = True)
         self.CE_dpt.stack_blobs(bg_sub = 40, verbose = True)
 
         self.tif_handle.filehandle.close()
@@ -194,7 +194,7 @@ class pipeline_tstacks(object):
             for n_step in range(self.n_groups):
                 sf = self.stack_cut[n_step+1]
                 substack = self.tif_handle.asarray()[np.arange(si, sf).astype('uint16')] # this is a pretty risky approach, hopefully it can work! @_@
-                self.CE_dpt.stack_reload(substack)
+                self.CE_dpt.stack_reload(substack, refill = True)
                 sub_time_series = self.CE_dpt.stack_signal_propagate(cblobs) # return
                 signal_series.append(sub_time_series)
                 si = sf
