@@ -16,6 +16,14 @@ from src.visualization.brain_navigation import slice_display,stack_display
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
+def ZD_visualization(dph_im):
+    '''
+    visualize a Z-stack
+    dph_im: the path to .npz file
+    '''
+    fname_stem = os.path.splitext(dph_im)[0] # split the filename stem
+    ZDR = z_dense_construct(dph_im)
+    return
 
 
 
@@ -28,21 +36,8 @@ def dumb1(ariz_list = [], rota_list = []):
     3. Cross align the positions of the T-cells with those in the Z-stacks.
     '''
     # read the Z-slices and the t-slices
-    TS_slice9 = 'TS_folder/rg_A1_FB_TS_ZP_9.tif'
-    TS_slice14 = 'TS_folder/rg_A1_FB_TS_ZP_14.tif'
     ZD_stack = 'A1_FB_ZD.tif'
-    zstep = 4
-    Z_slices = tf.read_tiff(global_datapath+ZD_stack, np.array([9,14])*zstep)
-    T_slice9 = tf.read_tiff(global_datapath+TS_slice9, 1)
-    T_slice14 = tf.read_tiff(global_datapath + TS_slice14, 1)
 
-    # load the cell extraction data 
-
-    TS14 = np.load(global_datapath+'TS_14.npz')
-    coord_14, f_14 = TS14['xy'], TS14['data'] # split the coordinates and data
-    # do the similar thing for slice 9
-    TS9= np.load(global_datapath+'TS_9.npz')
-    coord_14, f_14 = TS9['xy'], TS9['data'] # split the coordinates and data
 
     zd_file = 'A1_FB_ZD.npz'
     dims = [732, 908]
