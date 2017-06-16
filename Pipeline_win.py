@@ -2,9 +2,9 @@
 Created by Dan on 08/15/2016, a test of data processing pipeline
 Last update: 06/15/2017, some major changes are made.
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
-This is the linux version. Don't mix it with the Windows version!
+This is the windows version. Don't mix it with the linux version!
 """
-package_path = '/home/sillycat/Programming/Python/Image_toolbox/'
+package_path ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 
 import os
 import sys
@@ -119,7 +119,7 @@ class pipeline_tstacks(object):
         work_folder: the folder that contains all the .tif files
         '''
         self.work_folder = work_folder
-        self.raw_list = glob.glob(work_folder + '*'+fname_flags + '*.tif')
+	self.raw_list = glob.glob(work_folder + '*'+fname_flags + '*.tif')
         self.current_file = None # which data set am I working on?
         self.cdiam = cdiam
 
@@ -236,10 +236,11 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_path = package_path + 'data_test/'
 
-    pz = pipeline_tstacks(data_path, fname_flags = 'TS')
-    pz.run_pipeline([5,10,15,20])
+	data_rootpath ='D:\Data\\'
+    data_path = data_rootpath + '/2017-06-13/A1_TS/'
+    pt = pipeline_tstacks(data_path, fname_flags = 'ZP')
+    pt.run_pipeline([5,10,15,20])
 
 
 if __name__ == '__main__':
