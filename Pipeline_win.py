@@ -236,10 +236,11 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-
-	data_rootpath ='D:\Data\\'
-    data_path = data_rootpath + '/2017-06-13/A1_TS/'
-    pt = pipeline_tstacks(data_path, fname_flags = 'ZP')
+    data_rootpath ='D:\Data\\'
+    data_path1 = data_rootpath + '/2017-06-13/A1_TS\\'
+    data_path2 = data_rootpath + '/2017-06-13/A3_TS\\'
+    data_path3 = data_rootpath + '/2017-06-13/B1_TS\\'
+    pt = pipeline_tstacks(data_path1, fname_flags = 'ZP')
     pt.run_pipeline([5,10,15,20])
 
 
