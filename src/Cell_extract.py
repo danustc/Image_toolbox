@@ -58,7 +58,7 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7, verbose = Fa
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
-    th = (np.mean(filled_frame) - np.std(filled_frame))/3.
+    th = (np.mean(filled_frame) - np.std(filled_frame))/6.
     print("threshold:", th)
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
@@ -124,7 +124,7 @@ def stack_blobs(small_stack, diam, bg_sub = 40):
     blobs_stack = []
     for sample_slice in small_stack:
         db_slice = frame_deblur(sample_slice, bg_sub)
-        cs_blobs = frame_blobs(db_slice, bsize = diam, verbose = verbose)
+        cs_blobs = frame_blobs(db_slice, bsize = diam)
         blobs_stack.append(cs_blobs)
 
     return blobs_stack
