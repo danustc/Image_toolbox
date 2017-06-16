@@ -28,7 +28,7 @@ class pipeline_zstacks(object):
     3. Perform Cell extraction on the deblurred z-stack, save as 'npz' (completed)
     4. reconstruct t-stacks from z-stacks (can be run from outside)
     """
-    def __init__(self, work_folder, fname_flags= 'ZD', cdiam = 9):
+    def __init__(self, work_folder, fname_flags= 'ZD', cdiam = 8):
         '''
         Initialize the pipeline
         '''

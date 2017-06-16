@@ -36,11 +36,15 @@ def dumb1(ariz_list = [], rota_list = []):
     3. Cross align the positions of the T-cells with those in the Z-stacks.
     '''
     # read the Z-slices and the t-slices
-    ZD_stack = 'A1_FB_ZD.tif'
-
-
+    ZD_name = 'A1_FB_ZD.tif'
+    ZD_stack = tf.read_tiff(global_datapath+ZD_name)
     zd_file = 'A1_FB_ZD.npz'
+    zd_ext = np.load(global_datapath+zd_file)
     dims = [732, 908]
+    fig_11 = slice_display(zd_ext['s_100'], ref_image = ZD_stack[100])
+    fig_11.savefig(global_datapath+'s100')
+
+
     ZDR = z_dense_construct(global_datapath+zd_file)
     ZD_red = z_dense_ref(ZDR, dims)
     zstack_3d = ZD_red.stack_red_detect()
