@@ -240,8 +240,12 @@ def main():
     data_rootpath ='D:\Data\\'
     data_path1 = data_rootpath + '/2017-06-13/A1_TS\\'
     data_path2 = data_rootpath + '/2017-06-13/A3_TS\\'
-    data_path3 = data_rootpath + '/2017-06-13/B1_TS\\'
+    data_path3 = data_rootpath + '/2017-06-13/B2_TS_control\\'
     pt = pipeline_tstacks(data_path1, fname_flags = 'ZP')
+    pt.run_pipeline([5,10,15,20])
+    pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
+    pt.run_pipeline([5,10,15,20])
+    pt = pipeline_tstacks(data_path3, fname_flags = 'ZP')
     pt.run_pipeline([5,10,15,20])
 
 
