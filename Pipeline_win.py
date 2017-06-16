@@ -216,7 +216,7 @@ class pipeline_tstacks(object):
         sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
         blobs_sample = stack_blobs(sample_stack, self.cdiam, bg_sub = 40)
-        self.cblobs = stack_redundreduct(blobs_sample, th = 4) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
+        self.cblobs = stack_redundreduct(blobs_sample, th = 5) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
 
