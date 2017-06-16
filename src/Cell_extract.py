@@ -8,18 +8,16 @@ The class is supposed to have nothing to do with file name issue. I need to addr
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-import random
 import matplotlib.pyplot as plt
 from src.preprocessing.tifffunc import read_tiff
 from src.preprocessing.Red_detect import redund_detect_merge
 from skimage import filters
 from skimage.feature import blob_log
-from skimage.filters import threshold_local
 from src.shared_funcs.numeric_funcs import circ_mask_patch
 from src.visualization.brain_navigation import slice_display
 
 
-OL_blob = 0.3
+OL_blob = 0.2
 magni_lateral = 0.295 # 0.295 micron per pixel
 
 # let's have some small handy functions
@@ -27,13 +25,18 @@ def blank_refill(raw_frame):
     '''
     If there are zero pixels, refill them.
     '''
-    raw_valid = np.nonzero(raw_frame).sort()
     rb_y, rb_x = np.where(raw_frame==0)
-    nblank = len(rb_y)
-    rb_fill = random.shuffle(raw_valid[:nblank])
-    raw_frame[rb_y, rb_x] = rb_fill
+    if rb_y.size ==0:
+        print("No empty pixels.")
+        return raw_frame
+    else:
+        raw_valid = np.sort(raw_frame[np.nonzero(raw_frame)])
+        nblank = len(rb_y)
+        fill_values = raw_valid[:nblank]
+        np.random.shuffle(fill_values)
+        raw_frame[rb_y, rb_x] = fill_values
 
-    return raw_frame
+        return raw_frame
 
 
 def frame_deblur(raw_frame, sig = 40 ):
@@ -45,21 +48,22 @@ def frame_deblur(raw_frame, sig = 40 ):
     iratio = raw_frame/ifilt
     nmin = np.argmin(iratio)
     gmin_ind = np.unravel_index(nmin, raw_frame.shape)
-
-    sca =raw_frame[gmin_ind]/ifilt[gmin_ind]
+    sca =raw_frame[gmin_ind]/(ifilt[gmin_ind])
     db_frame = raw_frame - ifilt*sca*0.999
     return db_frame
 
-def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7):
+def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7, verbose = False):
     '''
     extract blobs from a single frame. Added on 06/10/2017
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
-    th = np.mean(filled_frame - np.std(filled_frame))/7.0
+    th = (np.mean(filled_frame) - np.std(filled_frame))/6.
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
+    if verbose:
+        print("# of blobs:", cblobs.shape[0])
     return cblobs
 
 
@@ -114,11 +118,12 @@ def stack_redundreduct(blob_stack, th= 4):
 def stack_blobs(small_stack, diam, bg_sub = 40):
     '''
     just extract all the blobs from a small stack and return as a list after background subtraction
+    btolerance is always considered 2
     '''
     blobs_stack = []
     for sample_slice in small_stack:
         db_slice = frame_deblur(sample_slice, bg_sub)
-        cs_blobs = frame_blobs(db_slice, diam)
+        cs_blobs = frame_blobs(db_slice, bsize = diam)
         blobs_stack.append(cs_blobs)
 
     return blobs_stack
@@ -166,61 +171,54 @@ class Cell_extract(object):
         else:
             self.stack = im_stack
             self.n_slice = im_stack.shape[0]
-            self.bl_flag = np.zeros(self.n_slice).astype('int') # create an all-zero array for
             self.frame_size = np.array(im_stack.shape[1:])
             self.is_empty = False
 
-        self.data_list = {}
+        self.data_list = dict()
         self.diam = diam
+        self.redund = True
 
 
-    def image_blobs(self, n_frame):
+    def image_blobs(self, n_frame, bg_sub):
         '''
-        Last update: 06/11/2017.
+        Last update: 06/14/2017.
         Extract number of blobs from the frame n_frame.
         Updated: self.data_list; a data_slice is returned.
-        each data_slice is a 5-column array: z, y, x, dr, signal intensity.
+        each data_slice is a 5-column array: y, x, z,dr, signal intensity.
         This is only called by the function stack_blobs, which extracts blobs from each slice individually.
         '''
-        im0 = self.stack[n_frame]
-        # comment on 09/05: we need a smarter way to do the threshold setting.
+        im0 = frame_deblur(self.stack[n_frame], bg_sub)
         cblobs = frame_blobs(im0, self.diam)
         signal_int = frame_reextract(im0, cblobs)
 
         n_blobs = cblobs.shape[0]
-        if(n_blobs == 0):
-            raise ValueError("This slice contains no blobs or has not been processed yet. ")
-            self.bl_flag[n_frame] = -1
-            return
-        else:
-            frame_size = self.frame_size
-            self.bl_flag[n_frame] = n_blobs
+        frame_size = self.frame_size
+        if n_blobs > 0:
             data_slice = np.zeros((n_blobs, 5))
-            data_slice[:,0] = n_frame # set the z-coordinate
-            data_slice[:,1:4] = cblobs
+            data_slice[:,2] = n_frame
+            data_slice[:,[0,1,3]] = cblobs
             data_slice[:,4] =signal_int
 
-        kwd = 's_'+ str(n_frame).zfill(3)
-        self.data_list[kwd] = data_slice
+            kwd = 's_'+ str(n_frame).zfill(3)
+            self.data_list[kwd] = data_slice
+        return n_blobs
 
-
-    def stack_blobs(self, msg = False):
+    def stack_blobs(self, bg_sub=40, verbose = True):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         Update on 08/16: make the radius of blobs uniform.
         Update on 08/18: merge with the stack_signal_integ
         """
+        for n_frame in range(self.n_slice):
+            '''
+            extract blobs from each frame and save into data_list
+            '''
+            n_blobs = self.image_blobs(n_frame, bg_sub)
+            if verbose:
+                print("# blobs in slice", n_frame, ": ", n_blobs)
 
-        for n_frame in np.arange(self.n_slice):
-            self.image_blobs(n_frame)
-            if msg:
-                n_blobs = self.bl_flag[n_frame].astype('int64')
-                print("number of blobs in %d th frame: %d" %(n_frame, n_blobs))
 
-        self.valid_frames = np.where(self.bl_flag>0)[0]
-        # end of the function stack_blobs
-
-    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 4):
+    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 5):
         '''
         nsamples: indice of slices that are selected for cell extraction
         mode:   m --- mean of the selected slices, then extract cells from the single slice
@@ -263,7 +261,6 @@ class Cell_extract(object):
         train_signal = np.zeros((self.n_slice, n_blobs))
 
         for z_frame in range(self.n_slice):
-            self.bl_flag[z_frame] = n_blobs
             z_signal = frame_reextract(stack[z_frame], blob_lists)
             train_signal[z_frame, :] = z_signal
 
@@ -298,14 +295,21 @@ class Cell_extract(object):
 
 
 
-    def stack_reload(self, new_stack):
+    def stack_reload(self, new_stack, refill = True):
         """
         Updates the image stack saved in the class, reset everything
         """
-        self.stack = new_stack
-        self.n_slice, ny, nx = new_stack.shape
+        n_slice, ny, nx = new_stack.shape
+        if refill: #refill the blank pixels
+            ref_stack = np.zeros_like(new_stack).astype('float64')
+            for nz in range(n_slice):
+                ref_stack[nz] = blank_refill(new_stack[nz].astype('float64'))
+            self.stack = ref_stack
+        else:
+            self.stack = new_stack.astype('float64')
+        self.n_slice = n_slice
         self.frame_size = np.array([ny,nx])
-        self.bl_flag = np.zeros(self.n_slice)
+        self.redund = True
         self.data_list.clear()
         # ----- reload the im_stack
 
@@ -314,17 +318,12 @@ def main():
     '''
     The main function for testing the cell extraction code.
     '''
+    #tf_path_win = 'D:\Data/2017-06-06/A2_TS_Compare\\'
     tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    TS_stack = 'TS_folder/rg_A1_TS_Compare_ZP_1.tif'
-    #ZD_stack = 'A1_FB_ZD.tif'
-    #zstack = read_tiff(tf_path+ZD_stack).astype('float64')
-    #CEz = Cell_extract(zstack)
-    #CEz.stack_blobs(msg=True)
-    #CEz.save_data_list(tf_path+'A1_FB_ZD')
-# 
+    TS_stack = 'TS_folder/rg_A1_TS_Compare_ZP_2.tif'
     tstack = read_tiff(tf_path+TS_stack, np.arange(400)).astype('float64')
     CEt = Cell_extract(tstack)
-    ext_blobs = CEt.extract_sampling(nsamples = [4, 5, 6, 7, 8 ], mode = 'a', red_reduct = 5 )
+    ext_blobs = CEt.extract_sampling(nsamples = [4, 5, 6, 7, 8 ], mode = 'a', red_reduct = 6 )
     print(ext_blobs.shape)
     bt_stack = CEt.stack_signal_propagate(ext_blobs)
     np.savez(tf_path+'Compare_test', **bt_stack)
