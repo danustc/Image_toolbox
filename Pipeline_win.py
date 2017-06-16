@@ -119,7 +119,8 @@ class pipeline_tstacks(object):
         work_folder: the folder that contains all the .tif files
         '''
         self.work_folder = work_folder
-	self.raw_list = glob.glob(work_folder + '*'+fname_flags + '*.tif')
+        print(work_folder)
+        self.raw_list = glob.glob(work_folder + '*'+fname_flags + '*.tif')
         self.current_file = None # which data set am I working on?
         self.cdiam = cdiam
 
