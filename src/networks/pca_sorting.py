@@ -7,9 +7,7 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 from sklearn.decomposition import PCA, FastICA
-import src.dynamics.df_f as df_f # the functions of calculating dff
-import src.visualization.stat_present as stat_present
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/'
+
 
 
 def pca_dff(dff_data, n_comp = 3):
@@ -141,11 +139,7 @@ def main():
     '''
     Test written on 04/30/2017.
     '''
-    #TS_9 = np.load(global_datapath+'TS_9.npz')
-    Dec07_B1 = np.load(global_datapath + 'Dec06_2016_A1_merge_fluo.npz')
-    Dec07_B1_data = Dec07_B1['merge_003']
 
-    dff_raw, f_base = df_f.dff_raw(Dec07_B1_data, ft_width=4, ntruncate = 20)
     CT, V = pca_raw(dff_raw, var_cut = 0.95)
     print(V.shape)
     fig = stat_present.PCA_trajectory_matrix(CT, dim_select = [0,1,2,3,4])

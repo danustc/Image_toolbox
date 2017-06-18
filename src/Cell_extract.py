@@ -27,15 +27,12 @@ def blank_refill(raw_frame):
     '''
     rb_y, rb_x = np.where(raw_frame==0)
     if rb_y.size ==0:
-        print("No empty pixels.")
         return raw_frame
     else:
         raw_valid = np.sort(raw_frame[np.nonzero(raw_frame)])
         nblank = len(rb_y)
-        print("The lowest valid pixels:")
         fill_values = raw_valid[:nblank]
         np.random.shuffle(fill_values)
-        print(fill_values)
         raw_frame[rb_y, rb_x] = fill_values
 
         return raw_frame
@@ -50,8 +47,7 @@ def frame_deblur(raw_frame, sig = 40 ):
     iratio = raw_frame/ifilt
     nmin = np.argmin(iratio)
     gmin_ind = np.unravel_index(nmin, raw_frame.shape)
-
-    sca =raw_frame[gmin_ind]/ifilt[gmin_ind]
+    sca =raw_frame[gmin_ind]/(ifilt[gmin_ind])
     db_frame = raw_frame - ifilt*sca*0.999
     return db_frame
 
@@ -61,7 +57,8 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7, verbose = Fa
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
-    th = np.mean(filled_frame - np.std(filled_frame))/6.0
+    th = (np.mean(filled_frame) - np.std(filled_frame))/6.
+    print("threshold:", th)
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
@@ -126,7 +123,7 @@ def stack_blobs(small_stack, diam, bg_sub = 40):
     blobs_stack = []
     for sample_slice in small_stack:
         db_slice = frame_deblur(sample_slice, bg_sub)
-        cs_blobs = frame_blobs(db_slice, bsize = diam, verbose = verbose)
+        cs_blobs = frame_blobs(db_slice, bsize = diam)
         blobs_stack.append(cs_blobs)
 
     return blobs_stack
@@ -304,12 +301,12 @@ class Cell_extract(object):
         """
         n_slice, ny, nx = new_stack.shape
         if refill: #refill the blank pixels
-            ref_stack = np.zeros_like(new_stack)
+            ref_stack = np.zeros_like(new_stack).astype('float64')
             for nz in range(n_slice):
-                ref_stack[nz] = blank_refill(new_stack[nz])
+                ref_stack[nz] = blank_refill(new_stack[nz].astype('float64'))
             self.stack = ref_stack
         else:
-            self.stack = new_stack
+            self.stack = new_stack.astype('float64')
         self.n_slice = n_slice
         self.frame_size = np.array([ny,nx])
         self.redund = True
