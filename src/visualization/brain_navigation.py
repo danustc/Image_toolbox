@@ -133,5 +133,6 @@ class region_view(object):
         '''
         self.ref_im = rf_image
 
+
     # left on 06/14/2017, to be finished
 

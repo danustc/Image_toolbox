@@ -194,7 +194,7 @@ class pipeline_tstacks(object):
             for n_step in range(self.n_groups):
                 sf = self.stack_cut[n_step+1]
                 substack = self.tif_handle.asarray()[np.arange(si, sf).astype('uint16')] # this is a pretty risky approach, hopefully it can work! @_@
-                self.CE_dpt.stack_reload(substack, refill = True)
+                self.CE_dpt.stack_reload(substack, refill = False)
                 sub_time_series = self.CE_dpt.stack_signal_propagate(cblobs) # return
                 signal_series.append(sub_time_series)
                 si = sf
