@@ -4,6 +4,7 @@ Last update: 06/18/2017.
 '''
 import sys
 sys.path.append('/home/fillycat/Programming/Image_toolbox')
+import os
 import numpy as np
 import src.dynamics.df_f as df_f # the functions of calculating dff
 import src.visualization.stat_present as stat_present
@@ -23,12 +24,24 @@ class pipeline(object):
             print("Error! There are no data file in the selected folder.")
         else:
             self.data_list = data_list
-            self._load_data_()
+            self._sort_data_()
+            self.group_PCA = pca_sorting.group_pca()
 
-    def _load_data_(self,verbose = True):
-        for fname in self.data_list:
-            fname_stem = os.path.split
+    def _sort_data_(self,mode = 'n'):
+        '''
+        sort the data by name or by modification date.
+        '''
+        pass
 
+
+    def load_data(self, nfile = 0, verbose = True):
+        '''
+        load the nfileth data file in the folder and do the PCA processing
+        '''
+        raw_data = np.load(self.data_list[nfile])
+        self.dff_raw, f_base = df_f.dff_raw(raw_data, ft_width = 4, ntruncate = 10)
+    
+    def analyze(self,var_cut = 0.95):
 
 
 
