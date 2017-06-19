@@ -72,10 +72,11 @@ def group_varsplit(dff_data, arg_sv, var_contrast = 0.95):
     '''
     NT, NP = dff_data.shape
 
-    cov_sum = np.cov(dff_data[:,arg_sv])
+    cov_sum = np.cov(dff_data[:,arg_sv].T)
     cov_diag = np.diag(cov_sum) # the diagonal elements of the covariance matrix 
     cov_accumu = np.cumsum(cov_diag)  # the accumulated covariance.
-    cut_ind = np.searchsorted(cov_accumu, var_contrast)
+    cut_ind = np.searchsorted(cov_accumu/cov_accumu[-1], var_contrast)
+    print("cut_ind:", cut_ind)
 
     arg_head = arg_sv[:cut_ind]
     arg_rear = arg_sv[cut_ind:]
@@ -92,16 +93,19 @@ class group_pca(object):
         '''
         Load data. Specify the variance cut-off.
         '''
+        self._data = None
         self.gvar = gvar
-        if raw_data is not None:
-            self.set_data(raw_data)
-        else:
-            self.data = None
+        self.data= raw_data
         self.groups = None
 
-    def set_data(self, raw_data):
-        self.data = raw_data
-        self.NT, self.NP = raw_data.shape
+    @property
+    def data(self):
+        return self._data
+    @data.setter
+    def data(self, new_data):
+        self._data = new_data
+        self.NT, self.NP = new_data.shape
+
 
     def group_division(self, n_group = None):
         '''
@@ -111,29 +115,36 @@ class group_pca(object):
             n_group = int(2*self.NP/self.NT)+1 # suggested divisions based on the data dimensions
         self.n_group = n_group
         self.groups = np.array_split(self.data, n_group, axis = 1)
-        self.cum_count = np.array([sgroup.shape[1] for sgroup in self.n_group]).cumsum() #cumulative count in the subgroups
+        self.cum_count = np.array([sgroup.shape[1] for sgroup in self.groups]).cumsum() #cumulative count in the subgroups
+        self.cum_count -= self.cum_count[0]
+
 
     def subgroup_pca(self, verbose = True):
         '''
-        Perform PCA on each of the subgroups
+        Perform PCA on each of the subgroups only once
         '''
-        sub_var = np.sqrt(gvar) #the variance countability in subgroups 
+        sub_var = np.sqrt(self.gvar) #the variance countability in subgroups 
         ind_discard = [] # the indices of discarded cells
         ind_preserv = []
         for dff_sub in self.groups:
             # perform PCA
-            CT, V = pca_raw(sgroup, sub_var)
+            CT, V = pca_raw(dff_sub, sub_var)
             if verbose:
-                print("The number of principle components", V.shape)
+                print("The number of principle components that covers the majority of variance:", V.shape[0])
             a_sorted = cell_sorting(V)
-            arg_head, arg_tail = group_varsplit(dff_sub, a_sorted, gvar)
+            arg_head, arg_tail = group_varsplit(dff_sub, a_sorted, sub_var)
             ind_discard.append(arg_tail) # append the indices of cells to be discarded
             ind_preserv.append(arg_head)
 
         for igroup in range(self.n_group):
-            '''
-            merge all the preserved and discarded indices
-            '''
+            #merge all the preserved and discarded indices
+            ind_discard[igroup] += self.cum_count[igroup]
+            ind_preserv[igroup] += self.cum_count[igroup]
+
+        idis = np.concatenate(ind_discard)
+        ipre = np.concatenate(ind_preserv)
+
+        return ipre, idis
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():
@@ -149,17 +160,6 @@ def main():
     figv.savefig(global_datapath+'pc_celldistri')
     a_sorted = cell_sorting(V)
 
-    nselect = 20
-    asv = a_sorted[:nselect]
-    isv = a_sorted[-nselect:]
-    dff_select = dff_raw[:,asv]
-    figd = stat_present.nature_style_dffplot(dff_select, dt = 0.5, sc_bar = 0.50)
-    figd.savefig(global_datapath+'most_active_100_10')
-    dff_select = dff_raw[:,isv]
-    figd = stat_present.nature_style_dffplot(dff_select, dt = 0.5, sc_bar = 0.10)
-    figd.savefig(global_datapath+'least_active_100_10')
-    figr = stat_present.dff_rasterplot(dff_raw[:,a_sorted[:100]])
-    figr.savefig(global_datapath+'raster_test', tunit = 'm')
     #independent component analysis
     dff_recon, a_mix = ica_dff(dff_raw[:, a_sorted[:70]],n_comp = 3)
     figi = stat_present.ic_plot(dff_recon)
