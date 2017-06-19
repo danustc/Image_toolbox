@@ -52,21 +52,6 @@ def cell_sorting(V):
     return arg_sv
 
 
-
-def pca_group(data, n_group= 5, var_cut = 0.90):
-    '''
-    split the raw data set into several groups, and do PCA analysis for each group.
-    '''
-    N, P = data.shape
-    data_group = np.array_split(data, n_group, axis = 1) # split the raw data into several sections.
-
-    for sgroup in data_group:
-        # do PCA analysis on each subgroup and merge all of them
-        pass
-
-    return CT, V
-
-
 def ica_dff(dff_data, n_comp = 4):
     '''
     directly use the ICA algorithm in sklearn
@@ -103,12 +88,15 @@ class group_pca(object):
     '''
     Perform PCA on a group of data with more columns on rows
     '''
-    def __init__(self, raw_data, gvar= 0.95):
+    def __init__(self, raw_data = None, gvar= 0.95):
         '''
         Load data. Specify the variance cut-off.
         '''
         self.gvar = gvar
-        self.set_data(raw_data)
+        if raw_data is not None:
+            self.set_data(raw_data)
+        else:
+            self.data = None
         self.groups = None
 
     def set_data(self, raw_data):
