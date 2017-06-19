@@ -170,7 +170,6 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm'):
     fw: figure width
     '''
     NT, NC = dff_ordered.shape
-    print(NT, NC)
     # whether to display in the unit of 10 seconds or 1 min
     if(tunit == 's'):
         time_tick = dt*np.arange(0, NT, 30)
@@ -181,7 +180,6 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm'):
         t_max = dt*NT/60.
         t_label = 'Time (min)'
 
-    print(time_tick)
     cell_tick = np.array([1,NC])
     cell_tick_label = ['Cell 1', 'Cell '+str(NC)]
 
