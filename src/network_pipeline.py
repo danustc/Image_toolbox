@@ -26,7 +26,7 @@ class pipeline(object):
     def _parse_data_(self):
         try:
             self.coord = self.data['coords']
-            self.fluor = self.data['data']
+            self.signal= self.data['data']
         except KeyError:
             print('Wrong data!')
             self.data = None
@@ -43,13 +43,17 @@ class pipeline(object):
         '''
         calculate the df_f over the whole data set and save it
         '''
-        dff_raw = df_f.dff_raw(self.fluor, ft_width = fw, ntruncate = nt)
+        self.signal = df_f.dff_raw(self.signal, ft_width = fw, ntruncate = nt)
 
     def analyze(self,var_cut = 0.95):
-        pass
+        gpca = pca_sorting.group_pca(self.signal, gvar = var_cut)
+        gpca.group_division()
+
+        CT, V = pca_sorting.pca_raw(self.signal, var_cut)
 
 
 
+    
 # --------------------------Below is the test section -------------------
 def main():
     '''
@@ -58,4 +62,4 @@ def main():
     raw_fname = global_datapath+'Jun13_A1_GCDA/'
     raw_data = np.load(raw_fname + 'merged.npz')
     ppl = pipeline(raw_data)
-    ppl.data=None
+    ppl.analyze()
