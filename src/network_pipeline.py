@@ -3,7 +3,7 @@ A small pipeline for network analysis. Added by Dan on 06/18/2017.
 Last update: 06/18/2017.
 '''
 import sys
-sys.path.append('/home/fillycat/Programming/Image_toolbox')
+sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import numpy as np
 import src.dynamics.df_f as df_f # the functions of calculating dff
@@ -18,37 +18,48 @@ class pipeline(object):
     Can I follow the design of inControl, name all the core data processing classes as pipeline?
     Purpose:    0. Load all the .npz files in a folder. These should all be T-slices
     '''
-    def __init__(self, work_folder, fname_flag ='TS'):
-        data_list = glob.glob(work_folder+ '*'+ fname_flag+'*.npz')
-        if len(data_list) == 0:
-            print("Error! There are no data file in the selected folder.")
-        else:
-            self.data_list = data_list
-            self._sort_data_()
-            self.group_PCA = pca_sorting.group_pca()
+    def __init__(self, data, raw = True):
+        self.data(data)
+        if raw:
+            self.dff_munging()
 
-    def _sort_data_(self,mode = 'n'):
-        '''
-        sort the data by name or by modification date.
-        '''
-        pass
+    def _parse_data_(self):
+        try:
+            self.coord = self.data['coords']
+            self.signal= self.data['data']
+        except KeyError:
+            print('Wrong data!')
+            self.data = None
 
+    @property
+    def data(self):
+        return self._data
+    @data.setter
+    def data(self, new_data):
+        self._data = new_data
+        self._parse_data_()
 
-    def load_data(self, nfile = 0, verbose = True):
+    def dff_munging(self, fw = 4, nt = 10):
         '''
-        load the nfileth data file in the folder and do the PCA processing
+        calculate the df_f over the whole data set and save it
         '''
-        raw_data = np.load(self.data_list[nfile])
-        self.dff_raw, f_base = df_f.dff_raw(raw_data, ft_width = 4, ntruncate = 10)
-    
+        self.signal = df_f.dff_raw(self.signal, ft_width = fw, ntruncate = nt)
+
     def analyze(self,var_cut = 0.95):
+        gpca = pca_sorting.group_pca(self.signal, gvar = var_cut)
+        gpca.group_division()
+
+        CT, V = pca_sorting.pca_raw(self.signal, var_cut)
 
 
 
-
+    
+# --------------------------Below is the test section -------------------
 def main():
     '''
     The test function of the pipeline.
     '''
     raw_fname = global_datapath+'Jun13_A1_GCDA/'
-    dff_raw, f_base = df_f.dff_raw(Dec07_B1_data, ft_width=4, ntruncate = 20)
+    raw_data = np.load(raw_fname + 'merged.npz')
+    ppl = pipeline(raw_data)
+    ppl.analyze()

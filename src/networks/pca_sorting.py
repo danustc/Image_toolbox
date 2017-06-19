@@ -108,19 +108,32 @@ class group_pca(object):
         separate the data into several groups
         '''
         if n_group is None:
-            ndiv = int(2*self.NP/self.NT) # suggested divisions based on the data dimensions
+            n_group = int(2*self.NP/self.NT)+1 # suggested divisions based on the data dimensions
+        self.n_group = n_group
         self.groups = np.array_split(self.data, n_group, axis = 1)
+        self.cum_count = np.array([sgroup.shape[1] for sgroup in self.n_group]).cumsum() #cumulative count in the subgroups
 
-    def subgroup_pca(self):
+    def subgroup_pca(self, verbose = True):
         '''
         Perform PCA on each of the subgroups
         '''
-        for sgroup in self.groups:
+        sub_var = np.sqrt(gvar) #the variance countability in subgroups 
+        ind_discard = [] # the indices of discarded cells
+        ind_preserv = []
+        for dff_sub in self.groups:
             # perform PCA
-            pass
+            CT, V = pca_raw(sgroup, sub_var)
+            if verbose:
+                print("The number of principle components", V.shape)
+            a_sorted = cell_sorting(V)
+            arg_head, arg_tail = group_varsplit(dff_sub, a_sorted, gvar)
+            ind_discard.append(arg_tail) # append the indices of cells to be discarded
+            ind_preserv.append(arg_head)
 
-
-
+        for igroup in range(self.n_group):
+            '''
+            merge all the preserved and discarded indices
+            '''
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():
