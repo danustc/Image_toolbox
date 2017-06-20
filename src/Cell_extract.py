@@ -27,7 +27,6 @@ def blank_refill(raw_frame):
     '''
     rb_y, rb_x = np.where(raw_frame==0)
     if rb_y.size ==0:
-        print("No empty pixels.")
         return raw_frame
     else:
         raw_valid = np.sort(raw_frame[np.nonzero(raw_frame)])

@@ -98,52 +98,6 @@ def correlate_trace(stack_ref, stack_corr):
 
     return corr_trace
 
-def T2Z_sample(wfolder,n_slice, zpflag = 'ZP', save_flag='tz'):
-    '''
-    select the n_sliceth frame from each ZP stack, order them by the filename, and save as a new stack. If any number is lacking, insert an empty frame or a frame with all-negative numbers.
-    '''
-    if(wfolder[-1] != '/'):
-        ins = '/*'
-    else:
-        ins = '*'
-    zp_list = glob.glob(wfolder+ins+zpflag+'*.tif')
-    nzp = len(zp_list)
-    # first, check completeness of the zp points.
-    zp_ind = []
-    for zp_fname in zp_list:
-        naked_name = sfc.path_leaf(zp_fname)
-        z_slice = sfc.number_strip(naked_name, delim = '_', ext = True)
-        zp_ind.append(z_slice)
-    # now, sort and check the completeness/redundancy
-    zarg_sort=np.argsort(zp_ind)
-    zp_list=zp_list[zarg_sort]
-    zp_ind = zp_ind[zarg_sort] # sort through the list 
-    # 1. check redundancy
-    if(nzp!=len(set(zp_ind))):
-        print("There are redundancies ")
-        zp_ind = list(set(zp_ind))
-    # 2. check any missing point
-    zrange = zp_ind[-1] - zp_ind[0] + 1
-    zstart = zp_ind[0]
-    if (zrange > nzp):
-        print("The zp files are incomplete.")
-    stack_represent = []
-    for iz in np.arange(zrange):
-        '''
-        fill up the stack_represent
-        '''
-        zcount = iz + zstart
-        if(zcount in zp_ind):
-            # the slice exists. 
-            z_slice = tf.read_tiff(zp_list[iz], n_slice)
-            stack_represent.append(z_slice)
-        else:
-            stack_represent.append(0) #append 0 to the list 
-
-    ny, nx = z_slice.shape # there must be at list real z_slice.
-
-
-    return stack_represent
 
 def stack_split(raw_stack, nsplit, dph = None):
     '''
@@ -168,6 +122,23 @@ def stack_propagate(raw_stack, mode = 'a'):
         return raw_stack.sum(axis = 0)/ns
     elif mode =='s':
         return raw_stack.sum(axis = 0)
+    # done with stack_propagate
+
+def stack_section(raw_stack, px_position, view = 'z'):
+    '''
+    take out a section from a stack along a plane perpendicular to the view direction.
+    '''
+    nz, ny, nx =raw_stack.shape
+    if (view == 'z'):
+        zslice =np.min([int(np.round(px_position)), nz-1])
+        im_section = raw_stack[zslice]
+    elif (view == 'y'):
+        yslice = np.min([int(np.round(px_position)), ny-1])
+        im_section = raw_stack[:, yslice, :]
+    else:
+        xslice = np.min([int(np.round(px_position)), nx-1])
+        im_section = raw_stack[:,:,xslice]
+    return im_section
 
 
 def reorient_tiff_RAS(imstack, fname):

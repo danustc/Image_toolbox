@@ -6,10 +6,11 @@ Function: navigate a stack of images and display cells across the stack.
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from src.preprocessing.stack_operations import stack_section
 from mpl_toolkits.mplot3d import Axes3D
 
 global_ccode = 'grbmcyk'
-
+px_size = 0.295 # pixel size: 0.295 microns
 
 def slice_display(slice_blobs, title = None, ref_image = None):
     '''
@@ -92,46 +93,98 @@ def stack_display(zstack_3d, cl = 'b'):
 class region_view(object):
     '''
     Visualize a brain region and navigate through it.
-    Data to read: extracted cells and key values
-    Each file should be a python dictionary, which contains the coordinates and tthe key values
+    Data to read: a ZD stack and a dictionary containing coord && dff.
     '''
-    def __init__(self, data_pk):
+    def __init__(self, coord = None, signal = None, ZD_image = None, pxl_size = 0.295):
         '''
         data_pk:    'coord' -- coordinates
                     'data'  -- fluorescence signal (raw_f)
                     'dff'   -- calculated DeltaF/F
         '''
-        self._check_data_(data_pk)
-        # done with initialization
+        self._coord = None
+        self._signal = None
+        self._refim = None
+        self._pxl = None
 
-    def _check_data_(self,data_pk, verbose = True):
-        '''
-        Check the type of loaded data by keys
-        '''
-        if('xy' in data_pk):
-            self.dim= 2 # 2D slice
-        elif('coord' in data_pk):
-            self.dim = 3 # 3D stack
+        if coord is not None:
+            self.coord = coord
+        if signal is not None:
+            self.signal = signal
+        if ZD_image is not None:
+            self.refim = ZD_image
+        self.pxl = pxl_size
 
-        if('dff' in data_pk):
-            self.sig = 'D' # Delta F/F
-            self.data = data_pk['dff']
+        self.figs = plt.figure()
+        ax = self.figs.add_subplot(111, projection = '3d')
+    # ----------------------Below are property members and their setters
+
+    @property
+    def coord(self):
+        return self._coord
+    @coord.setter
+    def coord(self, new_coord):
+        self._coord = new_coord
+
+    @property
+    def signal(self):
+        return self._signal
+    @signal.setter
+    def signal(self, new_signal):
+        self._signal = new_signal
+
+    @property
+    def refim(self):
+        return self._refim
+    @refim.setter
+    def refim(self, new_refim):
+        self._refim = new_refim
+
+    @property
+    def pxl(self):
+        return self._pxl
+    @pxl.setter
+    def pxl(self, new_pxsize):
+        self._pxl = new_pxsize
+
+    # -------------------Below are visualization functions --------------
+
+    def show_cell(self, ind_cell):
+        '''
+        ind_cell: the index of the cells, can be a number or a list/array.
+        perspec: the angle of view, currently only z, y, x are provided.
+        only displays the image and the position of the cells
+        '''
+        ax = self.figs.axes[0]
+
+        if(np.isscalar(ind_cell)):
+            z,y,x= self.coord[ind_cell,:]
+            ax.scatter(x*self.pxl, y*self.pxl, z, c = 'g', s = 10)
         else:
-            self.sig = 'F' # raw F
-            self.data = data_pk['data']
+            coords = self.coord[ind_cell, :]
+            ax.scatter(coords[:,2]*self.pxl, coords[:,1]*self.pxl, coords[:,0], c = 'g', s = 10)
+        # done with show cell
 
 
-    def reload_data(self, new_data):
+    def show_grey_slice(self, slice_position, view = 'z'):
         '''
-        reload the data and clear the old data
+        slice:position: the position where the z-stack should be sectioned.
+        view: the angle of view. must be z or x, y.
         '''
-        self._check_data_(new_data)
+        ax = self.figs.axes[0]
+        if(view == 'x' or view =='y'):
+            pxl_position = self.pxl*slice_position
+        else:
+            pxl_position = slice_position
+        im_section = stack_section(self.refim, pxl_position, view)
+        ax.imshow(im_section, cmap = 'Greys_r')
+        # done with show_grey_slice
 
-    def load_refimage(self, rf_image):
+    def fig_resize(self, new_size):
         '''
-        load a reference image.
+        resize figure
         '''
-        self.ref_im = rf_image
+        self.figs.set_size_inches(new_size)
 
-    # left on 06/14/2017, to be finished
 
+    def fig_save(self,fig_path):
+        self.figs.savefig(fig_path)

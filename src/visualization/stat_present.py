@@ -1,6 +1,6 @@
 '''
 Created on 04/30/2017 by Dan, the visualization tools of statistical learning results of the data.
-Last update: 05/03/2017
+Last update: 06/19/2017
 '''
 
 import sys
@@ -137,7 +137,7 @@ def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
 
     tmark = -dt*10
 
-    fig = plt.figure(figsize = (7,10))
+    fig = plt.figure(figsize = (7.0*n_time/500,10))
     for ii in np.arange(n_cell):
         dff = dff_data[:,ii]
         ax = fig.add_subplot(n_cell,1, ii+1)
@@ -170,7 +170,6 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm'):
     fw: figure width
     '''
     NT, NC = dff_ordered.shape
-    print(NT, NC)
     # whether to display in the unit of 10 seconds or 1 min
     if(tunit == 's'):
         time_tick = dt*np.arange(0, NT, 30)
@@ -181,7 +180,6 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm'):
         t_max = dt*NT/60.
         t_label = 'Time (min)'
 
-    print(time_tick)
     cell_tick = np.array([1,NC])
     cell_tick_label = ['Cell 1', 'Cell '+str(NC)]
 
