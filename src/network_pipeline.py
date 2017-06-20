@@ -1,13 +1,15 @@
 '''
 A small pipeline for network analysis. Added by Dan on 06/18/2017.
-Last update: 06/18/2017.
+Last update: 06/19/2017.
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import numpy as np
 import src.dynamics.df_f as df_f # the functions of calculating dff
+from src.preprocessing.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
+from src.visualization.brain_navigation import region_view
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
 import src.networks.noise_removal as noise_removal
@@ -21,19 +23,41 @@ class pipeline(object):
     Purpose:    0. Load all the .npz files in a folder. These should all be T-slices
     '''
     def __init__(self, data, raw = True, dt=0.5):
-        self._data = None
-        self.data = data
+        self._coord = None
+        self._signal = None
         self.dt = dt
+        self.parse_data(data)
         if raw:
             self.dff_munging()
 
-    def _parse_data_(self):
+        self.rgview = region_view() # create an empty region_view class
+
+    def parse_data(self, data):
         try:
-            self.coord = self._data['coord']
-            self.signal= self._data['data']
+            self.coord = data['coord']
+            self.signal= data['data']
         except KeyError:
             print('Wrong data!')
-            self.data = None
+            self.coord = None
+            self.signal = None
+
+    #-----------------------Below are the property members-----------------
+
+    @property
+    def signal(self):
+        return self._signal
+    @signal.setter
+    def signal(self, new_signal):
+        self._signal= new_signal
+
+    @property
+    def coord(self):
+        return self._coord
+    @property.setter
+    def coord(self, new_coord):
+        self._coord = new_coord
+
+    #-----------------------Below are the data munging/analyzing functions ----------------------- 
 
     def get_size(self):
         return self.signal.shape
@@ -51,14 +75,6 @@ class pipeline(object):
         self.signal = self.signal[:, ind_shuffle]
         # Question: does self._data change in this way?
 
-
-    @property
-    def data(self):
-        return self._data
-    @data.setter
-    def data(self, new_data):
-        self._data = new_data
-        self._parse_data_()
 
     def dff_munging(self, fw = 4, nt = 10, filt = True):
         '''
@@ -91,8 +107,8 @@ class pipeline(object):
         cut_ratio = var_head/var_tail
 
         if verbose:
+            print("Initial data dimension:", self.get_size())
             print("# of discarded cells:", idis.size)
-            print("# current data dimension:", self.get_size())
             print("Cut ratio:", cut_ratio)
 
         while(cut_ratio > var_ratio):
@@ -118,19 +134,33 @@ class pipeline(object):
 
         CT, V = pca_sorting.pca_raw(self.signal, var_cut)
         a_sorted = pca_sorting.cell_sorting(V)
-        self.shuffle_data(ind_shuffle = a_sorted)
+        self.shuffle_data(ind_shuffle = a_sorted) #rank cell by the final activities
+        if verbose:
+            print("Final data dimension:", self.get_size())
+
 
 
     def dff_cleaning(self, ipreserve):
         '''
         clean the dataset by sorting the preserved indices
         '''
-        signals = self.signal[:,ipreserve]
-        coords = self.coord[ipreserve, :] # select coordinates and signals
-        new_data = dict()
-        new_data['coord'] = coords
-        new_data['data'] = signals
-        self.data = new_data #renewed data
+        new_signal = self.signal[:,ipreserve]
+        new_coord = self.coord[ipreserve, :] # select coordinates and signals
+        self.signal = new_signal
+        self.coord = new_coord
+
+
+    def save_cleaned(self, save_path):
+        '''
+        Compile a dictionary and save it
+        '''
+        cleaned_data = dict()
+        cleaned_data['coord'] = self.coord
+        cleaned_data['signal'] = self.signal
+        np.savez(save_path, **cleaned_data)
+
+
+    # -------------------------visualization group--------------------------
 
     def display_select(self, ndisp, figpath = None):
         '''
@@ -157,28 +187,28 @@ class pipeline(object):
             fig.savefig(figpath)
 
 
-    def feature_select(self):
+    def update_region_view(self):
         '''
         select certain features
         '''
-        pass
+        self.rgview.coord = self.coord
+        self.rgview.signal = self.signal
+
 
 # --------------------------Below is the test section -------------------
 def main():
     '''
     The test function of the pipeline.
     '''
-    raw_fname = global_datapath+'Jun13_B2_control/'
+    raw_fname = global_datapath+'Jun13_A3_GCDA/'
     raw_data = np.load(raw_fname + 'merged.npz')
+    ZD_stack = read_tiff(raw_fname+'A3_ZD_before.tif')
     ppl = pipeline(raw_data)
     ppl.pca_layered_sorting(var_cut = 0.95)
     ppl.display_select(np.arange(10), raw_fname + 'Mostactive_10')
     ppl.display_select(np.arange(-10, 0), raw_fname + 'Leastactive_10')
     ppl.display_raster(ndisp = np.arange(500),figpath = raw_fname + 'raster')
 
-    plt.clf()
-    plt.plot(ppl.wd)
-    plt.savefig(raw_fname+'wd')
 
 
 if __name__ == '__main__':
