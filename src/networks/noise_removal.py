@@ -27,7 +27,6 @@ def freq_cut(dff_raw, fcut, dt = 0.5):
 
 
 
-
 def group_denoise(dff_raw, fcut = 0.6, dt = 0.5, gvar = 0.95):
     '''
     0. perform Fourier transform on all the df/f and cut out the high-frequency components

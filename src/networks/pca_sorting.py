@@ -76,7 +76,6 @@ def group_varsplit(dff_data, arg_sv, var_contrast = 0.95):
     cov_diag = np.diag(cov_sum) # the diagonal elements of the covariance matrix 
     cov_accumu = np.cumsum(cov_diag)  # the accumulated covariance.
     cut_ind = np.searchsorted(cov_accumu/cov_accumu[-1], var_contrast)
-    print("cut_ind:", cut_ind)
 
     arg_head = arg_sv[:cut_ind]
     arg_rear = arg_sv[cut_ind:]
@@ -119,7 +118,7 @@ class group_pca(object):
         self.cum_count -= self.cum_count[0]
 
 
-    def subgroup_pca(self, verbose = True):
+    def subgroup_pca(self, fine_sort = True):
         '''
         Perform PCA on each of the subgroups only once
         '''
@@ -129,8 +128,6 @@ class group_pca(object):
         for dff_sub in self.groups:
             # perform PCA
             CT, V = pca_raw(dff_sub, sub_var)
-            if verbose:
-                print("The number of principle components that covers the majority of variance:", V.shape[0])
             a_sorted = cell_sorting(V)
             arg_head, arg_tail = group_varsplit(dff_sub, a_sorted, sub_var)
             ind_discard.append(arg_tail) # append the indices of cells to be discarded
@@ -144,7 +141,16 @@ class group_pca(object):
         idis = np.concatenate(ind_discard)
         ipre = np.concatenate(ind_preserv)
 
-        return ipre, idis
+        if fine_sort: # keep those cells that relatively have large variance in the to-be-discarded group
+            data_residue = self.data[:,idis]
+            CT, V = pca_raw(data_residue, sub_var)
+            a_sorted = cell_sorting(V)
+            arg_head, arg_tail = group_varsplit(data_residue, a_sorted, self.gvar)
+            idis_fine = idis[arg_tail]
+            ipre_fine = np.concatenate((ipre, idis[arg_head]))
+            return ipre_fine, idis_fine
+        else:
+            return ipre, idis
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():
