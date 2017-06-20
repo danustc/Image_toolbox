@@ -115,7 +115,7 @@ class region_view(object):
         self.pxl = pxl_size
 
         self.figs = plt.figure()
-        ax = self.figs.add_subplot(111)
+        ax = self.figs.add_subplot(111, projection = '3d')
     # ----------------------Below are property members and their setters
 
     @property
@@ -154,7 +154,7 @@ class region_view(object):
         perspec: the angle of view, currently only z, y, x are provided.
         only displays the image and the position of the cells
         '''
-        ax = self.figs.gca()
+        ax = self.figs.axes[0]
 
         if(np.isscalar(ind_cell)):
             z,y,x= self.coord[ind_cell,:]
@@ -170,7 +170,7 @@ class region_view(object):
         slice:position: the position where the z-stack should be sectioned.
         view: the angle of view. must be z or x, y.
         '''
-        ax = self.figs.gca()
+        ax = self.figs.axes[0]
         if(view == 'x' or view =='y'):
             pxl_position = self.pxl*slice_position
         else:
@@ -185,3 +185,6 @@ class region_view(object):
         '''
         self.figs.set_size_inches(new_size)
 
+
+    def fig_save(self,fig_path):
+        self.figs.savefig(fig_path)

@@ -30,8 +30,6 @@ class pipeline(object):
         if raw:
             self.dff_munging()
 
-        self.rgview = region_view() # create an empty region_view class
-
     def parse_data(self, data):
         try:
             self.coord = data['coord']
@@ -53,7 +51,7 @@ class pipeline(object):
     @property
     def coord(self):
         return self._coord
-    @property.setter
+    @coord.setter
     def coord(self, new_coord):
         self._coord = new_coord
 
@@ -187,13 +185,6 @@ class pipeline(object):
             fig.savefig(figpath)
 
 
-    def update_region_view(self):
-        '''
-        select certain features
-        '''
-        self.rgview.coord = self.coord
-        self.rgview.signal = self.signal
-
 
 # --------------------------Below is the test section -------------------
 def main():
@@ -202,13 +193,19 @@ def main():
     '''
     raw_fname = global_datapath+'Jun13_A3_GCDA/'
     raw_data = np.load(raw_fname + 'merged.npz')
-    ZD_stack = read_tiff(raw_fname+'A3_ZD_before.tif')
-    ppl = pipeline(raw_data)
-    ppl.pca_layered_sorting(var_cut = 0.95)
-    ppl.display_select(np.arange(10), raw_fname + 'Mostactive_10')
-    ppl.display_select(np.arange(-10, 0), raw_fname + 'Leastactive_10')
-    ppl.display_raster(ndisp = np.arange(500),figpath = raw_fname + 'raster')
+    ZD_stack = read_tiff(raw_fname+'A3_ZD_before.tif').astype('float64')
+    #ppl = pipeline(raw_data)
+    #ppl.pca_layered_sorting(var_cut = 0.95)
+    #ppl.display_select(np.arange(10), raw_fname + 'Mostactive_10')
+    #ppl.display_select(np.arange(-10, 0), raw_fname + 'Leastactive_10')
+    #ppl.display_raster(ndisp = np.arange(500),figpath = raw_fname + 'raster')
+    #ppl.save_cleaned(raw_fname+'cleaned')
 
+    clean_data = np.load(raw_fname+'cleaned.npz')
+    rgview = region_view(clean_data['coord'], clean_data['signal'], ZD_stack)
+    #rgview.show_grey_slice(50)
+    rgview.show_cell(np.arange(2000))
+    rgview.fig_save(raw_fname+'first2000')
 
 
 if __name__ == '__main__':
