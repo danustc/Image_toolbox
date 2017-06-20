@@ -1,6 +1,6 @@
 '''
 A small pipeline for network analysis. Added by Dan on 06/18/2017.
-Last update: 06/18/2017.
+Last update: 06/19/2017.
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
@@ -8,6 +8,7 @@ import os
 import numpy as np
 import src.dynamics.df_f as df_f # the functions of calculating dff
 import src.visualization.stat_present as stat_present
+from src.visualization.brain_navigation import region_view
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
 import src.networks.noise_removal as noise_removal
@@ -27,6 +28,8 @@ class pipeline(object):
         if raw:
             self.dff_munging()
 
+        self.rgview = region_view() # create an empty region_view class
+
     def _parse_data_(self):
         try:
             self.coord = self._data['coord']
@@ -34,6 +37,17 @@ class pipeline(object):
         except KeyError:
             print('Wrong data!')
             self.data = None
+    #-----------------------Below are the property members-----------------
+
+    @property
+    def data(self):
+        return self._data
+    @data.setter
+    def data(self, new_data):
+        self._data = new_data
+        self._parse_data_()
+
+    #-----------------------Below are the data munging/analyzing functions ----------------------- 
 
     def get_size(self):
         return self.signal.shape
@@ -51,14 +65,6 @@ class pipeline(object):
         self.signal = self.signal[:, ind_shuffle]
         # Question: does self._data change in this way?
 
-
-    @property
-    def data(self):
-        return self._data
-    @data.setter
-    def data(self, new_data):
-        self._data = new_data
-        self._parse_data_()
 
     def dff_munging(self, fw = 4, nt = 10, filt = True):
         '''
@@ -132,6 +138,9 @@ class pipeline(object):
         new_data['data'] = signals
         self.data = new_data #renewed data
 
+
+    # -------------------------visualization group--------------------------
+
     def display_select(self, ndisp, figpath = None):
         '''
         display the most active ndisp neurons
@@ -157,11 +166,13 @@ class pipeline(object):
             fig.savefig(figpath)
 
 
-    def feature_select(self):
+    def update_region_view(self):
         '''
         select certain features
         '''
-        pass
+        self.rgview.coord = self.coord
+        self.rgview.signal = self.signal
+
 
 # --------------------------Below is the test section -------------------
 def main():
