@@ -156,6 +156,13 @@ class pipeline(object):
         else:
             fig.savefig(figpath)
 
+
+    def feature_select(self):
+        '''
+        select certain features
+        '''
+        pass
+
 # --------------------------Below is the test section -------------------
 def main():
     '''

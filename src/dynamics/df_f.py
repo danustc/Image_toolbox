@@ -63,6 +63,15 @@ def dff_expfilt(dff_r, dt, t_width = 2.0):
     # done with dff_expf
 
 
+def temporal_filter(dff_r, time_window, dt = 0.5):
+    '''
+    select parts of df_f within the time window.
+    time_window: a 2-element array or a list of 2-element array, unit: seconds or the same with dt
+    '''
+    if isinstance(time_window, list):
+        n_window = len(time_window)
+
+
 # ------------------------------------Test the main functions--------------------------------------
 def main():
     print('Tested!')
