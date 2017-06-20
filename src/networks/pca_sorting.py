@@ -7,9 +7,7 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 from sklearn.decomposition import PCA, FastICA
-import src.dynamics.df_f as df_f # the functions of calculating dff
-import src.visualization.stat_present as stat_present
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/'
+
 
 
 def pca_dff(dff_data, n_comp = 3):
@@ -54,21 +52,6 @@ def cell_sorting(V):
     return arg_sv
 
 
-
-def pca_group(data, n_group= 5, var_cut = 0.90):
-    '''
-    split the raw data set into several groups, and do PCA analysis for each group.
-    '''
-    N, P = data.shape
-    data_group = np.array_split(data, n_group, axis = 1) # split the raw data into several sections.
-
-    for sgroup in data_group:
-        # do PCA analysis on each subgroup and merge all of them
-        pass
-
-    return CT, V
-
-
 def ica_dff(dff_data, n_comp = 4):
     '''
     directly use the ICA algorithm in sklearn
@@ -89,10 +72,10 @@ def group_varsplit(dff_data, arg_sv, var_contrast = 0.95):
     '''
     NT, NP = dff_data.shape
 
-    cov_sum = np.cov(dff_data[:,arg_sv])
+    cov_sum = np.cov(dff_data[:,arg_sv].T)
     cov_diag = np.diag(cov_sum) # the diagonal elements of the covariance matrix 
     cov_accumu = np.cumsum(cov_diag)  # the accumulated covariance.
-    cut_ind = np.searchsorted(cov_accumu, var_contrast)
+    cut_ind = np.searchsorted(cov_accumu/cov_accumu[-1], var_contrast)
 
     arg_head = arg_sv[:cut_ind]
     arg_rear = arg_sv[cut_ind:]
@@ -105,47 +88,76 @@ class group_pca(object):
     '''
     Perform PCA on a group of data with more columns on rows
     '''
-    def __init__(self, raw_data, gvar= 0.95):
+    def __init__(self, raw_data = None, gvar= 0.95):
         '''
         Load data. Specify the variance cut-off.
         '''
+        self._data = None
         self.gvar = gvar
-        self.set_data(raw_data)
+        self.data= raw_data
         self.groups = None
 
-    def set_data(self, raw_data):
-        self.data = raw_data
-        self.NT, self.NP = raw_data.shape
+    @property
+    def data(self):
+        return self._data
+    @data.setter
+    def data(self, new_data):
+        self._data = new_data
+        self.NT, self.NP = new_data.shape
+
 
     def group_division(self, n_group = None):
         '''
         separate the data into several groups
         '''
         if n_group is None:
-            ndiv = int(2*self.NP/self.NT) # suggested divisions based on the data dimensions
+            n_group = int(2*self.NP/self.NT)+1 # suggested divisions based on the data dimensions
+        self.n_group = n_group
         self.groups = np.array_split(self.data, n_group, axis = 1)
+        self.cum_count = np.array([sgroup.shape[1] for sgroup in self.groups]).cumsum() #cumulative count in the subgroups
+        self.cum_count -= self.cum_count[0]
 
-    def subgroup_pca(self):
+
+    def subgroup_pca(self, fine_sort = True):
         '''
-        Perform PCA on each of the subgroups
+        Perform PCA on each of the subgroups only once
         '''
-        for sgroup in self.groups:
+        sub_var = np.sqrt(self.gvar) #the variance countability in subgroups 
+        ind_discard = [] # the indices of discarded cells
+        ind_preserv = []
+        for dff_sub in self.groups:
             # perform PCA
-            pass
+            CT, V = pca_raw(dff_sub, sub_var)
+            a_sorted = cell_sorting(V)
+            arg_head, arg_tail = group_varsplit(dff_sub, a_sorted, sub_var)
+            ind_discard.append(arg_tail) # append the indices of cells to be discarded
+            ind_preserv.append(arg_head)
 
+        for igroup in range(self.n_group):
+            #merge all the preserved and discarded indices
+            ind_discard[igroup] += self.cum_count[igroup]
+            ind_preserv[igroup] += self.cum_count[igroup]
 
+        idis = np.concatenate(ind_discard)
+        ipre = np.concatenate(ind_preserv)
 
+        if fine_sort: # keep those cells that relatively have large variance in the to-be-discarded group
+            data_residue = self.data[:,idis]
+            CT, V = pca_raw(data_residue, sub_var)
+            a_sorted = cell_sorting(V)
+            arg_head, arg_tail = group_varsplit(data_residue, a_sorted, self.gvar)
+            idis_fine = idis[arg_tail]
+            ipre_fine = np.concatenate((ipre, idis[arg_head]))
+            return ipre_fine, idis_fine
+        else:
+            return ipre, idis
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():
     '''
     Test written on 04/30/2017.
     '''
-    #TS_9 = np.load(global_datapath+'TS_9.npz')
-    Dec07_B1 = np.load(global_datapath + 'Dec06_2016_A1_merge_fluo.npz')
-    Dec07_B1_data = Dec07_B1['merge_003']
 
-    dff_raw, f_base = df_f.dff_raw(Dec07_B1_data, ft_width=4, ntruncate = 20)
     CT, V = pca_raw(dff_raw, var_cut = 0.95)
     print(V.shape)
     fig = stat_present.PCA_trajectory_matrix(CT, dim_select = [0,1,2,3,4])
@@ -154,17 +166,6 @@ def main():
     figv.savefig(global_datapath+'pc_celldistri')
     a_sorted = cell_sorting(V)
 
-    nselect = 20
-    asv = a_sorted[:nselect]
-    isv = a_sorted[-nselect:]
-    dff_select = dff_raw[:,asv]
-    figd = stat_present.nature_style_dffplot(dff_select, dt = 0.5, sc_bar = 0.50)
-    figd.savefig(global_datapath+'most_active_100_10')
-    dff_select = dff_raw[:,isv]
-    figd = stat_present.nature_style_dffplot(dff_select, dt = 0.5, sc_bar = 0.10)
-    figd.savefig(global_datapath+'least_active_100_10')
-    figr = stat_present.dff_rasterplot(dff_raw[:,a_sorted[:100]])
-    figr.savefig(global_datapath+'raster_test', tunit = 'm')
     #independent component analysis
     dff_recon, a_mix = ica_dff(dff_raw[:, a_sorted[:70]],n_comp = 3)
     figi = stat_present.ic_plot(dff_recon)

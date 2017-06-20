@@ -1,5 +1,5 @@
 """
-Last update: 06/15/2017
+Last update: 06/18/2017
 A global view of cell distribution in the whole set of data
 Test affine transformation
 """
@@ -16,14 +16,17 @@ from src.visualization.brain_navigation import slice_display,stack_display
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
-def ZD_visualization(dph_im):
+def ZD_visualization(dph_im,dims):
     '''
     visualize a Z-stack
     dph_im: the path to .npz file
     '''
     fname_stem = os.path.splitext(dph_im)[0] # split the filename stem
     ZDR = z_dense_construct(dph_im)
-    return
+    ZD_red = z_dense_ref(ZDR, dims)
+    zstack_3d = ZD_red.stack_red_detect()
+    fig3d = stack_display(zstack_3d, 'g')
+    return fig3d
 
 
 
@@ -41,15 +44,8 @@ def dumb1(ariz_list = [], rota_list = []):
     zd_file = 'Oct25_B3_TS18.npz'
     zd_ext = np.load(global_datapath+zd_file)
     dims = [732, 908]
-    fig_11 = slice_display(zd_ext['xy'],ref_image = ZD_stack[50])
-    fig_11.savefig(global_datapath+'s50')
 
-
-    ZDR = z_dense_construct(global_datapath+zd_file)
-    ZD_red = z_dense_ref(ZDR, dims)
-    zstack_3d = ZD_red.stack_red_detect()
-    print(zstack_3d.shape)
-    fig3d = stack_display(zstack_3d, cl = 'b')
+    fig3d = ZD_visualization(global_datapath + zd_file, dims )
     ax =fig3d.gca()
     for ariz in ariz_list:
         for rota in rota_list:

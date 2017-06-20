@@ -1,9 +1,9 @@
 """
 Created by Dan on 08/22/2016
 Contains all the string functions (mostly file name parsing)
-last update: 09/14/2016
+last update: 06/18/2017
 """
-
+import os
 import ntpath
 
 
@@ -25,7 +25,7 @@ def number_strip(name_str, delim = '_', ext = True):
         khead = name_str.split('.')[0]
     else:
         khead = name_str
-    klist = khead.split(delim) 
+    klist = khead.split(delim)
     knum = [km for km in klist if km.isdigit()]
     if knum:
         # if it is not empty
@@ -34,7 +34,7 @@ def number_strip(name_str, delim = '_', ext = True):
     # done with number_strip.
     else:
         # return default value: 0
-        return 0
+        return np.nan # return a nan
 
 def fname_postfix(dph, postfix):
     """
@@ -42,20 +42,15 @@ def fname_postfix(dph, postfix):
     """
     head, tail = ntpath(dph)
     ftrunk, fext = tail.split('.') # split the name body and extension
-    
     if(ftrunk[-1].isdigit()):
         ii = -2
         while(ftrunk[ii].isdigit()):
             ii-=1
-        
         ft_h = ftrunk[:(ii+1)]
         ft_t = ftrunk[(ii+1):]
-        
         pfx_name = ''.join([head, ft_h, postfix, ft_t])
-        
     else:
         pfx_name = ''.join([head, ftrunk, postfix])
-    
 
     return '.'.join(pfx_name, fext)
     # done with fname_postfix

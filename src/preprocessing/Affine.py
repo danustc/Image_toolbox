@@ -10,7 +10,7 @@ import numpy.linalg as linalg
 import src.preprocessing.stack_operations as st_op
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/' # this is the global path to the test data sets.
-# read affine transformation form 
+# --------  small functions for inner transformation ------------------
 def triangle2afm(ts, td, mode='a'):
     '''
     produce the affine matrix M and the vector d for affine transformations
@@ -125,6 +125,10 @@ def reverse_trans(afmat, afvec):
     raf_mat = np.linalg.inv(afmat)
     raf_vec = -np.dot(raf_mat,afvec)
     return raf_mat, raf_vec
+
+
+
+
 # -----------------------------------------_Testing function (main)--------------------------------------
 
 def main():
