@@ -121,25 +121,29 @@ class region_view(object):
     @property
     def coord(self):
         return self._coord
-    @coord.setter(self, new_coord):
+    @coord.setter
+    def coord(self, new_coord):
         self._coord = new_coord
 
     @property
     def signal(self):
         return self._signal
-    @signal.setter(self, new_signal):
+    @signal.setter
+    def signal(self, new_signal):
         self._signal = new_signal
 
     @property
     def refim(self):
         return self._refim
-    @refim.setter(self, new_refim):
+    @refim.setter
+    def refim(self, new_refim):
         self._refim = new_refim
 
     @property
     def pxl(self):
         return self._pxl
-    @pxl.setter(self, new_pxsize):
+    @pxl.setter
+    def pxl(self, new_pxsize):
         self._pxl = new_pxsize
 
     # -------------------Below are visualization functions --------------
