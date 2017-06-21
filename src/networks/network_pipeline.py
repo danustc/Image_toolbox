@@ -1,13 +1,13 @@
 '''
 A small pipeline for network analysis. Added by Dan on 06/18/2017.
-Last update: 06/19/2017.
+Last update: 06/21/2017.
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import numpy as np
 import src.dynamics.df_f as df_f # the functions of calculating dff
-from src.preprocessing.tifffunc import read_tiff
+from src.shared_funcs.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
 from src.visualization.brain_navigation import region_view
 import src.networks.pca_sorting as pca_sorting
@@ -160,30 +160,6 @@ class pipeline(object):
 
     # -------------------------visualization group--------------------------
 
-    def display_select(self, ndisp, figpath = None):
-        '''
-        display the most active ndisp neurons
-        '''
-        fig = stat_present.nature_style_dffplot(self.signal[:,ndisp], dt = 0.5, sc_bar = 0.50)
-        if figpath is None:
-            return fig
-        else:
-            fig.savefig(figpath)
-
-    def display_raster(self, ndisp = None, figpath = None):
-        '''
-        raster-display the neuronal activities
-        '''
-        if ndisp is None:
-            fig = stat_present.dff_rasterplot(self.signal)
-        else:
-            fig = stat_present.dff_rasterplot(self.signal[:,ndisp])
-
-        if figpath is None:
-            return fig
-        else:
-            fig.savefig(figpath)
-
 
 
 # --------------------------Below is the test section -------------------
@@ -191,21 +167,12 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    raw_fname = global_datapath+'Jun13_A3_GCDA/'
+    raw_fname = global_datapath+'Jun13_B2_control/'
     raw_data = np.load(raw_fname + 'merged.npz')
-    ZD_stack = read_tiff(raw_fname+'A3_ZD_before.tif').astype('float64')
-    #ppl = pipeline(raw_data)
-    #ppl.pca_layered_sorting(var_cut = 0.95)
-    #ppl.display_select(np.arange(10), raw_fname + 'Mostactive_10')
-    #ppl.display_select(np.arange(-10, 0), raw_fname + 'Leastactive_10')
-    #ppl.display_raster(ndisp = np.arange(500),figpath = raw_fname + 'raster')
-    #ppl.save_cleaned(raw_fname+'cleaned')
+    ppl = pipeline(raw_data)
+    ppl.pca_layered_sorting(var_cut = 0.95)
+    ppl.save_cleaned(raw_fname+'cleaned')
 
-    clean_data = np.load(raw_fname+'cleaned.npz')
-    rgview = region_view(clean_data['coord'], clean_data['signal'], ZD_stack)
-    #rgview.show_grey_slice(50)
-    rgview.show_cell(np.arange(2000))
-    rgview.fig_save(raw_fname+'first2000')
 
 
 if __name__ == '__main__':
