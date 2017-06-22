@@ -87,7 +87,7 @@ class pipeline(object):
     def pxl(self, new_pxsize):
         self._pxl = new_pxsize
 
-    # ----------------------simple displaying functions
+    # ----------------------simple display and save functions
     def display_select(self, ndisp, figpath = None):
         '''
         display the most active ndisp neurons
@@ -119,18 +119,10 @@ def main():
     The test function of the pipeline.
     '''
     raw_fname = global_datapath+'Jun13_A3_GCDA/'
-    raw_data = np.load(raw_fname + 'merged.npz')
     ZD_stack = read_tiff(raw_fname+'A3_ZD_before.tif').astype('float64')
-    #ppl = pipeline(raw_data)
-    #ppl.pca_layered_sorting(var_cut = 0.95)
-    #ppl.display_select(np.arange(10), raw_fname + 'Mostactive_10')
-    #ppl.display_select(np.arange(-10, 0), raw_fname + 'Leastactive_10')
-    #ppl.display_raster(ndisp = np.arange(500),figpath = raw_fname + 'raster')
-    #ppl.save_cleaned(raw_fname+'cleaned')
 
     clean_data = np.load(raw_fname+'cleaned.npz')
     rgview = region_view(clean_data['coord'], clean_data['signal'], ZD_stack)
-    #rgview.show_grey_slice(50)
     rgview.show_cell(20)
     coord_active = clean_data['coord'][:20,:]
     print(coord_active)
