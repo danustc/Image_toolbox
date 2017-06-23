@@ -124,7 +124,7 @@ def main():
     clean_data = np.load(raw_fname+'cleaned.npz')
     rgview = region_view(clean_data['coord'], clean_data['signal'], ZD_stack)
     rgview.show_cell(20)
-    coord_active = clean_data['coord'][:20,:]
+    coord_active = clean_data['coord'][-20:,:]
     print(coord_active)
     rgview.fig_save(raw_fname+'first2000')
 

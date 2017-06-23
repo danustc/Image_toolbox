@@ -147,6 +147,7 @@ class pipeline(object):
                 print("# current data dimension:", self.get_size())
                 print("Cut ratio:", cut_ratio)
 
+        # is it necessary to perform PCA or I can just simply calculate the covariance?
         CT, V = pca_sorting.pca_raw(self.signal, var_cut)
         a_sorted = pca_sorting.cell_sorting(V)
         self.shuffle_data(ind_shuffle = a_sorted) #rank cell by the final activities
@@ -197,12 +198,12 @@ def main():
     raw_fname = global_datapath+'Jun06_A2_GCDA/'
     raw_data = np.load(raw_fname + 'cleaned.npz')
     ppl = pipeline(raw_data, raw = False)
-    cell_group = np.arange(500, 1000)
+    cell_group = np.arange(2250, 2300)
     dff_ica, cell_ranks, n2_coeffs = ppl.ica_cell_rank(cell_group, n_components = 40)
     print(n2_coeffs)
     dff_origin = ppl.get_cells_index(cell_group)[0]
-    #fig = stat_present.nature_style_dffplot(dff_origin, dt = 0.5, sc_bar = 0.50)
-    #fig.savefig(raw_fname+ 'active_1-100')
+    fig = stat_present.nature_style_dffplot(dff_origin, dt = 0.5, sc_bar = 0.50)
+    fig.savefig(raw_fname+ 'active_2200-2300')
     figr = stat_present.dff_rasterplot(dff_origin)
     figr.savefig(raw_fname + 'raster_500-1000')
     #ppl.pca_layered_sorting(var_cut = 0.95)
