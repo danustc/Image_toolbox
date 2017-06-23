@@ -165,7 +165,7 @@ def data_integrate(afc_merge, fluo_merge):
 
 # ---------------------------Below is the testing function ---------------------
 def main():
-    relative_path = 'Jun13_B2_control/'
+    relative_path = 'Jun06_A2_GCDA/'
     full_path = global_datapath+relative_path
     afc_merge, fluo_merge = cross_align_folder(full_path)
     compiled_data = data_integrate(afc_merge, fluo_merge)

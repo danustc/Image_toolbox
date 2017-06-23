@@ -9,7 +9,6 @@ import numpy as np
 from sklearn.decomposition import PCA, FastICA
 
 
-
 def pca_dff(dff_data, n_comp = 3):
     '''
     0. load dff_data. Each column represents the df_f of a neuron.
@@ -51,16 +50,6 @@ def cell_sorting(V):
     arg_sv = np.argsort(sv)
     return arg_sv
 
-
-def ica_dff(dff_data, n_comp = 4):
-    '''
-    directly use the ICA algorithm in sklearn
-    '''
-    dff_std = dff_data/dff_data.std(axis = 0)# standardize data
-    ica = FastICA(n_components = n_comp, max_iter = 300)
-    dff_recon = ica.fit_transform(dff_std) # reconstruct signals
-    a_mix = ica.mixing_ # the estimated mixing matrix
-    return dff_recon, a_mix
 
 
 def group_varsplit(dff_data, arg_sv, var_contrast = 0.95):
@@ -167,9 +156,6 @@ def main():
     a_sorted = cell_sorting(V)
 
     #independent component analysis
-    dff_recon, a_mix = ica_dff(dff_raw[:, a_sorted[:70]],n_comp = 3)
-    figi = stat_present.ic_plot(dff_recon)
-    figi.savefig(global_datapath+'ica_test_70')
 
 if __name__ == '__main__':
     main()
