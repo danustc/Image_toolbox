@@ -12,7 +12,7 @@ from sklearn.decomposition import FastICA, PCA
 def ICA_test(n_samples = 2000):
     time = np.linspace(0, 10, n_samples)
     s1 = np.sin(2*time) + 1.50
-    s2 = np.sign(np.sin(3*time))
+    s2 = np.sign(np.sin(3*time))-0.20
     s3 = signal.sawtooth(2*np.pi*time)
 
     S = np.c_[s1, s2, s3]
@@ -36,10 +36,18 @@ def ICA_test(n_samples = 2000):
 if __name__ =='__main__':
     n_samples = 500
     Si, Sf, Xi, Xf = ICA_test(n_samples)
-    fig = plt.figure()
-    ax1 = fig.add_subplot(211)
+    fig = plt.figure(figsize = (7,7.5))
+    ax1 = fig.add_subplot(311)
     ax1.plot(Si)
-    ax2 = fig.add_subplot(212)
-    ax2.plot(Sf)
-    plt.show()
-
+    ax1.set_title('Original source')
+    ax1.set_xticklabels([])
+    ax2 = fig.add_subplot(312)
+    ax2.plot(Xi)
+    ax2.set_title('Mixed signal')
+    ax2.set_xticklabels([])
+    ax3 = fig.add_subplot(313)
+    ax3.plot(Sf)
+    ax3.set_title('Recoverd signal')
+    plt.tight_layout()
+    plt.savefig('ica_source')
+    plt.close()

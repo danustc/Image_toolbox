@@ -1,6 +1,6 @@
 '''
 cross align between a ZD stack and a group of TS stacks.
-last update: 06/20/2017
+last update: 06/21/2117
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
@@ -166,10 +166,16 @@ def data_integrate(afc_merge, fluo_merge):
 # ---------------------------Below is the testing function ---------------------
 def main():
     relative_path = 'Jun06_A2_GCDA/'
-    full_path = global_datapath+relative_path
-    afc_merge, fluo_merge = cross_align_folder(full_path)
-    compiled_data = data_integrate(afc_merge, fluo_merge)
-    np.savez(full_path+'merged', **compiled_data)
+    full_path = global_datapath + relative_path
+    raw_fname = global_datapath + relative_path + 'rg_A2_TS_Compare_ZP_21.npz'
+    tszd_fname = global_datapath + relative_path + 'TS2ZD_21.txt'
+    afc, fluo = Coord_read_transform(tszd_fname, raw_fname)
+    trans_21 = dict()
+    trans_21['xy'] = afc
+    trans_21['data'] = fluo
+    #afc_merge, fluo_merge = cross_align_folder(full_path)
+    #compiled_data = data_integrate(afc_merge, fluo_merge)
+    np.savez(full_path+'trans_21', **trans_21)
 
 if __name__ == '__main__':
     main()

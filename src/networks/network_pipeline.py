@@ -13,6 +13,7 @@ from src.visualization.brain_navigation import region_view
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
 import src.networks.noise_removal as noise_removal
+#from src.networks.temporal_sorting import time_window_section
 import matplotlib.pyplot as plt
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
@@ -195,19 +196,31 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    raw_fname = global_datapath+'Jun06_A2_GCDA/'
-    raw_data = np.load(raw_fname + 'cleaned.npz')
+    #raw_fname = global_datapath+'Jun13_A1_GCDA/'
+    raw_fname = global_datapath+'Jun13_B2_control/'
+    #raw_data = np.load(raw_fname + 'merged.npz')
+    raw_data = np.load(raw_fname + 'ultra_cleaned.npz')
     ppl = pipeline(raw_data, raw = False)
-    cell_group = np.arange(2250, 2300)
-    dff_ica, cell_ranks, n2_coeffs = ppl.ica_cell_rank(cell_group, n_components = 40)
+    #ppl.pca_layered_sorting(var_cut = 0.70)
+    cell_group = np.arange(200)
+    n_ica = 4
+    dff_ica, cell_ranks, n2_coeffs = ppl.ica_cell_rank(cell_group, n_components = n_ica)
+    NT = dff_ica.shape[0]
     print(n2_coeffs)
-    dff_origin = ppl.get_cells_index(cell_group)[0]
-    fig = stat_present.nature_style_dffplot(dff_origin, dt = 0.5, sc_bar = 0.50)
-    fig.savefig(raw_fname+ 'active_2200-2300')
-    figr = stat_present.dff_rasterplot(dff_origin)
-    figr.savefig(raw_fname + 'raster_500-1000')
+    dff_origin = ppl.get_cells_index(cell_group)[0][:1500]
+    #fig = stat_present.nature_style_dffplot(dff_origin, dt = 0.5, sc_bar = 0.50)
+    #fig.savefig(raw_fname+ 'active_2200-2300')
+    figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
+    figr.savefig(raw_fname + 'raster_200')
     #ppl.pca_layered_sorting(var_cut = 0.95)
     #ppl.save_cleaned(raw_fname+'cleaned')
+    fig_ica = plt.figure(figsize = (6,4))
+    ax = fig_ica.add_subplot(111)
+    ax.plot(0.5*np.arange(NT)/60., dff_ica+np.arange(n_ica)*0.1)
+    ax.set_xlabel('Time (min)', fontsize = 12)
+    plt.tight_layout()
+    fig_ica.savefig(raw_fname + 'ica_'+str(n_ica))
+
 
 
 

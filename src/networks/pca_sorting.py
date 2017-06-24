@@ -6,8 +6,12 @@ Based on scikit-learn
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-from sklearn.decomposition import PCA, FastICA
-
+from sklearn.decomposition import PCA
+import src.dynamics.df_f as df_f # the functions of calculating dff
+import src.visualization.stat_present as stat_present
+import src.visualization.brain_navigation as brain_navigation
+from src.shared_funcs import tifffunc as tf
+import matplotlib.pyplot as plt
 
 def pca_dff(dff_data, n_comp = 3):
     '''
@@ -143,19 +147,64 @@ class group_pca(object):
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():
-    '''
-    Test written on 04/30/2017.
-    '''
+    NZ = 15
+    global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/Jun06_A2_GCDA/'
+    raw_fname = global_datapath +  'trans_'+str(NZ)+'.npz'
+    #raw_fname = global_datapath +  'rg_A2_TS_Compare_ZP_15.npz'
+    ZD_name = global_datapath + 'A2_ZD_before.tif'
 
-    CT, V = pca_raw(dff_raw, var_cut = 0.95)
+    ZD_slice15 = tf.read_tiff(ZD_name, np.arange(NZ*4-1,NZ*4+2)).mean(axis = 0)
+
+
+    f_raw = np.load(raw_fname)
+    print(f_raw.keys())
+    coord_raw = f_raw['xy']
+    data_raw = f_raw['data']
+    dff_raw = df_f.dff_raw(data_raw, ft_width = 4,ntruncate = 10)[0]
+    dff_fine = df_f.dff_expfilt(dff_raw, dt = 0.5, t_width = 1.25)[0]
+    NT = int(dff_fine.shape[0]/2)
+    NS = 164
+    figx = plt.figure(figsize = (5,3))
+    ax = figx.add_subplot(111)
+    ax.plot(np.arange(10,NT)*0.5, np.c_[dff_raw[10:NT,NS], dff_fine[10:NT,NS]+0.3])
+    ax.set_ylabel('DF/F')
+    figx.savefig(global_datapath + 'dff_exp.png')
+    plt.close()
+    figx = plt.figure(figsize = (5,3))
+    ax = figx.add_subplot(111)
+    ax.plot(np.arange(10,NT)*0.5, data_raw[10:NT, NS], '-g')
+    ax.set_ylabe('Raw fluorescence')
+    figx.savefig(global_datapath + 'raw_exp.png')
+
+    CT, V = pca_raw(dff_fine, var_cut = 0.95)
     print(V.shape)
     fig = stat_present.PCA_trajectory_matrix(CT, dim_select = [0,1,2,3,4])
     fig.savefig(global_datapath+'pc_test_habe')
-    figv = stat_present.pc_component_grid(V[:,:100],npc = 55)
-    figv.savefig(global_datapath+'pc_celldistri')
     a_sorted = cell_sorting(V)
+    figv = stat_present.pc_component_grid(V[:,:10],npc = 70)
+    figv.savefig(global_datapath+'pc_celldistri_10_70')
 
+    a_select = a_sorted[:150]
+    n_select = 30
+    a_most = a_sorted[:n_select]
+    print(a_most)
+    a_least = a_sorted[-n_select:]
+    figr = stat_present.dff_rasterplot(dff_raw[:720, a_select], dt = 0.5)
+    figr.savefig(global_datapath+'pc_raster_150')
+    fig_most = stat_present.nature_style_dffplot(dff_raw[:1200,a_most], dt = 0.5, sc_bar = 0.50)
+    fig_most.savefig(global_datapath+'most_active_15')
+    fig_lest = stat_present.nature_style_dffplot(dff_raw[:1200,a_least], dt = 0.5, sc_bar = 0.10)
+    fig_lest.savefig(global_datapath+'least_active_15')
+
+    coord_most = coord_raw[a_most, :]
+    coord_least = coord_raw[a_least, :]
+    coord_compare = [coord_most, coord_least]
+    fig_d = brain_navigation.slice_display(coord_compare, title = 'Most_least_active, slice '+str(NZ), ref_image=ZD_slice15)
+    fig_d.savefig(global_datapath+'Activity_map_'+str(NZ))
     #independent component analysis
+    fig_o = brain_navigation.slice_display(coord_raw, title = 'Extracted cells', ref_image = ZD_slice15)
+    fig_o.savefig(global_datapath+'Cell_extraction_tm')
+
 
 if __name__ == '__main__':
     main()
