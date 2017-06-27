@@ -1,18 +1,19 @@
 '''
 A small pipeline for network analysis. Added by Dan on 06/18/2017.
-Last update: 06/19/2017.
+Last update: 06/21/2017.
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import numpy as np
 import src.dynamics.df_f as df_f # the functions of calculating dff
-from src.preprocessing.tifffunc import read_tiff
+from src.shared_funcs.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
 from src.visualization.brain_navigation import region_view
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
 import src.networks.noise_removal as noise_removal
+#from src.networks.temporal_sorting import time_window_section
 import matplotlib.pyplot as plt
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
@@ -33,11 +34,19 @@ class pipeline(object):
     def parse_data(self, data):
         try:
             self.coord = data['coord']
-            self.signal= data['data']
+            try:
+                self.signal = data['data']
+            except KeyError:
+                try:
+                    self.signal = data['signal']
+                except KeyError:
+                    print("No signal data stored in the file!")
+                    sys.exit(1)
         except KeyError:
             print('Wrong data!')
             self.coord = None
             self.signal = None
+            sys.exit(1)
 
     #-----------------------Below are the property members-----------------
 
@@ -59,6 +68,15 @@ class pipeline(object):
 
     def get_size(self):
         return self.signal.shape
+
+    def get_cells_index(self, nc_groups):
+        return self.signal[:,nc_groups], self.coord[nc_groups, :]
+
+    def get_cells_space(self, pos_center, radius):
+        '''
+        get a list of cells within the desired region.
+        '''
+        pass # to be filled later
 
     def shuffle_data(self, ind_shuffle = None):
         '''
@@ -130,6 +148,7 @@ class pipeline(object):
                 print("# current data dimension:", self.get_size())
                 print("Cut ratio:", cut_ratio)
 
+        # is it necessary to perform PCA or I can just simply calculate the covariance?
         CT, V = pca_sorting.pca_raw(self.signal, var_cut)
         a_sorted = pca_sorting.cell_sorting(V)
         self.shuffle_data(ind_shuffle = a_sorted) #rank cell by the final activities
@@ -158,31 +177,17 @@ class pipeline(object):
         np.savez(save_path, **cleaned_data)
 
 
-    # -------------------------visualization group--------------------------
-
-    def display_select(self, ndisp, figpath = None):
+    # -------------------------ica group--------------------------
+    def ica_cell_rank(self, cell_group= 10, n_components = 4):
         '''
-        display the most active ndisp neurons
+        given that the data is already cleaned. Perform ica to evaluate the individual components
         '''
-        fig = stat_present.nature_style_dffplot(self.signal[:,ndisp], dt = 0.5, sc_bar = 0.50)
-        if figpath is None:
-            return fig
-        else:
-            fig.savefig(figpath)
-
-    def display_raster(self, ndisp = None, figpath = None):
-        '''
-        raster-display the neuronal activities
-        '''
-        if ndisp is None:
-            fig = stat_present.dff_rasterplot(self.signal)
-        else:
-            fig = stat_present.dff_rasterplot(self.signal[:,ndisp])
-
-        if figpath is None:
-            return fig
-        else:
-            fig.savefig(figpath)
+        selected_signal = self.signal[:,cell_group]
+        dff_ica, a_mix, s_mean = ica_sorting.ica_dff(selected_signal, n_comp = n_components)
+        a_n2 = a_mix**2
+        cell_ranks = np.argsort(a_n2, axis = 0) # importance of cells in each ic
+        n2_coeffs = a_n2.sum(axis = 0)
+        return dff_ica, cell_ranks, n2_coeffs
 
 
 
@@ -191,21 +196,32 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    raw_fname = global_datapath+'Jun13_A3_GCDA/'
-    raw_data = np.load(raw_fname + 'merged.npz')
-    ZD_stack = read_tiff(raw_fname+'A3_ZD_before.tif').astype('float64')
-    #ppl = pipeline(raw_data)
+    #raw_fname = global_datapath+'Jun13_A1_GCDA/'
+    raw_fname = global_datapath+'Jun13_B2_control/'
+    #raw_data = np.load(raw_fname + 'merged.npz')
+    raw_data = np.load(raw_fname + 'ultra_cleaned.npz')
+    ppl = pipeline(raw_data, raw = False)
+    #ppl.pca_layered_sorting(var_cut = 0.70)
+    cell_group = np.arange(200)
+    n_ica = 4
+    dff_ica, cell_ranks, n2_coeffs = ppl.ica_cell_rank(cell_group, n_components = n_ica)
+    NT = dff_ica.shape[0]
+    print(n2_coeffs)
+    dff_origin = ppl.get_cells_index(cell_group)[0][:1500]
+    #fig = stat_present.nature_style_dffplot(dff_origin, dt = 0.5, sc_bar = 0.50)
+    #fig.savefig(raw_fname+ 'active_2200-2300')
+    figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
+    figr.savefig(raw_fname + 'raster_200')
     #ppl.pca_layered_sorting(var_cut = 0.95)
-    #ppl.display_select(np.arange(10), raw_fname + 'Mostactive_10')
-    #ppl.display_select(np.arange(-10, 0), raw_fname + 'Leastactive_10')
-    #ppl.display_raster(ndisp = np.arange(500),figpath = raw_fname + 'raster')
     #ppl.save_cleaned(raw_fname+'cleaned')
+    fig_ica = plt.figure(figsize = (6,4))
+    ax = fig_ica.add_subplot(111)
+    ax.plot(0.5*np.arange(NT)/60., dff_ica+np.arange(n_ica)*0.1)
+    ax.set_xlabel('Time (min)', fontsize = 12)
+    plt.tight_layout()
+    fig_ica.savefig(raw_fname + 'ica_'+str(n_ica))
 
-    clean_data = np.load(raw_fname+'cleaned.npz')
-    rgview = region_view(clean_data['coord'], clean_data['signal'], ZD_stack)
-    #rgview.show_grey_slice(50)
-    rgview.show_cell(np.arange(2000))
-    rgview.fig_save(raw_fname+'first2000')
+
 
 
 if __name__ == '__main__':

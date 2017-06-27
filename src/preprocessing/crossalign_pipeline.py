@@ -1,15 +1,15 @@
 '''
 cross align between a ZD stack and a group of TS stacks.
+last update: 06/21/2117
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import numpy as np
 import glob
-import src.preprocessing.Affine as Affine
+import src.preprocessing.affine as Affine
 from src.visualization.brain_navigation import slice_display,stack_display
-from src.preprocessing.Red_detect import redund_detect_merge
-from src.shared_funcs import string_funcs
+from src.preprocessing.red_detect import redund_detect_merge
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
 
@@ -26,7 +26,51 @@ def Coord_read_transform(fn_trans, fn_data):
     return afc, fluo
 
 
-def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', verbose =True):
+def cross_align_simple(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep = 4.0, verbose = True):
+    '''
+    cross align without redundancy removal
+    '''
+    regilist = glob.glob(work_folder + '*' + rg_flag + '*.txt')
+    datalist = glob.glob(work_folder+ '*' + data_flag + '*.npz')
+    nregi = np.array([int(os.path.basename(regfile).split('.')[0].split('_')[-1] ) for regfile in regilist ])
+    ndata = np.array([int(os.path.basename(datafile).split('.')[0].split('_')[-1]) for datafile in datalist])
+    arg_regi = np.argsort(nregi)
+    arg_data = np.argsort(ndata)
+    try:
+        diff_arg = nregi[arg_regi]-ndata[arg_data]
+        if(np.any(diff_arg)):
+            print("There are files missing or index error!")
+            print(arg_regi)
+            print(arg_data)
+            return
+    except ValueError:
+        print("Oops! The number of registration files and data files do not match.")
+        return
+    cr_total = []
+    fl_total = []
+    data_compiled = dict()
+
+    nmark = len(nregi)
+    n_all = 0
+    for imark in np.arange(nmark):
+        regi_fn = reglist[0]
+        data_fn = reglist[0]
+        afc, fluo = Coord_read_transform(regi_fn, data_fn)
+        ncells = afc.shape[0]
+        cr_3 = np.zeros((ncells, 3))
+        cr_3[:,0] = imark*zstep
+        cr_3[:,1:] = afc
+        n_all +=ncells
+        cr_total.append(cr_3)
+        fl_total.append(fluo)
+
+    data_compiled['coords'] = np.concatenate(cr_total, axis = 0)
+    data_compiled['signal'] = np.concatenate(fl_total, axis = 1)
+
+    return data_compiled
+
+
+def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep = 4.0, verbose =True):
     '''
     cross align all the T-stacks to the Z-stack based on the affine transformatiomatrices
     '''
@@ -58,7 +102,7 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', verbose
     fluo_backup = {}
     for imark in np.arange(1, nmark):
         '''
-        Redundancy removal slice by slice.
+        Affine transformation of each TS slice, then redundancy removal slice by slice.
         '''
         data_cor = datalist[imark]
         regi_cor = regilist[imark]
@@ -69,7 +113,7 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', verbose
         ncell = afc_ref.shape[0]
         n_all+=ncell
         cr_3 = np.zeros((ncell,3))
-        cr_3[:, 0] = (imark-1)*4.
+        cr_3[:, 0] = (imark-1)*zstep
         cr_3[ind_ref,0] = (2*imark-1)*2
         cr_3[:,1:] = afc_ref
         afc_reduced = np.delete(afc_cor, ind_cor, axis = 0)
@@ -101,6 +145,7 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', verbose
 def data_integrate(afc_merge, fluo_merge):
     '''
     put the two aligned coordinates and fluorescence data together to reconstructa 3D representation
+    The z-coordinate is not ordered.
     '''
     if (set(afc_merge)==set(fluo_merge)):
         # check if the two dictionaries have the same keys. If yes, keep going
@@ -120,11 +165,17 @@ def data_integrate(afc_merge, fluo_merge):
 
 # ---------------------------Below is the testing function ---------------------
 def main():
-    relative_path = 'Jun13_B2_control/'
-    full_path = global_datapath+relative_path
-    afc_merge, fluo_merge = cross_align_folder(full_path)
-    compiled_data = data_integrate(afc_merge, fluo_merge)
-    np.savez(full_path+'merged', **compiled_data)
+    relative_path = 'Jun06_A2_GCDA/'
+    full_path = global_datapath + relative_path
+    raw_fname = global_datapath + relative_path + 'rg_A2_TS_Compare_ZP_21.npz'
+    tszd_fname = global_datapath + relative_path + 'TS2ZD_21.txt'
+    afc, fluo = Coord_read_transform(tszd_fname, raw_fname)
+    trans_21 = dict()
+    trans_21['xy'] = afc
+    trans_21['data'] = fluo
+    #afc_merge, fluo_merge = cross_align_folder(full_path)
+    #compiled_data = data_integrate(afc_merge, fluo_merge)
+    np.savez(full_path+'trans_21', **trans_21)
 
 if __name__ == '__main__':
     main()
