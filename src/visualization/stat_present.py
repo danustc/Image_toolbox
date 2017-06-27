@@ -115,13 +115,13 @@ def pc_component_grid(V, npc = 3):
     lx = 8
     NV, NP = V.shape # the number of components and the number of dimensions
     ndisplay = np.min([npc, NV])
-    fig = plt.figure(figsize = (lx, ndisplay*lx/NV+0.5) ) # figuresize
+    fig = plt.figure(figsize = (lx, ndisplay*lx/NP+0.5) ) # figuresize
     ax = fig.add_subplot(111)
     ax.imshow(V[:ndisplay]**2,cmap = 'Greens', extent = [1, NP, NV, 1], aspect = 'auto')
     ax.set_xticks([1,NP])
     ax.set_xticklabels(['Cell 1', 'Cell '+str(NP)])
     ax.set_yticks([1, NV])
-    ax.set_yticklabels(['PC 1', 'PC '+str(NV)])
+    ax.set_yticklabels(['PC 1', 'PC '+str(ndisplay)])
     ax.set_aspect('equal')
     ax.tick_params(labelsize = 12)
     plt.tight_layout()

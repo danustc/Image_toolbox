@@ -6,7 +6,7 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import src
 import numpy as np
-import src.preprocessing.tifffunc as tf
+import src.shared_funcs.tifffunc as tf
 import pyfftw
 import glob
 import os

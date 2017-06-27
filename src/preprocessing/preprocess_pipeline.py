@@ -13,7 +13,7 @@ import numpy as np
 sys.path.append(package_path)
 import src.preprocessing.tifffunc as tifffunc
 
-from src.Cell_extract import *
+from cell_extract import *
 
 # -----------------------------------------Big classes-------------------------------------------------
 
