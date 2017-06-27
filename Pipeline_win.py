@@ -177,7 +177,7 @@ class pipeline_tstacks(object):
         sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
         blobs_sample = stack_blobs(sample_stack, self.cdiam, bg_sub = 40)
-        self.cblobs = stack_redundreduct(blobs_sample, th = 4) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
+        self.cblobs = stack_redundreduct(blobs_sample, th = 5) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
 
@@ -237,16 +237,14 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_rootpath ='D:\Data\\'
-    data_path1 = data_rootpath + '/2017-06-13/A1_TS\\'
-    data_path2 = data_rootpath + '/2017-06-13/A3_TS\\'
-    data_path3 = data_rootpath + '/2017-06-13/B2_TS_control\\'
-    pt = pipeline_tstacks(data_path1, fname_flags = 'ZP')
-    pt.run_pipeline([5,10,15,20])
-    pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
-    pt.run_pipeline([5,10,15,20])
-    pt = pipeline_tstacks(data_path3, fname_flags = 'ZP')
-    pt.run_pipeline([5,10,15,20])
+    data_rootpath ='D:\Data/2017-05-22\\'
+    folder_list = glob.glob(data_rootpath+"/B4*\\")
+    for data_path in folder_list:
+        print(data_path)
+        pt = pipeline_tstacks(data_path, fname_flags = 'ZP')
+        pt.run_pipeline([5,10,15,20])
+    #pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
+    #pt.run_pipeline([5,10,15,20])
 
 
 if __name__ == '__main__':
