@@ -58,7 +58,6 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 2, bsteps =7, verbose = Fa
     '''
     # now, let's calculate threshold
     th = (np.mean(filled_frame) - np.std(filled_frame))/6.
-    print("threshold:", th)
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
