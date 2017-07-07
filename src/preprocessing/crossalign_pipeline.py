@@ -117,7 +117,6 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
         afc_cor, fluo_cor = Coord_read_transform(regi_cor, data_cor)
         ind_ref, ind_cor = redund_detect_merge(afc_ref, afc_cor, thresh = 3.0)
         n_origin = afc_cor.shape[0]
-
         label_m = 'merge_'+ format(imark-1, '03d')
         ncell = afc_ref.shape[0]
         n_all+=ncell
@@ -131,13 +130,14 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
         fluo_merge[label_m] = fluo_ref
         afc_ref = afc_reduced
         fluo_ref = fluo_reduced
+        ncell = afc_ref.shape[0]
         if verbose:
             print("Processed slice:", label_m)
             print("# of original cells in the reference frame:", n_origin)
             print("# of redundancy detected:", len(ind_cor))
-            print("# of kept cells:", afc_ref.shape[0])
+            print("# of kept cells:", ncell)
+        # end for
 
-    ncell = afc_ref.shape[0]
     n_all+=ncell
     cr_3 = np.zeros((ncell,3))
     cr_3[:, 0] = (imark-1)*4.
@@ -151,7 +151,7 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
     # done with cross_align_folder 
 
 
-def data_integrate(afc_merge, fluo_merge):
+def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
     '''
     put the two aligned coordinates and fluorescence data together to reconstructa 3D representation
     The z-coordinate is not ordered.
@@ -166,6 +166,7 @@ def data_integrate(afc_merge, fluo_merge):
             data_list.append(fluo_merge[km])
 
         coor_3d = np.concatenate(coor_list, axis = 0)
+        coor_3d[:,1:]*= rpixel
         data_3d = np.concatenate(data_list, axis = 1)
 
         compiled_data = {'coord': coor_3d, 'data': data_3d}
