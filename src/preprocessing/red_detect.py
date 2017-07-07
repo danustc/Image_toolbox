@@ -21,7 +21,6 @@ def redund_detect_merge(coord_ref, coord_fol, thresh = 2.0):
     n2 = len(x1)
 
 
-
     [YC, YR] = np.meshgrid(y2,y1)
     [XC, XR] = np.meshgrid(x2,x1)
     dist_block = np.sqrt((YC-YR)**2 + (XC-XR)**2)

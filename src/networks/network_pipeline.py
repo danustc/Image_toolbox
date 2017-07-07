@@ -196,24 +196,17 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    #raw_fname = global_datapath+'Jun13_A1_GCDA/'
-    raw_fname = global_datapath+'Jun13_B2_control/'
-    #raw_data = np.load(raw_fname + 'merged.npz')
+    raw_fname = global_datapath+'Jun13_A1_GCDA/'
     raw_data = np.load(raw_fname + 'ultra_cleaned.npz')
     ppl = pipeline(raw_data, raw = False)
-    #ppl.pca_layered_sorting(var_cut = 0.70)
-    cell_group = np.arange(200)
-    n_ica = 4
-    dff_ica, cell_ranks, n2_coeffs = ppl.ica_cell_rank(cell_group, n_components = n_ica)
+    cell_group = np.arange(800)
+    n_ica = 6
+    dff_ica, a_mix, s_mean = ppl.ica_cell_rank(cell_group, n_components = n_ica)
     NT = dff_ica.shape[0]
-    print(n2_coeffs)
+    print(dff_ica.shape,a_mix.shape)
     dff_origin = ppl.get_cells_index(cell_group)[0][:1500]
-    #fig = stat_present.nature_style_dffplot(dff_origin, dt = 0.5, sc_bar = 0.50)
-    #fig.savefig(raw_fname+ 'active_2200-2300')
     figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
-    figr.savefig(raw_fname + 'raster_200')
-    #ppl.pca_layered_sorting(var_cut = 0.95)
-    #ppl.save_cleaned(raw_fname+'cleaned')
+    figr.savefig(raw_fname + 'raster_800')
     fig_ica = plt.figure(figsize = (6,4))
     ax = fig_ica.add_subplot(111)
     ax.plot(0.5*np.arange(NT)/60., dff_ica+np.arange(n_ica)*0.1)

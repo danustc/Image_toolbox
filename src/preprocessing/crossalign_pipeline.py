@@ -1,6 +1,6 @@
 '''
 cross align between a ZD stack and a group of TS stacks.
-last update: 06/21/2117
+last update: 07/07/2017
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
@@ -10,7 +10,7 @@ import glob
 import src.preprocessing.affine as Affine
 from src.visualization.brain_navigation import slice_display,stack_display
 from src.preprocessing.red_detect import redund_detect_merge
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/'
 
 
 def Coord_read_transform(fn_trans, fn_data):
@@ -80,6 +80,7 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
     ndata = np.array([int(os.path.basename(datafile).split('.')[0].split('_')[-1]) for datafile in datalist])
     arg_regi = np.argsort(nregi)
     arg_data = np.argsort(ndata)
+    print(arg_regi)
     try:
         diff_arg = nregi[arg_regi]-ndata[arg_data]
         if(np.any(diff_arg)):
@@ -93,23 +94,31 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
 
     nmark = len(nregi)
     n_all = 0
-    regi_ref = regilist[0]
-    data_ref = datalist[0]
+
+    regi_ref = regilist[arg_regi[0]]
+    data_ref = datalist[arg_data[0]]
     afc_ref, fluo_ref = Coord_read_transform(regi_ref, data_ref)
+
     afc_merge = {}
-    afc_backup = {}
     fluo_merge = {}
-    fluo_backup = {}
+
     for imark in np.arange(1, nmark):
         '''
         Affine transformation of each TS slice, then redundancy removal slice by slice.
         '''
-        data_cor = datalist[imark]
-        regi_cor = regilist[imark]
+        zregi = arg_regi[imark]
+        zdata = arg_data[imark]
+        data_cor = datalist[zdata]
+        regi_cor = regilist[zregi]
+        if(nregi[zregi] != ndata[zdata]):
+            print("Error! File numbering mismatch.")
+            return
+
         afc_cor, fluo_cor = Coord_read_transform(regi_cor, data_cor)
         ind_ref, ind_cor = redund_detect_merge(afc_ref, afc_cor, thresh = 3.0)
+        n_origin = afc_cor.shape[0]
+
         label_m = 'merge_'+ format(imark-1, '03d')
-        bk_m = 'back_' + format(imark-1, '03d')
         ncell = afc_ref.shape[0]
         n_all+=ncell
         cr_3 = np.zeros((ncell,3))
@@ -118,15 +127,15 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
         cr_3[:,1:] = afc_ref
         afc_reduced = np.delete(afc_cor, ind_cor, axis = 0)
         fluo_reduced = np.delete(fluo_cor, ind_cor, axis = 1) # note the difference of axis
-        afc_backup[bk_m] = afc_cor[ind_cor]
-        fluo_backup[bk_m] = fluo_cor[ind_cor]
         afc_merge[label_m] = cr_3
         fluo_merge[label_m] = fluo_ref
         afc_ref = afc_reduced
         fluo_ref = fluo_reduced
         if verbose:
-            print("Processed slice:", imark)
-            print("# of redundancy detected:", len(afc_cor))
+            print("Processed slice:", label_m)
+            print("# of original cells in the reference frame:", n_origin)
+            print("# of redundancy detected:", len(ind_cor))
+            print("# of kept cells:", afc_ref.shape[0])
 
     ncell = afc_ref.shape[0]
     n_all+=ncell
@@ -165,17 +174,17 @@ def data_integrate(afc_merge, fluo_merge):
 
 # ---------------------------Below is the testing function ---------------------
 def main():
-    relative_path = 'Jun06_A2_GCDA/'
+    relative_path = 'Dec07_2016_B1_FB/'
     full_path = global_datapath + relative_path
-    raw_fname = global_datapath + relative_path + 'rg_A2_TS_Compare_ZP_21.npz'
-    tszd_fname = global_datapath + relative_path + 'TS2ZD_21.txt'
-    afc, fluo = Coord_read_transform(tszd_fname, raw_fname)
-    trans_21 = dict()
-    trans_21['xy'] = afc
-    trans_21['data'] = fluo
-    #afc_merge, fluo_merge = cross_align_folder(full_path)
-    #compiled_data = data_integrate(afc_merge, fluo_merge)
-    np.savez(full_path+'trans_21', **trans_21)
+    #raw_fname = global_datapath + relative_path + 'rg_A2_TS_Compare_ZP_21.npz'
+    #tszd_fname = global_datapath + relative_path + 'TS2ZD_21.txt'
+    #afc, fluo = Coord_read_transform(tszd_fname, raw_fname)
+    #trans_21 = dict()
+    #trans_21['xy'] = afc
+    #trans_21['data'] = fluo
+    afc_merge, fluo_merge = cross_align_folder(full_path)
+    compiled_data = data_integrate(afc_merge, fluo_merge)
+    np.savez(full_path+'merged', **compiled_data)
 
 if __name__ == '__main__':
     main()

@@ -24,6 +24,7 @@ magni_lateral = 0.295 # 0.295 micron per pixel
 def blank_refill(raw_frame):
     '''
     If there are zero pixels, refill them.
+    if there are too many zero pixels, refill them by sampling
     '''
     rb_y, rb_x = np.where(raw_frame==0)
     if rb_y.size ==0:
@@ -33,7 +34,11 @@ def blank_refill(raw_frame):
         nblank = len(rb_y)
         fill_values = raw_valid[:nblank]
         np.random.shuffle(fill_values)
-        raw_frame[rb_y, rb_x] = fill_values
+        try:
+            raw_frame[rb_y, rb_x] = fill_values
+        except ValueError as err:
+            print(err.args)
+            print("The number of zero-pixels exceeded the number of non-zero pixels.")
 
         return raw_frame
 
@@ -86,6 +91,24 @@ def frame_reextract(raw_frame, coords):
         real_sig[nc] = np.mean(raw_frame[indm]) # is it OK for replacing dr with
 
     return real_sig
+
+
+def stack_reextract(raw_stack, coords):
+    '''
+    Assume that the coordinates of the cells have been specified, extract all the cells stackwise
+    '''
+    n_cells = len(coords)
+    nz, ny, nx = raw_stack.shape
+    real_sig = np.zeros((nz, n_cells))
+    for nc in range(n_cells):
+        cr = coords[nc,:2]
+        dr = coords[nc,2]-1
+        indm = circ_mask_patch((ny,nx), cr, dr)
+        real_sig[:,nc] = np.mean(raw_stack[:, indm])
+
+    return real_sig
+
+
 
 def stack_redundreduct(blob_stack, th= 4):
     '''
@@ -170,7 +193,7 @@ class Cell_extract(object):
         else:
             self.stack = im_stack
             self.n_slice = im_stack.shape[0]
-            self.frame_size = np.array(im_stack.shape[1:])
+            eelf.frame_size = np.array(im_stack.shape[1:])
             self.is_empty = False
 
         self.data_list = dict()
@@ -257,12 +280,13 @@ class Cell_extract(object):
         stack = self.stack
         n_blobs = len(blob_lists)# merging extracted cells in several frames
             # ----- end else, n_frame is an array instead of a slice number
-        train_signal = np.zeros((self.n_slice, n_blobs))
+        train_signal = stack_reextract(stack, blob_lists) # updated on 07/07/2017
 
+        '''
         for z_frame in range(self.n_slice):
             z_signal = frame_reextract(stack[z_frame], blob_lists)
             train_signal[z_frame, :] = z_signal
-
+        '''
         return train_signal
     # done with stack_signal_propagate
 
