@@ -12,6 +12,7 @@ import src.visualization.stat_present as stat_present
 from src.visualization.brain_navigation import region_view
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
+import src.networks.simple_variance as simple_variance
 import src.networks.noise_removal as noise_removal
 #from src.networks.temporal_sorting import time_window_section
 import matplotlib.pyplot as plt
@@ -22,6 +23,10 @@ class pipeline(object):
     '''
     Can I follow the design of inControl, name all the core data processing classes as pipeline?
     Purpose:    0. Load all the .npz files in a folder. These should all be T-slices
+    1. Do the sorting/cleaning if necessary.
+    2. Do the detailed analysis if necessary.
+    Conventions:    a. self.signal stores signals (either F or \Delta F/F) of all the extracted cells.
+                    b. self.cood stores the coordinates (in micron) of all the extracted cells. If coord has two columns, the 0th is y and the 1st is x; if coord has three columns, the order is z,y,x (instead of x,y,z, to be consistent with Python array dimension orders)
     '''
     def __init__(self, data, raw = True, dt=0.5):
         self._coord = None
@@ -78,6 +83,14 @@ class pipeline(object):
         '''
         pass # to be filled later
 
+
+    def svar_sorting(self, var_cut = 0.95):
+        '''
+        simple variance-based sorting
+        '''
+        simple_variance.simvar_global_sort(self.signal)
+
+
     def shuffle_data(self, ind_shuffle = None):
         '''
         shuffle the signal orders and the coordinate orders so that the position is not biasing the groupwise pca output.
@@ -116,10 +129,10 @@ class pipeline(object):
         gpca.group_division()
         ipre, idis = gpca.subgroup_pca(verbose)
 
-        sig_head = self.signal[:,ipre].T
-        sig_tail = self.signal[:,idis].T
-        var_head = np.trace(np.cov(sig_head))
-        var_tail = np.trace(np.cov(sig_tail))
+        sig_head = self.signal[:,ipre]
+        sig_tail = self.signal[:,idis]
+        var_head = np.sum(np.var(sig_head, axis = 0))
+        var_tail = np.sum(np.var(sig_tail, axis = 0))
         cut_ratio = var_head/var_tail
 
         if verbose:
@@ -129,16 +142,16 @@ class pipeline(object):
 
         while(cut_ratio > var_ratio):
             print(ipre.size)
-            self.dff_cleaning(ipre) # after dff_cleaning, self.data is updated. 
+            self.dff_cleaning(ipre) # after dff_cleaning, self.signal is updated. 
             if shuffle:
                 self.shuffle_data()
             NT, NP = self.get_size()
             gpca.data = self.signal
             gpca.group_division()
             ipre, idis = gpca.subgroup_pca(fine_sort = True)
-            sig_head = self.signal[:,ipre].T
-            sig_tail = self.signal[:,idis].T
-            var_shift = np.trace(np.cov(sig_tail))
+            sig_head = self.signal[:,ipre]
+            sig_tail = self.signal[:,idis]
+            var_shift = np.sum(np.var(sig_tail, axis = 0))
             var_tail += var_shift
             var_head -= var_shift
             #var_head = np.trace(np.cov(sig_head))
@@ -199,8 +212,8 @@ def main():
     raw_fname = global_datapath+'Jun13_A1_GCDA/'
     raw_data = np.load(raw_fname + 'ultra_cleaned.npz')
     ppl = pipeline(raw_data, raw = False)
-    cell_group = np.arange(800)
-    n_ica = 6
+    cell_group = np.arange(1000)
+    n_ica = 10
     dff_ica, a_mix, s_mean = ppl.ica_cell_rank(cell_group, n_components = n_ica)
     NT = dff_ica.shape[0]
     print(dff_ica.shape,a_mix.shape)

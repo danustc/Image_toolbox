@@ -44,7 +44,7 @@ def ica_cell_rank(dff_data, i_component = 0):
 
 def ic_selector(dff_ica,dff):
     '''
-    http://www.biorxiv.org/content/early/2017/06/29/140418
+    select ic that have features in the designed time windows.
     '''
 
 

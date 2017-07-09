@@ -65,8 +65,8 @@ def group_varsplit(dff_data, arg_sv, var_contrast = 0.95):
     '''
     NT, NP = dff_data.shape
 
-    cov_sum = np.cov(dff_data[:,arg_sv].T)
-    cov_diag = np.diag(cov_sum) # the diagonal elements of the covariance matrix 
+    cov_diag = np.var(dff_data[:,arg_sv], axis = 0)
+    #cov_diag = np.diag(cov_sum) # the diagonal elements of the covariance matrix 
     cov_accumu = np.cumsum(cov_diag)  # the accumulated covariance.
     cut_ind = np.searchsorted(cov_accumu/cov_accumu[-1], var_contrast)
 
