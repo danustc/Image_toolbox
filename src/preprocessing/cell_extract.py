@@ -9,8 +9,8 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import matplotlib.pyplot as plt
-from src.preprocessing.tifffunc import read_tiff
-from src.preprocessing.Red_detect import redund_detect_merge
+from src.shared_funcs.tifffunc import read_tiff
+from src.preprocessing.red_detect import redund_detect_merge
 from skimage import filters
 from skimage.feature import blob_log
 from src.shared_funcs.numeric_funcs import circ_mask_patch
@@ -104,7 +104,7 @@ def stack_reextract(raw_stack, coords):
         cr = coords[nc,:2]
         dr = coords[nc,2]-1
         indm = circ_mask_patch((ny,nx), cr, dr)
-        real_sig[:,nc] = np.mean(raw_stack[:, indm])
+        real_sig[:,nc] = np.mean(raw_stack[:, indm], axis = 1)
 
     return real_sig
 
