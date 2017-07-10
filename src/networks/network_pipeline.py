@@ -12,6 +12,7 @@ import src.visualization.stat_present as stat_present
 from src.visualization.brain_navigation import region_view
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
+import src.networks.simple_variance as simple_variance
 import src.networks.noise_removal as noise_removal
 #from src.networks.temporal_sorting import time_window_section
 import matplotlib.pyplot as plt
@@ -22,6 +23,10 @@ class pipeline(object):
     '''
     Can I follow the design of inControl, name all the core data processing classes as pipeline?
     Purpose:    0. Load all the .npz files in a folder. These should all be T-slices
+    1. Do the sorting/cleaning if necessary.
+    2. Do the detailed analysis if necessary.
+    Conventions:    a. self.signal stores signals (either F or \Delta F/F) of all the extracted cells.
+                    b. self.cood stores the coordinates (in micron) of all the extracted cells. If coord has two columns, the 0th is y and the 1st is x; if coord has three columns, the order is z,y,x (instead of x,y,z, to be consistent with Python array dimension orders)
     '''
     def __init__(self, data, raw = True, dt=0.5):
         self._coord = None
@@ -78,6 +83,29 @@ class pipeline(object):
         '''
         pass # to be filled later
 
+    def _trim_data_(self, ind_kept):
+        '''
+        trim the data and keep the cells with indices ind_kept only.
+        '''
+        self.signal = self.signal[:,ind_kept]
+        self.coord = self.coord[ind_kept, :]
+
+    def dff_calc(self, ):
+
+
+
+
+    def svar_sorting(self, var_cut = 0.95):
+        '''
+        simple variance-based sorting
+        '''
+        crank, dvar = simple_variance.simvar_global_sort(self.signal)
+        sum_var = np.cumsum(dvar)
+        sum_var /= sum_var[-1]
+        n_cut = np.searchsorted(sum_var, var_cut)
+        self._trim_data_(crank[:n_cut])
+
+
     def shuffle_data(self, ind_shuffle = None):
         '''
         shuffle the signal orders and the coordinate orders so that the position is not biasing the groupwise pca output.
@@ -87,20 +115,7 @@ class pipeline(object):
             ind_shuffle = np.arange(NP)
             np.random.shuffle(ind_shuffle)
 
-        self.coord = self.coord[ind_shuffle, :]
-        self.signal = self.signal[:, ind_shuffle]
-        # Question: does self._data change in this way?
-
-
-    def dff_munging(self, fw = 4, nt = 10, filt = True):
-        '''
-        calculate the df_f over the whole data set and save it
-        '''
-        raw_signal = df_f.dff_raw(self.signal, ft_width = fw, ntruncate = nt)[0]
-        if filt:
-           self.signal, self.wd = df_f.dff_expfilt(raw_signal, dt = self.dt, t_width = 1.0)
-        else:
-           self.signal = raw_signal
+        self._trim_data_(ind_shuffle)
 
 
     def pca_layered_sorting(self,var_cut = 0.99, shuffle = True, verbose = True):
@@ -116,10 +131,10 @@ class pipeline(object):
         gpca.group_division()
         ipre, idis = gpca.subgroup_pca(verbose)
 
-        sig_head = self.signal[:,ipre].T
-        sig_tail = self.signal[:,idis].T
-        var_head = np.trace(np.cov(sig_head))
-        var_tail = np.trace(np.cov(sig_tail))
+        sig_head = self.signal[:,ipre]
+        sig_tail = self.signal[:,idis]
+        var_head = np.sum(np.var(sig_head, axis = 0))
+        var_tail = np.sum(np.var(sig_tail, axis = 0))
         cut_ratio = var_head/var_tail
 
         if verbose:
@@ -129,16 +144,16 @@ class pipeline(object):
 
         while(cut_ratio > var_ratio):
             print(ipre.size)
-            self.dff_cleaning(ipre) # after dff_cleaning, self.data is updated. 
+            self.dff_cleaning(ipre) # after dff_cleaning, self.signal is updated. 
             if shuffle:
                 self.shuffle_data()
             NT, NP = self.get_size()
             gpca.data = self.signal
             gpca.group_division()
             ipre, idis = gpca.subgroup_pca(fine_sort = True)
-            sig_head = self.signal[:,ipre].T
-            sig_tail = self.signal[:,idis].T
-            var_shift = np.trace(np.cov(sig_tail))
+            sig_head = self.signal[:,ipre]
+            sig_tail = self.signal[:,idis]
+            var_shift = np.sum(np.var(sig_tail, axis = 0))
             var_tail += var_shift
             var_head -= var_shift
             #var_head = np.trace(np.cov(sig_head))
@@ -196,24 +211,17 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    #raw_fname = global_datapath+'Jun13_A1_GCDA/'
-    raw_fname = global_datapath+'Jun13_B2_control/'
-    #raw_data = np.load(raw_fname + 'merged.npz')
+    raw_fname = global_datapath+'Jun13_A1_GCDA/'
     raw_data = np.load(raw_fname + 'ultra_cleaned.npz')
     ppl = pipeline(raw_data, raw = False)
-    #ppl.pca_layered_sorting(var_cut = 0.70)
-    cell_group = np.arange(200)
-    n_ica = 4
-    dff_ica, cell_ranks, n2_coeffs = ppl.ica_cell_rank(cell_group, n_components = n_ica)
+    cell_group = np.arange(1000)
+    n_ica = 10
+    dff_ica, a_mix, s_mean = ppl.ica_cell_rank(cell_group, n_components = n_ica)
     NT = dff_ica.shape[0]
-    print(n2_coeffs)
+    print(dff_ica.shape,a_mix.shape)
     dff_origin = ppl.get_cells_index(cell_group)[0][:1500]
-    #fig = stat_present.nature_style_dffplot(dff_origin, dt = 0.5, sc_bar = 0.50)
-    #fig.savefig(raw_fname+ 'active_2200-2300')
     figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
-    figr.savefig(raw_fname + 'raster_200')
-    #ppl.pca_layered_sorting(var_cut = 0.95)
-    #ppl.save_cleaned(raw_fname+'cleaned')
+    figr.savefig(raw_fname + 'raster_800')
     fig_ica = plt.figure(figsize = (6,4))
     ax = fig_ica.add_subplot(111)
     ax.plot(0.5*np.arange(NT)/60., dff_ica+np.arange(n_ica)*0.1)

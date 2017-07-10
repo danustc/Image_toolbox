@@ -42,17 +42,16 @@ def ica_cell_rank(dff_data, i_component = 0):
     return selected_IC, cell_rank
 
 
+def ic_selector(dff_ica,dff):
+    '''
+    select ic that have features in the designed time windows.
+    '''
+
+
 
 # ----------------------Test the ICA function----------------------
 def main():
-    TS_18 = np.load(global_datapath + 'Oct25_B3_TS18.npz')
-    TS_data_18 = TS_18['data']
-
-    dff_raw, f_base = df_f.dff_raw(TS_data_18, ft_width=4, ntruncate = 20)
-
-    dff_recon, a_mix = ica_dff(dff_raw[:, a_sorted[:70]],n_comp = 3)
-    figi = stat_present.ic_plot(dff_recon)
-    figi.savefig(global_datapath+'ica_test_70')
-
+    raw_fname = global_datapath + 'Jun13_A1_GCDA/'
+    raw_data = np.load(raw_fname + 'ultra_cleaned.npz')
 if __name__ == '__main__':
     main()

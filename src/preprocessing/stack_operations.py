@@ -141,6 +141,14 @@ def stack_section(raw_stack, px_position, view = 'z'):
     return im_section
 
 
+def reorient_tiff_general(imstack, axis = 0):
+    '''
+    general imstack rotation
+    '''
+    rot_stack = np.rot90()
+
+
+
 def reorient_tiff_RAS(imstack, fname):
     '''
     Reorient the image stack in the RAS coordinate system.

@@ -213,3 +213,11 @@ def ic_plot(sig_recon, dt = 0.5, ccode = None):
     plt.subplots_adjust(hspace = 0)
 
     return fig
+
+
+
+def ic_distribution(sig_recon, a_mix, ic):
+    '''
+    show the independent component distribution of ICs
+    '''
+    pass
