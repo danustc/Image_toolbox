@@ -50,14 +50,12 @@ def dff_expfilt(dff_r, dt, t_width = 2.0):
     """
     M = int(t_width/dt+1)*8 + 1 # the number of window
     wd = exponential(M, center=None, tau = t_width) # Symmetric = True
-
     NT, NP = dff_r.shape
+    wd_block = np.tile(wd, (NP,1)).T
     dff_expf = np.zeros([NT, NP])
     tt = np.arange(1,NT+1)*dt
     denom_filter = (1-np.exp(-tt/t_width))*t_width # the denominator
-    for cp in range(NP):
-        numer_filter = fftconvolve(dff_r[:,cp], wd, mode='same')*dt
-        dff_expf[:,cp] = numer_filter/denom_filter
+    dff_expf = (fftconvolve(dff_r, wd_block, mode='same').T/denom_filter).T*dt
 
     return dff_expf, wd
     # done with dff_expf

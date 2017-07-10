@@ -175,7 +175,7 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 
 # ---------------------------Below is the testing function ---------------------
 def main():
-    relative_path = 'Dec07_2016_B1_FB/'
+    relative_path = 'Nov15_2016_A1/'
     full_path = global_datapath + relative_path
     #raw_fname = global_datapath + relative_path + 'rg_A2_TS_Compare_ZP_21.npz'
     #tszd_fname = global_datapath + relative_path + 'TS2ZD_21.txt'

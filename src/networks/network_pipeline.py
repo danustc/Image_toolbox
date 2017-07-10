@@ -83,12 +83,27 @@ class pipeline(object):
         '''
         pass # to be filled later
 
+    def _trim_data_(self, ind_kept):
+        '''
+        trim the data and keep the cells with indices ind_kept only.
+        '''
+        self.signal = self.signal[:,ind_kept]
+        self.coord = self.coord[ind_kept, :]
+
+    def dff_calc(self, ):
+
+
+
 
     def svar_sorting(self, var_cut = 0.95):
         '''
         simple variance-based sorting
         '''
-        simple_variance.simvar_global_sort(self.signal)
+        crank, dvar = simple_variance.simvar_global_sort(self.signal)
+        sum_var = np.cumsum(dvar)
+        sum_var /= sum_var[-1]
+        n_cut = np.searchsorted(sum_var, var_cut)
+        self._trim_data_(crank[:n_cut])
 
 
     def shuffle_data(self, ind_shuffle = None):
@@ -100,20 +115,7 @@ class pipeline(object):
             ind_shuffle = np.arange(NP)
             np.random.shuffle(ind_shuffle)
 
-        self.coord = self.coord[ind_shuffle, :]
-        self.signal = self.signal[:, ind_shuffle]
-        # Question: does self._data change in this way?
-
-
-    def dff_munging(self, fw = 4, nt = 10, filt = True):
-        '''
-        calculate the df_f over the whole data set and save it
-        '''
-        raw_signal = df_f.dff_raw(self.signal, ft_width = fw, ntruncate = nt)[0]
-        if filt:
-           self.signal, self.wd = df_f.dff_expfilt(raw_signal, dt = self.dt, t_width = 1.0)
-        else:
-           self.signal = raw_signal
+        self._trim_data_(ind_shuffle)
 
 
     def pca_layered_sorting(self,var_cut = 0.99, shuffle = True, verbose = True):
