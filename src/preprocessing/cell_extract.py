@@ -104,7 +104,8 @@ def stack_reextract(raw_stack, coords):
         cr = coords[nc,:2]
         dr = coords[nc,2]-1
         indm = circ_mask_patch((ny,nx), cr, dr)
-        real_sig[:,nc] = np.mean(raw_stack[:, indm], axis = 1)
+        print(indm[0]).shape
+        real_sig[:,nc] = np.mean(raw_stack[:, indm[0],indm[1]], axis = 1)
 
     return real_sig
 

@@ -1,12 +1,11 @@
 '''
 A small pipeline for network analysis. Added by Dan on 06/18/2017.
-Last update: 06/21/2017.
+Last update: 07/11/2017.
 '''
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import numpy as np
-import src.dynamics.df_f as df_f # the functions of calculating dff
 from src.shared_funcs.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
 from src.visualization.brain_navigation import region_view
@@ -17,7 +16,7 @@ import src.networks.noise_removal as noise_removal
 #from src.networks.temporal_sorting import time_window_section
 import matplotlib.pyplot as plt
 
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/'
 
 class pipeline(object):
     '''
@@ -28,25 +27,20 @@ class pipeline(object):
     Conventions:    a. self.signal stores signals (either F or \Delta F/F) of all the extracted cells.
                     b. self.cood stores the coordinates (in micron) of all the extracted cells. If coord has two columns, the 0th is y and the 1st is x; if coord has three columns, the order is z,y,x (instead of x,y,z, to be consistent with Python array dimension orders)
     '''
-    def __init__(self, data, raw = True, dt=0.5):
+    def __init__(self, data, dt=0.5):
         self._coord = None
         self._signal = None
         self.dt = dt
         self.parse_data(data)
-        if raw:
-            self.dff_munging()
 
     def parse_data(self, data):
         try:
             self.coord = data['coord']
             try:
-                self.signal = data['data']
+                self.signal = data['signal']
             except KeyError:
-                try:
-                    self.signal = data['signal']
-                except KeyError:
-                    print("No signal data stored in the file!")
-                    sys.exit(1)
+                print("No signal data stored in the file!")
+                sys.exit(1)
         except KeyError:
             print('Wrong data!')
             self.coord = None
@@ -90,9 +84,12 @@ class pipeline(object):
         self.signal = self.signal[:,ind_kept]
         self.coord = self.coord[ind_kept, :]
 
-    def dff_calc(self, ):
-
-
+    def time_truncate(self, t_trunc = 10):
+        '''
+        trim the first t_trunc seconds.
+        '''
+        n_trunc = int(t_trunc/self.dt)
+        self.signal = self.signal[n_trunc:]
 
 
     def svar_sorting(self, var_cut = 0.95):
@@ -100,9 +97,12 @@ class pipeline(object):
         simple variance-based sorting
         '''
         crank, dvar = simple_variance.simvar_global_sort(self.signal)
+        print(dvar)
         sum_var = np.cumsum(dvar)
         sum_var /= sum_var[-1]
+        print(sum_var)
         n_cut = np.searchsorted(sum_var, var_cut)
+        print(n_cut)
         self._trim_data_(crank[:n_cut])
 
 
@@ -211,17 +211,29 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    raw_fname = global_datapath+'Jun13_A1_GCDA/'
-    raw_data = np.load(raw_fname + 'ultra_cleaned.npz')
-    ppl = pipeline(raw_data, raw = False)
-    cell_group = np.arange(1000)
-    n_ica = 10
+    raw_fname = global_datapath+'Nov15_2016_A1/'
+    raw_data = np.load(raw_fname + 'merged_dff.npz')
+    ppl = pipeline(raw_data)
+    print("Original data size:", ppl.get_size())
+    ppl.svar_sorting(var_cut = 0.999)
+    #ppl.time_truncate(10)
+    print("Cleaned data size:", ppl.get_size())
+    n_ica = 6
+    n_raster = 100
+    cell_group = np.arange(n_raster)
     dff_ica, a_mix, s_mean = ppl.ica_cell_rank(cell_group, n_components = n_ica)
     NT = dff_ica.shape[0]
-    print(dff_ica.shape,a_mix.shape)
-    dff_origin = ppl.get_cells_index(cell_group)[0][:1500]
+    dff_origin = ppl.get_cells_index(cell_group)[0]
+    n_active = 15
+    fign = stat_present.nature_style_dffplot(ppl.signal[:,:n_active], dt = 0.5, sc_bar = 0.5)
+    fign.savefig(raw_fname + 'most_active_'+ str(n_active))
+    plt.close()
+
+    fign = stat_present.nature_style_dffplot(ppl.signal[:,-n_active:], dt = 0.5, sc_bar = 0.10)
+    fign.savefig(raw_fname + 'least_active_'+ str(n_active))
+
     figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
-    figr.savefig(raw_fname + 'raster_800')
+    figr.savefig(raw_fname + 'raster_' + str(n_raster))
     fig_ica = plt.figure(figsize = (6,4))
     ax = fig_ica.add_subplot(111)
     ax.plot(0.5*np.arange(NT)/60., dff_ica+np.arange(n_ica)*0.1)

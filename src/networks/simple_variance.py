@@ -29,7 +29,7 @@ def simvar_global_sort(dff_raw):
     '''
     dvar = -np.var(dff_raw, axis = 0) # calculate the negative variance
     crank = np.argsort(dvar)
-    return crank, -dvar
+    return crank, -dvar[crank]
 
 
 

@@ -175,7 +175,7 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 
 # ---------------------------Below is the testing function ---------------------
 def main():
-    relative_path = 'Nov15_2016_A1/'
+    relative_path = 'Dec07_2016_B1/'
     full_path = global_datapath + relative_path
     #raw_fname = global_datapath + relative_path + 'rg_A2_TS_Compare_ZP_21.npz'
     #tszd_fname = global_datapath + relative_path + 'TS2ZD_21.txt'
@@ -185,6 +185,8 @@ def main():
     #trans_21['data'] = fluo
     afc_merge, fluo_merge = cross_align_folder(full_path)
     compiled_data = data_integrate(afc_merge, fluo_merge)
+    print(compiled_data.keys())
+    print(full_path)
     np.savez(full_path+'merged', **compiled_data)
 
 if __name__ == '__main__':

@@ -7,7 +7,6 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import matplotlib.pyplot as plt
-import src.dynamics.df_f as df_f
 import src.visualization.stat_present as stat_present
 from sklearn.decomposition import FastICA, PCA
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
