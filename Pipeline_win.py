@@ -11,9 +11,9 @@ import sys
 import glob
 import numpy as np
 sys.path.append(package_path)
-import src.preprocessing.tifffunc as tifffunc
+import src.shared_funcs.tifffunc as tifffunc
 
-from src.Cell_extract import *
+from src.preprocessing.cell_extract import *
 
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -237,11 +237,11 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_rootpath ='D:\Data/2017-05-22\\'
-    folder_list = glob.glob(data_rootpath+"/B4*\\")
+    data_rootpath ='D:\Data/2017-06-27/A1_GCDA\\'
+    folder_list = glob.glob(data_rootpath+"/A1*TS*\\")
     for data_path in folder_list:
         print(data_path)
-        pt = pipeline_tstacks(data_path, fname_flags = 'ZP')
+        pt = pipeline_tstacks(data_path, fname_flags = 'rg')
         pt.run_pipeline([5,10,15,20])
     #pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
     #pt.run_pipeline([5,10,15,20])
