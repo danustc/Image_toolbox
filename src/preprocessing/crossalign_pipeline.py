@@ -171,22 +171,21 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 
         compiled_data = {'coord': coor_3d, 'data': data_3d}
         return compiled_data
+        # done with data_integrate
+
 
 
 # ---------------------------Below is the testing function ---------------------
 def main():
-    relative_path = 'Dec07_2016_B1/'
+    relative_path = 'Nov01_2016_A1/'
     full_path = global_datapath + relative_path
-    #raw_fname = global_datapath + relative_path + 'rg_A2_TS_Compare_ZP_21.npz'
-    #tszd_fname = global_datapath + relative_path + 'TS2ZD_21.txt'
-    #afc, fluo = Coord_read_transform(tszd_fname, raw_fname)
-    #trans_21 = dict()
-    #trans_21['xy'] = afc
-    #trans_21['data'] = fluo
+    #portable_root = '/media/sillycat/DanData/HQFB_redundancy_removed/'
+    #portable_individual = 'May22_2017_B4/'
+    #full_path = portable_root + portable_individual
     afc_merge, fluo_merge = cross_align_folder(full_path)
     compiled_data = data_integrate(afc_merge, fluo_merge)
-    print(compiled_data.keys())
-    print(full_path)
+    compiled_data['edge_ind'] = it_discard
+
     np.savez(full_path+'merged', **compiled_data)
 
 if __name__ == '__main__':

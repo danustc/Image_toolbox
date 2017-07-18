@@ -1,6 +1,6 @@
 '''
 Created on 04/30/2017 by Dan, the visualization tools of statistical learning results of the data.
-Last update: 06/19/2017
+Last update: 07/12/2017
 '''
 
 import sys
@@ -128,7 +128,7 @@ def pc_component_grid(V, npc = 3):
     return fig
 
 
-def nature_style_dffplot(dff_data, dt = 0.8, sc_bar = 0.25):
+def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
     """
     Present delta F/F data in nature style
     """
@@ -198,8 +198,11 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm'):
     return fig
 
 
-def ic_plot(sig_recon, dt = 0.5, ccode = None):
-    NT, NC = sig_recon.shape # number of time points and independent components
+def ic_plot(ic_components, dt = 0.5, ccode = None):
+    '''
+    plot independent components
+    '''
+    NT, NC = ic_components.shape # number of time points and independent components
     fig, axes = plt.subplots(figsize = (8, 1.5*NC+0.5), nrows = NC, ncols = 1)
     for icon in range(NC):
         arow = axes[icon]

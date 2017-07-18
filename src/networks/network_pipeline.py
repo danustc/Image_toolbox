@@ -12,11 +12,11 @@ from src.visualization.brain_navigation import region_view
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
 import src.networks.simple_variance as simple_variance
-import src.networks.noise_removal as noise_removal
-#from src.networks.temporal_sorting import time_window_section
+from src.networks.noise_removal import coord_edgeclean
 import matplotlib.pyplot as plt
 
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/'
+global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+portable_datapath = '/media/sillycat/DanData/HQFB_redundancy_removed/'
 
 class pipeline(object):
     '''
@@ -169,7 +169,28 @@ class pipeline(object):
         self.shuffle_data(ind_shuffle = a_sorted) #rank cell by the final activities
         if verbose:
             print("Final data dimension:", self.get_size())
+        # end of pca_layered sorting 
 
+
+    def edge_truncate(self, edge_width = 10.0, verbose = True):
+        # cut the edges of the dataset, edge_width unit: microns
+        coord = self.coord
+        px_max = np.max(coord, axis = 0)
+        if verbose:
+            print(px_max)
+            print("Initial data dimension:", self.get_size())
+        ix_left = coord_edgeclean(coord, edge_width, 'x', -1)
+        ix_right = coord_edgeclean(coord, px_max[-1]-edge_width, 'x',1)
+        iy_up = coord_edgeclean(coord, edge_width, 'y', -1)
+        iy_down = coord_edgeclean(coord, px_max[1]-edge_width, 'y', 1)
+        ix_discard = np.union1d(ix_left, ix_right)
+        iy_discard = np.union1d(iy_up, iy_down)
+        it_discard = np.union1d(ix_discard, iy_discard)
+        self.coord = np.delete(self.coord, it_discard, axis = 0)
+        self.signal = np.delete(self.signal, it_discard, axis = 1)
+        if verbose:
+            print("Removed", it_discard.size, "edge neurons")
+            print("Final data dimension:", self.get_size())
 
 
     def dff_cleaning(self, ipreserve):
@@ -211,35 +232,42 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    raw_fname = global_datapath+'Nov15_2016_A1/'
+    raw_fname = global_datapath+'HQ/Dec07_2016_B1/'
     raw_data = np.load(raw_fname + 'merged_dff.npz')
     ppl = pipeline(raw_data)
     print("Original data size:", ppl.get_size())
     ppl.svar_sorting(var_cut = 0.999)
     #ppl.time_truncate(10)
     print("Cleaned data size:", ppl.get_size())
-    n_ica = 6
-    n_raster = 100
-    cell_group = np.arange(n_raster)
-    dff_ica, a_mix, s_mean = ppl.ica_cell_rank(cell_group, n_components = n_ica)
-    NT = dff_ica.shape[0]
-    dff_origin = ppl.get_cells_index(cell_group)[0]
-    n_active = 15
+    ppl.edge_truncate()
+    n_ica = 5
+    n_active = 20
+    coord_mostactive = ppl.coord[:n_active,:]
+    print(coord_mostactive)
     fign = stat_present.nature_style_dffplot(ppl.signal[:,:n_active], dt = 0.5, sc_bar = 0.5)
     fign.savefig(raw_fname + 'most_active_'+ str(n_active))
     plt.close()
-
     fign = stat_present.nature_style_dffplot(ppl.signal[:,-n_active:], dt = 0.5, sc_bar = 0.10)
     fign.savefig(raw_fname + 'least_active_'+ str(n_active))
+    plt.close()
+    # raster-plot the most active cells and do ica
+    n_group = 5
+    n_raster = 100
+    for ix in range(n_group):
+        cell_group = np.arange(n_raster)+ix*n_raster
+        dff_ica, a_mix, s_mean = ppl.ica_cell_rank(cell_group, n_components = n_ica)
+        NT = dff_ica.shape[0]
+        dff_origin = ppl.get_cells_index(cell_group)[0]
+        figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
+        figr.savefig(raw_fname + 'raster_' + 'g'+ str(ix)+ '_'+ str(n_raster))
 
-    figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
-    figr.savefig(raw_fname + 'raster_' + str(n_raster))
-    fig_ica = plt.figure(figsize = (6,4))
-    ax = fig_ica.add_subplot(111)
-    ax.plot(0.5*np.arange(NT)/60., dff_ica+np.arange(n_ica)*0.1)
-    ax.set_xlabel('Time (min)', fontsize = 12)
-    plt.tight_layout()
-    fig_ica.savefig(raw_fname + 'ica_'+str(n_ica))
+        fig_ica = plt.figure(figsize = (6,4))
+        ax = fig_ica.add_subplot(111)
+        ax.plot(0.5*np.arange(NT)/60., dff_ica+np.arange(n_ica)*0.1)
+        ax.set_xlabel('Time (min)', fontsize = 12)
+        plt.tight_layout()
+        fig_ica.savefig(raw_fname + 'ica_'+str(n_ica) + '_g' + str(ix))
+        plt.close()
 
 
 

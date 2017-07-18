@@ -8,7 +8,8 @@ import numpy as np
 from df_f import *
 
 
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/'
+global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+portable_datapath = '/media/sillycat/DanData/HQFB_redundancy_removed/'
 # ---------------------Below are small functions for data cleaning -------------
 
 def raw2dff_clean(raw_fname, dff_flag = 'dff', dt = 0.5, t_width = 1.5, saveraw = False):
@@ -29,7 +30,7 @@ def raw2dff_clean(raw_fname, dff_flag = 'dff', dt = 0.5, t_width = 1.5, saveraw 
 #------------------------------The main test function ---------------------
 
 def main():
-    folder_list = glob.glob(global_datapath+'*')
+    folder_list = glob.glob(portable_datapath+'May22*')
     for folder in folder_list:
         raw_fname = folder + '/merged.npz'
         raw2dff_clean(raw_fname, saveraw = False)
