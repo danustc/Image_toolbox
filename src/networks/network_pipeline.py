@@ -84,28 +84,6 @@ class pipeline(object):
         self.signal = self.signal[:,ind_kept]
         self.coord = self.coord[ind_kept, :]
 
-    def time_truncate(self, t_trunc = 10):
-        '''
-        trim the first t_trunc seconds.
-        '''
-        n_trunc = int(t_trunc/self.dt)
-        self.signal = self.signal[n_trunc:]
-
-
-    def svar_sorting(self, var_cut = 0.95):
-        '''
-        simple variance-based sorting
-        '''
-        crank, dvar = simple_variance.simvar_global_sort(self.signal)
-        print(dvar)
-        sum_var = np.cumsum(dvar)
-        sum_var /= sum_var[-1]
-        print(sum_var)
-        n_cut = np.searchsorted(sum_var, var_cut)
-        print(n_cut)
-        self._trim_data_(crank[:n_cut])
-
-
     def shuffle_data(self, ind_shuffle = None):
         '''
         shuffle the signal orders and the coordinate orders so that the position is not biasing the groupwise pca output.
@@ -144,7 +122,7 @@ class pipeline(object):
 
         while(cut_ratio > var_ratio):
             print(ipre.size)
-            self.dff_cleaning(ipre) # after dff_cleaning, self.signal is updated. 
+            self._trim_data_(ipre) # after trim_data, self.signal is updated. 
             if shuffle:
                 self.shuffle_data()
             NT, NP = self.get_size()
@@ -171,36 +149,6 @@ class pipeline(object):
             print("Final data dimension:", self.get_size())
         # end of pca_layered sorting 
 
-
-    def edge_truncate(self, edge_width = 10.0, verbose = True):
-        # cut the edges of the dataset, edge_width unit: microns
-        coord = self.coord
-        px_max = np.max(coord, axis = 0)
-        if verbose:
-            print(px_max)
-            print("Initial data dimension:", self.get_size())
-        ix_left = coord_edgeclean(coord, edge_width, 'x', -1)
-        ix_right = coord_edgeclean(coord, px_max[-1]-edge_width, 'x',1)
-        iy_up = coord_edgeclean(coord, edge_width, 'y', -1)
-        iy_down = coord_edgeclean(coord, px_max[1]-edge_width, 'y', 1)
-        ix_discard = np.union1d(ix_left, ix_right)
-        iy_discard = np.union1d(iy_up, iy_down)
-        it_discard = np.union1d(ix_discard, iy_discard)
-        self.coord = np.delete(self.coord, it_discard, axis = 0)
-        self.signal = np.delete(self.signal, it_discard, axis = 1)
-        if verbose:
-            print("Removed", it_discard.size, "edge neurons")
-            print("Final data dimension:", self.get_size())
-
-
-    def dff_cleaning(self, ipreserve):
-        '''
-        clean the dataset by sorting the preserved indices
-        '''
-        new_signal = self.signal[:,ipreserve]
-        new_coord = self.coord[ipreserve, :] # select coordinates and signals
-        self.signal = new_signal
-        self.coord = new_coord
 
 
     def save_cleaned(self, save_path):
