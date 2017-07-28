@@ -1,18 +1,18 @@
 '''
 A small pipeline for network analysis. Added by Dan on 06/18/2017.
-Last update: 07/11/2017.
+Last update: 07/27/2017.
 '''
+print(__doc__)
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
+import glob
 import numpy as np
 from src.shared_funcs.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
-from src.visualization.brain_navigation import region_view
+import src.networks.clustering as clustering
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
-import src.networks.simple_variance as simple_variance
-from src.networks.noise_removal import coord_edgeclean
 import matplotlib.pyplot as plt
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
@@ -149,8 +149,6 @@ class pipeline(object):
             print("Final data dimension:", self.get_size())
         # end of pca_layered sorting 
 
-
-
     def save_cleaned(self, save_path):
         '''
         Compile a dictionary and save it
@@ -165,13 +163,12 @@ class pipeline(object):
     def ica_cell_rank(self, cell_group= 10, n_components = 4):
         '''
         given that the data is already cleaned. Perform ica to evaluate the individual components
+        the mixing matrix is returned
         '''
         selected_signal = self.signal[:,cell_group]
         dff_ica, a_mix, s_mean = ica_sorting.ica_dff(selected_signal, n_comp = n_components)
-        a_n2 = a_mix**2
-        cell_ranks = np.argsort(a_n2, axis = 0) # importance of cells in each ic
-        n2_coeffs = a_n2.sum(axis = 0)
-        return dff_ica, cell_ranks, n2_coeffs
+        return dff_ica, a_mix
+
 
 
 
@@ -180,44 +177,40 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    raw_fname = global_datapath+'HQ/Dec07_2016_B1/'
-    raw_data = np.load(raw_fname + 'merged_dff.npz')
-    ppl = pipeline(raw_data)
-    print("Original data size:", ppl.get_size())
-    ppl.svar_sorting(var_cut = 0.999)
-    #ppl.time_truncate(10)
-    print("Cleaned data size:", ppl.get_size())
-    ppl.edge_truncate()
     n_ica = 5
-    n_active = 20
-    coord_mostactive = ppl.coord[:n_active,:]
-    print(coord_mostactive)
-    fign = stat_present.nature_style_dffplot(ppl.signal[:,:n_active], dt = 0.5, sc_bar = 0.5)
-    fign.savefig(raw_fname + 'most_active_'+ str(n_active))
-    plt.close()
-    fign = stat_present.nature_style_dffplot(ppl.signal[:,-n_active:], dt = 0.5, sc_bar = 0.10)
-    fign.savefig(raw_fname + 'least_active_'+ str(n_active))
-    plt.close()
-    # raster-plot the most active cells and do ica
-    n_group = 5
-    n_raster = 100
-    for ix in range(n_group):
-        cell_group = np.arange(n_raster)+ix*n_raster
-        dff_ica, a_mix, s_mean = ppl.ica_cell_rank(cell_group, n_components = n_ica)
-        NT = dff_ica.shape[0]
-        dff_origin = ppl.get_cells_index(cell_group)[0]
-        figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
-        figr.savefig(raw_fname + 'raster_' + 'g'+ str(ix)+ '_'+ str(n_raster))
-
-        fig_ica = plt.figure(figsize = (6,4))
-        ax = fig_ica.add_subplot(111)
-        ax.plot(0.5*np.arange(NT)/60., dff_ica+np.arange(n_ica)*0.1)
-        ax.set_xlabel('Time (min)', fontsize = 12)
-        plt.tight_layout()
-        fig_ica.savefig(raw_fname + 'ica_'+str(n_ica) + '_g' + str(ix))
+    n_active = 50
+    n_group = 6
+    n_raster = 200
+    folder_list = glob.glob(global_datapath + 'HQ/*')
+    for work_folder in folder_list:
+        raw_dff = np.load(work_folder + '/merged_dff.npz')
+        ppl = pipeline(raw_dff)
+        coord_mostactive = ppl.coord[:n_active,:] # The coordinates of the most active cells
+        print(coord_mostactive)
+        sc_most = np.max(ppl.signal[:,0])/4.0
+        fign = stat_present.nature_style_dffplot(ppl.signal[:,:n_active], dt = 0.5, sc_bar = sc_most)
+        fign.savefig(work_folder+ '/most_active_'+ str(n_active))
         plt.close()
 
+        fign = stat_present.nature_style_dffplot(ppl.signal[:,-n_active:], dt = 0.5, sc_bar = 0.10)
+        fign.savefig(work_folder+ '/least_active_'+ str(n_active))
+        plt.close()
+        # raster-plot the most active cells and do ica
+        for ix in range(n_group):
+            cell_group = np.arange(n_raster)+ix*n_raster
+            dff_ica, a_mix = ppl.ica_cell_rank(cell_group, n_components = n_ica)
+            NT = dff_ica.shape[0]
+            dff_origin = ppl.get_cells_index(cell_group)[0]
+            figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
+            figr.savefig(work_folder+ '/raster_' + 'g'+ str(ix)+ '_'+ str(n_raster))
+            plt.close()
+            fig_ica = stat_present.ic_plot(dff_ica)
+            fig_ica.savefig(work_folder + '/ica_'+str(n_ica) + '_g' + str(ix))
+            plt.close()
 
+            # clustering of a_mix
+            figc = clustering.dis2cluster(a_mix)
+            figc.savefig(work_folder+'/ic_cluster_'+str(n_ica)+ '-g' + str(ix))
 
 
 if __name__ == '__main__':

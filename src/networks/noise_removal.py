@@ -38,7 +38,6 @@ def coord_edgeclean(coord_3d, edge_pos, dim = 'x', direct = 1):
     elif dim == 'y':
         c_list = coord_3d[:,1] # take out the second column
 
-    print(c_list.shape)
     if direct ==1:
         ind_discard = np.where(c_list > edge_pos)[0]
     else:

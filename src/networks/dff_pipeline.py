@@ -29,6 +29,7 @@ def raw2dff_clean(raw_loaded, dff_flag = 'dff', dt = 0.5, t_width = 1.5, saveraw
     dff_fname = os.path.basename(raw_fname).split('.')[0]+ '_' + dff_flag
     np.savez(folder_path + dff_fname, **f_dic)
 
+# ---------------------Below is the main pipeline class
 
 class pipeline(object):
     '''
@@ -83,6 +84,9 @@ class pipeline(object):
         self._coord = new_coord
     # ---------------------Below are the analyzing functions-------------------
 
+    def get_size(self):
+        return self.signal.shape
+
     def _trim_data_(self, ind_trim ):
         self.signal = self.signal[:,ind_trim]
         self.coord = self.coord[ind_trim,:]
@@ -97,7 +101,7 @@ class pipeline(object):
         self.rawf = self.rawf[n_trunc:]
 
 
-    def dff_calc(self, ft_width = 20, filt = True):
+    def dff_calc(self, ft_width = 6, filt = True):
         dffr = dff_raw(self.rawf, ft_width, ntruncate = 20)
         if filt:
             self.signal = dff_expfilt_group(dffr, self.dt, 1.5)
@@ -109,18 +113,17 @@ class pipeline(object):
         simple variance-based sorting
         '''
         crank, dvar = simple_variance.simvar_global_sort(self.signal)
-        print(dvar)
         sum_var = np.cumsum(dvar)
         sum_var /= sum_var[-1]
         n_cut = np.searchsorted(sum_var, var_cut)
         self._trim_data_(crank[:n_cut])
+
 
     def edge_truncate(self, edge_width = 10.0, verbose = True):
         # cut the edges of the dataset, edge_width unit: microns
         coord = self.coord
         px_max = np.max(coord, axis = 0)
         if verbose:
-            print(px_max)
             print("Initial data dimension:", self.get_size())
         ix_left = coord_edgeclean(coord, edge_width, 'x', -1)
         ix_right = coord_edgeclean(coord, px_max[-1]-edge_width, 'x',1)
@@ -131,6 +134,7 @@ class pipeline(object):
         it_discard = np.union1d(ix_discard, iy_discard)
         self.coord = np.delete(self.coord, it_discard, axis = 0)
         self.signal = np.delete(self.signal, it_discard, axis = 1)
+        self.rawf = np.delete(self.rawf, it_discard, axis = 1)
         if verbose:
             print("Removed", it_discard.size, "edge neurons")
             print("Final data dimension:", self.get_size())
@@ -148,10 +152,18 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main():
-    folder_list = glob.glob(portable_datapath+'May22*')
+    #folder_list = glob.glob(portable_datapath+'May22*')
+    folder_list = glob.glob(global_datapath+'HQ/*')
     for folder in folder_list:
+        folder_date = os.path.basename(os.path.normpath(folder))
+        print(folder_date)
         raw_fname = folder + '/merged.npz'
-        raw2dff_clean(raw_fname, saveraw = False)
+        raw_data = np.load(raw_fname)
+        ppl = pipeline(raw_data)
+        ppl.edge_truncate(edge_width = 10.0)
+        ppl.dff_calc(ft_width = 6, filt = True)
+        ppl.svar_sorting(var_cut = 0.99)
+        ppl.save_cleaned(folder+'/'+folder_date+'_merged_dff.npz')
         print("Finished processing:", folder.split('/')[-1])
 
 
