@@ -153,14 +153,14 @@ class pipeline(object):
 
 def main():
     #folder_list = glob.glob(portable_datapath+'May22*')
-    folder_list = glob.glob(global_datapath+'HQ/*')
+    folder_list = glob.glob(global_datapath+'Jun13_A1*')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)
         raw_fname = folder + '/merged.npz'
         raw_data = np.load(raw_fname)
         ppl = pipeline(raw_data)
-        ppl.edge_truncate(edge_width = 10.0)
+        ppl.edge_truncate(edge_width = 5.0)
         ppl.dff_calc(ft_width = 6, filt = True)
         ppl.svar_sorting(var_cut = 0.99)
         ppl.save_cleaned(folder+'/'+folder_date+'_merged_dff.npz')

@@ -8,7 +8,8 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import matplotlib.pyplot as plt
 import src.visualization.stat_present as stat_present
-from sklearn.decomposition import FastICA, PCA
+import src.networks.clustering as clustering
+from sklearn.decomposition import FastICA
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
 
@@ -29,28 +30,31 @@ def ica_dff(dff_data, n_comp = 4, stdize = False):
     return dff_ica , a_mix, s_mean
 
 
-def ica_cell_rank(dff_data, i_component = 0):
-    '''
-    perform ica analysis and evaluate the
-    Warning: this function is highly redundant
-    '''
-    NT, NP = dff_data.shape
-    dff_ica, a_mix, s_mean = ica_dff(dff_data, ncomp = NP)
-    selected_IC = dff_ica[:,i_component]
-    cell_rank = np.argsort(a_mix[:, i_component]**2) # cell contribution to the ICs
-    return selected_IC, cell_rank
-
-
-def ic_selector(dff_ica,dff):
-    '''
-    select ic that have features in the designed time windows.
-    '''
-
-
 
 # ----------------------Test the ICA function----------------------
 def main():
+    n_ica = 3
     raw_fname = global_datapath + 'Jun13_A1_GCDA/'
-    raw_data = np.load(raw_fname + 'ultra_cleaned.npz')
+    dff_data = np.load(raw_fname + 'merged_dff.npz')
+    dff_signal = dff_data['signal']
+    dff_ica, a_mix, s_mean = ica_dff(dff_signal[:,:50], n_comp = n_ica)
+
+    figc, R = clustering.dis2cluster(a_mix, p_levels = 1, yield_z = True)
+    figc.savefig(raw_fname+'/ic_cluster_'+str(n_ica))
+    pid = np.array(R['icoord'])
+    pdd = np.array(R['dcoord'])
+    pco = np.array(R['color_list'])
+    print(pid[:10])
+    print(pdd[:10])
+    print(pco[:10])
+    leaves = R['leaves']
+    print(leaves)
+    figi = stat_present.ic_plot(dff_ica, dt = 0.5)
+    figi.savefig(raw_fname+'/ic_'+str(n_ica))
+
+    figs = stat_present.component_scatter_matrix(a_mix)
+    figs.savefig(raw_fname+'/ic_scatter_'+str(n_ica))
+    ind_list = clustering.subtree()
+
 if __name__ == '__main__':
     main()
