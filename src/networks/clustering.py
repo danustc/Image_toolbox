@@ -8,6 +8,8 @@ from scipy.cluster.hierarchy import dendrogram, linkage, cophenet
 from scipy.spatial.distance import pdist
 import matplotlib.pyplot as plt
 
+Z_dic = {'L':0, 'R':1}
+
 def dis2cluster(dataset, p_levels = None, yield_z = False):
 
 
@@ -32,28 +34,28 @@ def dis2cluster(dataset, p_levels = None, yield_z = False):
 
 def subtree(zmat, N, side = 'L'):
     '''
-    recursive searching of subtrees.
+    recursive searching of subtrees from a linkage matrix
+    OK this works!
     '''
-    ind_list = []
+    print(side)
     if zmat.size ==4:
-        if side =='L':
-            return [zmat[0]]
-        else:
-            return [zmat[1]]
+        return [int(zmat[0, Z_dic[side]])]
     else:
-
-        if side =='L':
-            zind = zmat[-1, 0]
+        nm = zmat[-1,3] # the multiplicity
+        if nm ==2:
+            return [int(zmat[-1, Z_dic[side]])]
         else:
-            zind = zmat[-1, 1] # get the index of subtrees
+            ind_list = []
+            zind = int(zmat[-1, Z_dic[side]])
 
-        if zind < N:
-            ind_list +=[zind]
-        else:
-            ind_list +=subtree(zmat[:zind-N], N, 'L')
-            ind_list +=subtree(zmat[:zind-N], N, 'R')
+            if zind < N:
+                return [zind]
+            else:
+                ind_list +=subtree(zmat[:zind-N+1], N, 'L')
+                ind_list +=subtree(zmat[:zind-N+1], N, 'R')
 
-        return ind_list
+            return ind_list
+    # -------------------end of subtree
 
 
 
