@@ -6,7 +6,6 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import numpy as np
-import src.dynamics.df_f as df_f # the functions of calculating dff
 from src.shared_funcs.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
 from src.visualization.brain_navigation import region_view
