@@ -10,6 +10,7 @@ import glob
 import numpy as np
 from src.shared_funcs.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
+import src.visualization.signal_plot as signal_plot
 import src.networks.clustering as clustering
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
@@ -177,8 +178,8 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    n_ica = 5
-    n_active = 50
+    n_ica = 4
+    n_active = 20
     n_group = 6
     n_raster = 200
     folder_list = glob.glob(global_datapath + 'HQ/*')
@@ -188,29 +189,36 @@ def main():
         coord_mostactive = ppl.coord[:n_active,:] # The coordinates of the most active cells
         print(coord_mostactive)
         sc_most = np.max(ppl.signal[:,0])/4.0
-        fign = stat_present.nature_style_dffplot(ppl.signal[:,:n_active], dt = 0.5, sc_bar = sc_most)
+        fign = signal_plot.nature_style_dffplot(ppl.signal[:,:n_active], dt = 0.5, sc_bar = sc_most)
         fign.savefig(work_folder+ '/most_active_'+ str(n_active))
         plt.close()
 
-        fign = stat_present.nature_style_dffplot(ppl.signal[:,-n_active:], dt = 0.5, sc_bar = 0.10)
+        fign = signal_plot.nature_style_dffplot(ppl.signal[:,-n_active:], dt = 0.5, sc_bar = 0.10)
         fign.savefig(work_folder+ '/least_active_'+ str(n_active))
         plt.close()
         # raster-plot the most active cells and do ica
         for ix in range(n_group):
             cell_group = np.arange(n_raster)+ix*n_raster
-            dff_ica, a_mix = ppl.ica_cell_rank(cell_group, n_components = n_ica)
+            #dff_ica, a_mix = ppl.ica_cell_rank(cell_group, n_components = n_ica)
+            dff_ica, a_mix, s_mean = ica_sorting.ica_dff(ppl.signal[:,cell_group], n_comp = n_ica)
             NT = dff_ica.shape[0]
             dff_origin = ppl.get_cells_index(cell_group)[0]
-            figr = stat_present.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
+            figr = signal_plot.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
             figr.savefig(work_folder+ '/raster_' + 'g'+ str(ix)+ '_'+ str(n_raster))
             plt.close()
-            fig_ica = stat_present.ic_plot(dff_ica)
+            fig_ica = stat_present.ic_plot(dff_ica, dt = 0.5)
             fig_ica.savefig(work_folder + '/ica_'+str(n_ica) + '_g' + str(ix))
             plt.close()
 
             # clustering of a_mix
-            figc = clustering.dis2cluster(a_mix)
+            figc, R, Z= clustering.dis2cluster(a_mix, p_levels = 4, yield_z = True)
             figc.savefig(work_folder+'/ic_cluster_'+str(n_ica)+ '-g' + str(ix))
+
+            ind_list_L = clustering.subtree(Z, n_raster, 'L', True)
+            ind_list_R = clustering.subtree(Z, n_raster, 'R', True)
+            cluster_indices = [ind_list_L, ind_list_R]
+            figl = stat_present.cluster_dimplot(a_mix, cluster_indices, 'rg')
+            figl.savefig(work_folder+ '/ic_cluster_scatter'+ '-g'+str(ix))
 
 
 if __name__ == '__main__':

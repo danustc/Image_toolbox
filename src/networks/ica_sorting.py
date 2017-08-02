@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import src.visualization.stat_present as stat_present
 import src.networks.clustering as clustering
 from sklearn.decomposition import FastICA
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/'
 
 
 
@@ -35,7 +35,7 @@ def ica_dff(dff_data, n_comp = 4, stdize = False):
 def main():
     n_ica = 3
     n_select = 100
-    raw_fname = global_datapath + 'Jun13_A1_GCDA/'
+    raw_fname = global_datapath + 'Nov01_2016_A1/'
     dff_data = np.load(raw_fname + 'merged_dff.npz')
     dff_signal = dff_data['signal']
     dff_ica, a_mix, s_mean = ica_dff(dff_signal[:,:n_select], n_comp = n_ica)
@@ -48,13 +48,16 @@ def main():
     leaves = R['leaves']
     figi = stat_present.ic_plot(dff_ica, dt = 0.5)
     figi.savefig(raw_fname+'/ic_'+str(n_ica))
-    ind_list_L = clustering.subtree(Z, n_select, 'L')
-    ind_list_R = clustering.subtree(Z, n_select, 'R')
+    ind_list_L = clustering.subtree(Z, n_select, 'L', False)
+    ind_list_R = clustering.subtree(Z, n_select, 'R', False)
     print(ind_list_L)
     print(ind_list_R)
     cluster_indices = [ind_list_L, ind_list_R]
     figl = stat_present.cluster_dimplot(a_mix, cluster_indices, 'rg')
     figl.savefig(raw_fname + '/ic_cluster_scatter')
+
+    figs, R = clustering.assert_subtree(a_mix, ind_list_R)
+    figs.savefig(raw_fname + '/ic_subtree')
 
 if __name__ == '__main__':
     main()

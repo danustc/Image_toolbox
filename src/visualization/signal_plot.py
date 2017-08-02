@@ -15,7 +15,7 @@ def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
     tmark = -dt*10
 
     fig = plt.figure(figsize = (7.0*n_time/500,10))
-    for ii in xrange(n_cell):
+    for ii in range(n_cell):
         dff = dff_data[:,ii]
         ax = fig.add_subplot(n_cell,1, ii+1)
         ax.plot(tt, dff)
