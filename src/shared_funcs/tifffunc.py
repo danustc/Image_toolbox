@@ -53,3 +53,13 @@ def crop_tiff(imstack,positions, cfname):
     xf = positions[3]+ xi
     cr_stack = imstack[:,yi:yf, xi:xf]
     return cr_stack
+
+
+def pad_tiff(imstack, padwidths, mode = 'mininum'):
+    '''
+    Padding a tiff image with padwidths
+    padwidths: 3-element tuple
+    '''
+    im_padded = np.pad(imstack, padwidths, mode)
+    return im_padded
+
