@@ -153,7 +153,7 @@ class pipeline(object):
 
 def main():
     #folder_list = glob.glob(portable_datapath+'May22*')
-    folder_list = glob.glob(global_datapath+'Jun13_A1*')
+    folder_list = glob.glob(global_datapath+'Jun06_*')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)

@@ -35,7 +35,6 @@ def flag_match(im_list, mask_flag):
 
 
     return valid_datalist, valid_masklist
-    
 
 
 def create_training_data(rt_path, tc_flags, mask_flags, n_row = 800, n_col = 1000):

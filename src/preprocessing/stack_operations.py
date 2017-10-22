@@ -16,18 +16,6 @@ global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 regist_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
 
 
-def pyfftw_container(ny, nx, bwd = False):
-    '''
-    construct a fftw container to perform fftw.
-    '''
-    a = pyfftw.empty_aligned((ny,nx),dtype = 'complex128')
-    b = pyfftw.empty_aligned((ny,nx),dtype = 'complex128')
-    if bwd:
-        container = pyfftw.FFTW(a,b,axes = (0,1))
-    else:
-        container = pyfftw.FFTW(a,b,axes = (0,1),direction = 'FFTW_BACKWARD')
-    return container
-
 
 def duplicate_tiff(frame, ndup):
     '''
@@ -35,7 +23,6 @@ def duplicate_tiff(frame, ndup):
     '''
     dup_stack = np.tile(frame, [ndup,1,1])
     return dup_stack
-
 
 
 
@@ -70,33 +57,6 @@ def frame_locate(im_ref,z_init, ref_step = 1.0, z_range=4.0, verbose = False):
     locate_substack = im_ref[ind_range]
     return locate_substack
 
-
-def correlate_trace(stack_ref, stack_corr):
-    '''
-    calculate correlations between every two slices in stack_ref and stack_corr
-    '''
-    rz,ry,rx = stack_ref.shape
-    cz,cy,cx = stack_corr.shape
-    if(ry!=cy or rx!=cx):
-        print("Error! The slice dimensions mismatch.")
-        return
-    nloop = np.min([rz,cz])
-    corr_trace = np.zeros(nloop) # initialize an empty array to store the correlation functions.
-    container_ref = pyfftw_container(ry,rx)
-    container_cor = pyfftw_container(cy,cx) # build pyfftw objects
-    container_invx = pyfftw_container(ry,rx, bwd = True)
-    for ii in np.arange(nloop):
-        # calculate through the stack 
-        container_ref(stack_ref[ii])
-        container_cor(stack_corr[ii])
-        ft_ref = container_ref.get_output_array()
-        ft_cor = container_cor.get_output_array()
-        F_prod = np.conj(ft_ref)*ft_cor
-        container_invx(F_prod)
-        X_corr = np.abs(container_invx.get_output_array())
-        corr_trace[ii] =  np.max(X_corr)
-
-    return corr_trace
 
 
 def stack_split(raw_stack, nsplit, dph = None):
@@ -163,10 +123,61 @@ def reorient_tiff_RAS(imstack, fname):
     tf.write_tiff(rot_stack, fname)
 
 
+def resample_rot_frame(coord_ref, pxl_ref, pxl_rot, rot_mat, shift = np.zeros(3)):
+    '''
+    pxl_ref: the pixel size of the imaging stacks in the lab frame
+    pxl_rot: the pixel size of the imaging stacks in the imaging frame
+    rot_mat: the rotational matrix in the 3D space
+    shift: whether the translation from ref to rot occurs
+    Assume that we know the coordinates in the reference frame, this function calculates the coordinates in the rotated frame.
+    '''
+    coord_rot = np.dot(coord_ref*pxl_ref, rot_mat.T)/pxl_rot
+    return coord_rot # the m', n', k' coordinates in the rotated frame. May not be integers
+
+def trilinear_interpolation(stack, coord_px):
+    '''
+    trilinear interpolation in the 3d space.coord_px: x,y,z coordinates in the unit of pixel. Need to be permuted?
+    '''
+    cx = coord_px[0]
+    cy = coord_ox[1]
+    cz = coord_px[2]
+    x0 = int(np.floor(cx))
+    y0 = int(np.floor(cy))
+    z0 = int(np.floor(cz))
+    xd = cx-x0
+    yd = cy-y0
+    zd = cz-z0
+
+    x1 = x0+1
+    y1 = y0+1
+    z1 = z0+1
+
+    p000 = stack[z0, y0, x0]
+    p100 = stack[z0, y0, x1]
+    p010 = stack[z0, y1, x0]
+    p001 = stack[z1, y0, x0]
+    p110 = stack[z0, y1, x1]
+    p101 = stack[z1, y0, x1]
+    p011 = stack[z1, y1, x0]
+    p111 = stack[z1, y1, x1]
+
+    dx_y0z0 = xd*p100+(1.-xd)*p000
+    dx_y1z0 = xd*p110+(1.-xd)*p010
+    dx_y0z1 = xd*p101+(1.-xd)*p001
+    dx_y1z1 = xd*p111+(1.-xd)*p011
+
+    dy_z0 = yd*dx_y1z0 + (1.-yd)*dx_y0z0
+    dy_z1 = yd*dx_y1z1 + (1.-yd)*dx_y0z1
+
+    dz = zd*dy_z1 + (1.-zd)*dy_z0
+
+    return dz
+
 #--------------------------------Test the the stack operations---------------
 
 def main():
     # test slice splitting function
+
     refstack = tf.read_tiff(regist_path+'refbrain/Nov012016B3ZDref.tif')
     reorient_tiff_RAS(refstack, regist_path+'refbrain/Nov012016B3ZDRASref.tif')
 

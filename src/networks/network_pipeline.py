@@ -178,11 +178,11 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    n_ica = 4
+    n_ica = 3
     n_active = 20
     n_group = 6
     n_raster = 200
-    folder_list = glob.glob(global_datapath + 'HQ/*')
+    folder_list = glob.glob(global_datapath + '*GCDA*')
     for work_folder in folder_list:
         raw_dff = np.load(work_folder + '/merged_dff.npz')
         ppl = pipeline(raw_dff)
