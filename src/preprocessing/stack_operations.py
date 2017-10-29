@@ -137,7 +137,9 @@ def resample_rot_frame(coord_ref, pxl_ref, pxl_rot, rot_mat, shift = np.zeros(3)
 def trilinear_interpolation(stack, coord_px):
     '''
     trilinear interpolation in the 3d space.coord_px: x,y,z coordinates in the unit of pixel. Need to be permuted?
+    if the coord_px exceeded the stack size, assign 0.0
     '''
+    nz, ny, nx = stack.shape
     cx = coord_px[0]
     cy = coord_ox[1]
     cz = coord_px[2]
@@ -152,8 +154,14 @@ def trilinear_interpolation(stack, coord_px):
     y1 = y0+1
     z1 = z0+1
 
-    p000 = stack[z0, y0, x0]
-    p100 = stack[z0, y0, x1]
+    try:
+        p000 = stack[z0, y0, x0]
+    except IndexError:
+        p000 = 0.
+    try:
+        p100 = stack[z0, y0, x1]
+    except IndexError:
+        p100 = 0.
     p010 = stack[z0, y1, x0]
     p001 = stack[z1, y0, x0]
     p110 = stack[z0, y1, x1]
@@ -173,7 +181,86 @@ def trilinear_interpolation(stack, coord_px):
 
     return dz
 
-#--------------------------------Test the the stack operations---------------
+
+
+class Stack_rot_resample(object):
+    def __init__(self, stack, pxl_img):
+        '''
+        the class of resampling between two transformed coordinate systems
+        rotmat: from the lab frame to the imaging frame
+        '''
+        self._imstack = stack
+        self._pxl = pxl_img
+        self._rotmat = None
+
+    @property
+    def rotmat(self):
+        return self._rotmat
+    @rotmat.setter
+    def rotmat(self, new_rotmat):
+        self._rotmat = new_rotmat
+
+    @property
+    def imstack(self):
+        return self._imstack
+    @imstack.setter
+    def imstack(self, new_stack):
+        self._imstack = new_stack
+
+
+    @property
+    def pxl_img(self):
+        self._pxl = pxl_img
+    @pxl_img.setter(self, new_pxl):
+        self._pxl = new_pxl
+
+    #---------------------------------------------
+    def convert2lab(self):
+        '''
+        convert the imaging frame into lab frame.
+        '''
+        nz, ny, nx = self.imstack.shape
+        rz = np.arange(nz)*pxl_img[2]
+        ry = np.arange(ny)*pxl_img[1]
+        rx = np.arange(nx)*pxl_img[0]
+
+
+        [MY, MZ, MX]=np.meshgrid(ry, rz, rx) # the grid coordinates of the image stacks
+        fmz = np.ndarray.flatten(MZ)
+        fmy = np.ndarray.flatten(MY)
+        fmx = np.ndarray.flatten(MX)
+        flat_imgcoord = np.c_[fmx, fmy, fmz]
+        flat_labcoord = np.dot(flat_imgcoord, self.rotmat)
+        return flat_labcoord
+        # this is the stupid method
+
+    def convert2img_trilinear_interpolation(self, pxl_lab, lab_shape):
+        '''
+        lab_pxl: the pixel size in the lab frame
+        '''
+        lz, ly, lx = lab_shape
+        rz = np.arange(nz)*pxl_lab[2]
+        ry = np.arange(ny)*pxl_lab[1]
+        rx = np.arange(nx)*pxl_lab[0]
+        [MY, MZ, MX]=np.meshgrid(ry, rz, rx) # the grid coordinates of the image stacks
+        fmz = np.ndarray.flatten(MZ)
+        fmy = np.ndarray.flatten(MY)
+        fmx = np.ndarray.flatten(MX)
+        flat_labcoord = np.c_[fmx, fmy, fmz]
+        flat_imgcoord = np.dot(flat_labcoord, self.rotmat.T)
+        inter_signal = np.empty(lab_shape.prod())
+
+        ii = 0
+        for coord in flat_imgcoord:
+            inter_signal[ii] = trilinear_interpolation(self.stack, coord/self.pxl_img) # convert to pixel in the imaging frame
+            ii+=1
+
+        lab_value = np.reshape(inter_signal, lab_shape)
+        return lab_value
+
+
+
+ #--------------------------------Test the the stack operations---------------
 
 def main():
     # test slice splitting function
