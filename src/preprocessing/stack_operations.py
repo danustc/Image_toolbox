@@ -309,7 +309,7 @@ def main():
     lab_shape = np.array([100, 300, 300])
     stk_rot_sample = Stack_rot_resample(img_stack, pxl_img)
     stk_rot_sample.rotmat=rm_yaxis
-    lab_value = stk_rot_sample.convert2img_trilinear_interpolation(pxl_lab, lab_shape, lab_shift = [50.0, 0.0, 20.0])
+    lab_value = stk_rot_sample.convert2img_trilinear_interpolation(pxl_lab, lab_shape, lab_shift = [5.0, 0.0, -20.0])
     tf.write_tiff(lab_value, data_path + 'ZD_resample.tif' )
 
 if __name__ =='__main__':
