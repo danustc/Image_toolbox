@@ -265,26 +265,27 @@ class Stack_rot_resample(object):
         return flat_labcoord
         # this is the stupid method
 
-    def convert2img_trilinear_interpolation(self, pxl_lab, lab_shape, verbose = True):
+    def convert2img_trilinear_interpolation(self, pxl_lab, lab_shape, lab_shift, verbose = True):
         '''
         lab_pxl: the pixel size in the lab frame
         '''
         lz, ly, lx = lab_shape
-        rz = np.arange(lz)*pxl_lab[2]
-        ry = np.arange(ly)*pxl_lab[1]
-        rx = np.arange(lx)*pxl_lab[0]
+        rz = np.arange(lz)*pxl_lab[2]-lab_shift[2]
+        ry = np.arange(ly)*pxl_lab[1]-lab_shift[1]
+        rx = np.arange(lx)*pxl_lab[0]-lab_shift[0]
         [MY, MZ, MX]=np.meshgrid(ry, rz, rx) # the grid coordinates of the image stacks
         fmz = np.ndarray.flatten(MZ)
         fmy = np.ndarray.flatten(MY)
         fmx = np.ndarray.flatten(MX)
         flat_labcoord = np.c_[fmx, fmy, fmz]
-        flat_imgcoord = np.dot(flat_labcoord, self.rotmat.T)
+        flat_imgcoord = np.dot(flat_labcoord, self.rotmat.T)/self.pxl_img # convert to pixel size
+        flat_imgcoord[flat_imgcoord<0] = np.max(lab_shape)
         npx_lab = lab_shape.prod()
         inter_signal = np.empty(npx_lab)
 
         ii = 0
         for coord in flat_imgcoord:
-            inter_signal[ii] = trilinear_interpolation(self.imstack, coord/self.pxl_img) # convert to pixel in the imaging frame
+            inter_signal[ii] = trilinear_interpolation(self.imstack, coord) # convert to pixel in the imaging frame
             ii+=1
             if ii%10000== 0:
                 print("----------Finished %d out of %d calculations.------------"%(ii,npx_lab))
@@ -302,13 +303,13 @@ def main():
     #reorient_tiff_RAS(refstack, regist_path+'refbrain/Nov012016B3ZDRASref.tif')
     data_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
     img_stack = tf.read_tiff(data_path+'Jun06_A2_GCDA/A2_ZD_before.tif')
-    rm_yaxis = rotmat_yaxis(50.0)
+    rm_yaxis = rotmat_yaxis(40.0)
     pxl_img = [0.295, 0.295, 1.00]
     pxl_lab = [0.785, 0.785, 2.00]
-    lab_shape = np.array([200, 200, 100])
+    lab_shape = np.array([100, 300, 300])
     stk_rot_sample = Stack_rot_resample(img_stack, pxl_img)
     stk_rot_sample.rotmat=rm_yaxis
-    lab_value = stk_rot_sample.convert2img_trilinear_interpolation(pxl_lab, lab_shape)
+    lab_value = stk_rot_sample.convert2img_trilinear_interpolation(pxl_lab, lab_shape, lab_shift = [50.0, 0.0, 20.0])
     tf.write_tiff(lab_value, data_path + 'ZD_resample.tif' )
 
 if __name__ =='__main__':
