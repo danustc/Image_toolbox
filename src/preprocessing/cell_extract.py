@@ -193,7 +193,7 @@ class Cell_extract(object):
         else:
             self.stack = im_stack
             self.n_slice = im_stack.shape[0]
-            eelf.frame_size = np.array(im_stack.shape[1:])
+            self.frame_size = np.array(im_stack.shape[1:])
             self.is_empty = False
 
         self.data_list = dict()
