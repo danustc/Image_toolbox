@@ -36,7 +36,7 @@ def slice_display(slice_blobs, title = None, ref_image = None):
             ax.scatter(fr[:,1], fr[:,0], edgecolors = global_ccode[ii], facecolors = 'none', s = 40)
             ii+=1
     else:
-        ax.scatter(slice_blobs[:,1], slice_blobs[:,0], c='g', s = 12)
+        ax.scatter(slice_blobs[:,1], slice_blobs[:,0], c='g', s = 40)
 
     ax.set_title(title, fontsize = 14)
     ax.get_xaxis().set_visible(False)

@@ -8,6 +8,7 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import numpy as np
 import pyfftw
 import scipy.fftpack as fftpack
+import src.networks.clustering as clustering
 
 def freq_cut(dff_raw, fcut, dt = 0.5):
     '''
@@ -45,10 +46,16 @@ def coord_edgeclean(coord_3d, edge_pos, dim = 'x', direct = 1):
     return ind_discard
 
 
-
-def group_denoise(dff_raw, fcut = 0.6, dt = 0.5, gvar = 0.95):
+def signal_dipremoval(signals, dip_thresh, d_window = 8):
     '''
-    0. perform Fourier transform on all the df/f and cut out the high-frequency components
-    1. perform PCA and select the most
+    signals: 2d array of raw signals, each column is a signal
+    dip_thresh: the threshold that is considered a dip (w.r.t the median).
+    d_window: the time window for dip searching.
     '''
-    pass
+    NT, NS = signals.shape
+    for ss in range(NS):
+        cluster 
+    R,Z = clustering.dis2cluster(signals, yield_z = True)[1:]
+    ind_list_L = clustering.subtree(Z, NT, 'L')
+    ind_list_R = clustering.subtree(Z, NT, 'R')
+    cluster_indices = [ind_list_L, ind_list_R]
