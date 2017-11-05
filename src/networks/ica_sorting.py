@@ -18,6 +18,7 @@ global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/
 def ica_dff(dff_data, n_comp = 4, stdize = False):
     '''
     directly use the ICA algorithm in sklearn
+    a_mix: NCxNI matrix, NI: # of independent components
     '''
     if stdize:
         dff_input =dff_data/dff_data.std(axis = 0)# standardize data
@@ -35,7 +36,8 @@ def ica_regression(ics, new_data):
     Test ica_regression
     '''
     lr = linear_model.LinearRegression()
-    a_mix = lr.fit(ics, new_data)
+    lr.fit(ics, new_data)
+    a_mix = lr.coef_
     return a_mix
 
 # ----------------------Test the ICA function----------------------

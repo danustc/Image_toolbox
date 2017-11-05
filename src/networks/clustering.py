@@ -1,18 +1,21 @@
 '''
 Created on 07/27/2017 by Dan. Clustering of the data.
 Visualization is inherently included here.
-Last modification:
+Last modification: 11/05/2017
 '''
 import numpy as np
 from scipy.cluster.hierarchy import dendrogram, linkage, cophenet
 from scipy.spatial.distance import pdist
+from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+from collections import deque
 
 Z_dic = {'L':0, 'R':1}
 
 def dis2cluster(dataset, p_levels = None, yield_z = False):
-
-
+    '''
+    dendrogram clustering
+    '''
     Z = linkage(dataset, 'ward')
     c, coph_dists = cophenet(Z,pdist(dataset))
     print(c)
@@ -37,7 +40,6 @@ def subtree(zmat, N, side = 'L', root_node = False):
     recursive searching of subtrees from a linkage matrix
     OK this works!
     '''
-    print(side)
     if zmat.size ==4:
         return [int(zmat[0, Z_dic[side]])] # if zmat is 1-D array, then there is no need to worry about the root node. 
     else:
@@ -73,11 +75,23 @@ def assert_subtree(dmat, ind_list):
     return fig_sbt, R
 
 
-def cluster2anatomy(cl_list, coord):
+def kmeans_clustering(dataset, ncs = 2):
+    '''
+    Perform k-means clustering on the IC coordinates (e.g. ic coefficients)
+    '''
+    cls_pred = KMeans(n_clusters = ncs, random_state = 0).fit(dataset)
+    return cls_pred.labels_
+
+
+def cluster2anatomy(cl_labels, coord):
     '''
     mapping the clustering result to anatomy.
     Question: is it really necessary?
     '''
-    return coord[cl_list]
+    coord_groups = deque()
+    n_labels = set(cl_labels)
+    for nl in n_labels:
+        idx = np.where(cl_labels)[0]
+        coord_groups.append(coord[idx]) # classified coordinate
 
-
+    return coord_groups
