@@ -1,11 +1,13 @@
 '''
 Created by Dan on 07/11/2017.
 Pipeline for batch calculation of raw_f into Delta F/F.
+Last update: 11/04/2017, replacing npz with hdf5.
 '''
 import sys
 import os
 import glob
 import numpy as np
+import h5py
 from df_f import *
 from noise_removal import coord_edgeclean
 import simple_variance as simple_variance
@@ -144,27 +146,28 @@ class pipeline(object):
         '''
         compile a dictinary and save it
         '''
-        cleaned_data = dict()
-        cleaned_data['coord'] = self.coord
-        cleaned_data['signal'] = self.signal
-        np.savez(save_path, **cleaned_data)
+        fo = h5py.File(save_path, 'w')
+        fo.create_dataset('coord', data = self.coord)
+        fo.create_dataset('signal', data = self.signal)
+        fo.close()
 
 #------------------------------The main test function ---------------------
 
 def main():
     #folder_list = glob.glob(portable_datapath+'May22*')
-    folder_list = glob.glob(global_datapath+'Jun06_*')
-    for folder in folder_list:
-        folder_date = os.path.basename(os.path.normpath(folder))
-        print(folder_date)
-        raw_fname = folder + '/merged.npz'
-        raw_data = np.load(raw_fname)
+    data_folder = 'FB_resting_15min'
+    data_list = glob.glob(global_datapath+data_folder + '/*.npz')
+    for dset in data_list:
+        basename = os.path.basename(dset)
+        acquisition_date = '_'.join(basename.split('.')[0].split('_')[:3])
+        print(acquisition_date)
+        raw_data = np.load(dset)
         ppl = pipeline(raw_data)
         ppl.edge_truncate(edge_width = 5.0)
         ppl.dff_calc(ft_width = 6, filt = True)
         ppl.svar_sorting(var_cut = 0.99)
-        ppl.save_cleaned(folder+'/'+folder_date+'_merged_dff.npz')
-        print("Finished processing:", folder.split('/')[-1])
+        ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
+        print("Finished processing:", acquisition_date)
 
 
 if __name__ == '__main__':

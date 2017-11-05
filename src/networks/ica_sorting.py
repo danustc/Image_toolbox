@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import src.visualization.stat_present as stat_present
 import src.networks.clustering as clustering
 from sklearn.decomposition import FastICA
+from sklearn import linear_model
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/HQ/'
 
 
@@ -29,7 +30,13 @@ def ica_dff(dff_data, n_comp = 4, stdize = False):
     # the original data can be recovered by np.dot(dff_ica, a_mix.T) + s_mean. 
     return dff_ica , a_mix, s_mean
 
-
+def ica_regression(ics, new_data):
+    '''
+    Test ica_regression
+    '''
+    lr = linear_model.LinearRegression()
+    a_mix = lr.fit(ics, new_data)
+    return a_mix
 
 # ----------------------Test the ICA function----------------------
 def main():

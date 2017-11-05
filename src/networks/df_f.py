@@ -38,6 +38,7 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     s_filt = smooth_lpf(shit_data[ntruncate:], ft_width)[1]
 
     f_base = min_window(s_filt, 6*ft_width)
+    print(np.min(f_base))
     dff_r = (shit_data[ntruncate:]-f_base)/f_base
 
     return dff_r

@@ -48,11 +48,3 @@ def simvar_layer_clean(dff_raw, var_cut = 0.95, headonly = True):
     else:
         return dff_head, dff_tail
 
-
-# --------------------------Below is the test section -------------------------
-def main():
-    folder_list = glob.glob(global_datapath+'*')
-    for folder in folder_list:
-        data_merged = np.load(folder+'merged.npz')
-        coord_merged = data_merged['coord']
-        fluor_merged = data_merged['data']
