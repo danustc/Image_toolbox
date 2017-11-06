@@ -11,10 +11,13 @@ import numpy as np
 from src.shared_funcs.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
 import src.visualization.signal_plot as signal_plot
-import src.networks.clustering as clustering
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
 import matplotlib.pyplot as plt
+
+from sklearn import linear_model
+from sklearn.clustering import KMeans
+from collections import deque
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 portable_datapath = '/media/sillycat/DanData/HQFB_redundancy_removed/'
@@ -161,15 +164,29 @@ class pipeline(object):
 
 
     # -------------------------ica group--------------------------
-    def ica_cell_rank(self, cell_group= 10, n_components = 4):
+    def ica_clustering(self, c_fraction = 0.40, n_components = 3, n_clusters = 4):
         '''
         given that the data is already cleaned. Perform ica to evaluate the individual components
-        the mixing matrix is returned
+        clustering the neurons based on their IC coefficients
         '''
-        selected_signal = self.signal[:,cell_group]
+        NT, NC = self.get_size()
+        n_select = int(NC*c_fraction)  # number of neurons that are used for ica calculation
+        selected_signal = self.signal[:,n_select]
         dff_ica, a_mix, s_mean = ica_sorting.ica_dff(selected_signal, n_comp = n_components)
-        return dff_ica, a_mix
 
+        lr = linear_model.LinearRegression(dff_ica, self.signal[:, n_select:])
+        ico_total = np.r_[a_mix, lr.coef_] # the ic coefficients of all the extracted neurons 
+        cls_pred = KMeans(n_clusters, random_state = None).fit(ico_total)
+        labels = cls_pred.labels_
+        #------- Next, let's divide the data into the groups based on the clustering labels.
+        signal_clustered = deque()
+        coord_clustered = deque()
+        for ll in range(n_clusters):
+            idx = np.where(labels == ll)[0]
+            signal_clustered.append(self.signal[:,idx])
+            coord_clustered.append(self.coord[idx])
+
+        return coord_clustered, signal_clustered
 
 
 

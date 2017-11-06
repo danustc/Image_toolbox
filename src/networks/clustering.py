@@ -75,23 +75,3 @@ def assert_subtree(dmat, ind_list):
     return fig_sbt, R
 
 
-def kmeans_clustering(dataset, ncs = 2):
-    '''
-    Perform k-means clustering on the IC coordinates (e.g. ic coefficients)
-    '''
-    cls_pred = KMeans(n_clusters = ncs, random_state = 0).fit(dataset)
-    return cls_pred.labels_
-
-
-def cluster2anatomy(cl_labels, coord):
-    '''
-    mapping the clustering result to anatomy.
-    Question: is it really necessary?
-    '''
-    coord_groups = deque()
-    n_labels = set(cl_labels)
-    for nl in n_labels:
-        idx = np.where(cl_labels)[0]
-        coord_groups.append(coord[idx]) # classified coordinate
-
-    return coord_groups
