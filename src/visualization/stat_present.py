@@ -8,8 +8,12 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+default_ccode = ['coral', 'teal', 'darkviolet', 'sienna']
 
-def cluster_dimplot(cp_data, cluster_indices, ccode, lb_name = 'IC'):
+
+
+
+def cluster_dimplot(cp_data, cluster_indices, ccode = default_ccode, lb_name = 'IC'):
     '''
     cp_data: NT*NP matrix, the column represent different dimensions of features
     cluster_indices: list of lists, specifying different groups
@@ -131,21 +135,27 @@ def pc_component_grid(V, npc = 3):
 
 
 
-def ic_plot(ic_components, dt = 0.5, ccode = None):
+def ic_plot(ic_components, dt = 0.5, ccode = None, title = None):
     '''
     plot independent components
     '''
     NT, NC = ic_components.shape # number of time points and independent components
     fig, axes = plt.subplots(figsize = (8, 1.5*NC+0.5), nrows = NC, ncols = 1)
     for icon in range(NC):
+        if ccode is None:
+            cm = 'g'
+        else:
+            cm = ccode[icon]
         arow = axes[icon]
-        arow.plot(dt*np.arange(NT), ic_components[:,icon], 'g', label = "ic_"+str(icon))
+        arow.plot(dt*np.arange(NT), ic_components[:,icon],  c = cm, label = "ic_"+str(icon))
         arow.get_xaxis().set_visible(False)
         arow.tick_params(labelsize = 12)
         arow.legend(['ic_'+str(icon+1)], loc = 'upper right', fontsize = 12)
 
     arow.get_xaxis().set_visible(True)
     arow.set_xlabel('Time (s)', fontsize = 12)
+    if title is not None:
+        fig.suptitle(title)
     plt.tight_layout()
     plt.subplots_adjust(hspace = 0)
 

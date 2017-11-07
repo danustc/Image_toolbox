@@ -14,13 +14,13 @@ import src.visualization.signal_plot as signal_plot
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
 import matplotlib.pyplot as plt
+import h5py
 
 from sklearn import linear_model
-from sklearn.clustering import KMeans
+from sklearn.cluster import KMeans
 from collections import deque
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-portable_datapath = '/media/sillycat/DanData/HQFB_redundancy_removed/'
 
 class pipeline(object):
     '''
@@ -31,26 +31,24 @@ class pipeline(object):
     Conventions:    a. self.signal stores signals (either F or \Delta F/F) of all the extracted cells.
                     b. self.cood stores the coordinates (in micron) of all the extracted cells. If coord has two columns, the 0th is y and the 1st is x; if coord has three columns, the order is z,y,x (instead of x,y,z, to be consistent with Python array dimension orders)
     '''
-    def __init__(self, data, dt=0.5):
+    def __init__(self, data_file, dt=0.5):
         self._coord = None
         self._signal = None
         self.dt = dt
-        self.parse_data(data)
+        self.parse_data(data_file)
 
-    def parse_data(self, data):
+    def parse_data(self, data_file):
         try:
-            self.coord = data['coord']
+            self.hf = h5py.File(data_file, 'r+')
             try:
-                self.signal = data['signal']
+                self.coord = np.array(self.hf['coord'])
+                self.signal = np.array(self.hf['signal'])
             except KeyError:
                 print("No signal data stored in the file!")
                 sys.exit(1)
-        except KeyError:
-            print('Wrong data!')
-            self.coord = None
-            self.signal = None
+        except OSError:
+            print("Unable to open the file.")
             sys.exit(1)
-
     #-----------------------Below are the property members-----------------
 
     @property
@@ -171,24 +169,31 @@ class pipeline(object):
         '''
         NT, NC = self.get_size()
         n_select = int(NC*c_fraction)  # number of neurons that are used for ica calculation
-        selected_signal = self.signal[:,n_select]
+        selected_signal = self.signal[:,:n_select]
         dff_ica, a_mix, s_mean = ica_sorting.ica_dff(selected_signal, n_comp = n_components)
 
-        lr = linear_model.LinearRegression(dff_ica, self.signal[:, n_select:])
+        lr = linear_model.LinearRegression()
+        lr.fit(dff_ica, self.signal[:, n_select:])
         ico_total = np.r_[a_mix, lr.coef_] # the ic coefficients of all the extracted neurons 
         cls_pred = KMeans(n_clusters, random_state = None).fit(ico_total)
         labels = cls_pred.labels_
         #------- Next, let's divide the data into the groups based on the clustering labels.
         signal_clustered = deque()
         coord_clustered = deque()
+        a_mix_clustered = deque()
         for ll in range(n_clusters):
             idx = np.where(labels == ll)[0]
             signal_clustered.append(self.signal[:,idx])
             coord_clustered.append(self.coord[idx])
+            a_mix_clustered.append(idx)
 
+        self.ic = dff_ica
+        self.ic_coefs = ico_total
+        self.ic_label = a_mix_clustered
         return coord_clustered, signal_clustered
 
-
+    def clean_up(self):
+        self.hf.close()
 
 # --------------------------Below is the test section -------------------
 def main():
@@ -196,46 +201,46 @@ def main():
     The test function of the pipeline.
     '''
     n_ica = 3
-    n_active = 20
-    n_group = 6
-    n_raster = 200
-    folder_list = glob.glob(global_datapath + '*GCDA*')
-    for work_folder in folder_list:
-        raw_dff = np.load(work_folder + '/merged_dff.npz')
-        ppl = pipeline(raw_dff)
-        coord_mostactive = ppl.coord[:n_active,:] # The coordinates of the most active cells
-        print(coord_mostactive)
-        sc_most = np.max(ppl.signal[:,0])/4.0
-        fign = signal_plot.nature_style_dffplot(ppl.signal[:,:n_active], dt = 0.5, sc_bar = sc_most)
-        fign.savefig(work_folder+ '/most_active_'+ str(n_active))
-        plt.close()
+    n_clu = 4
+    cf = 0.40
+    local_datafolder = 'FB_resting_15min'
+    full_path = global_datapath + local_datafolder
+    data_list = glob.glob(full_path + '/*dff.h5')
 
-        fign = signal_plot.nature_style_dffplot(ppl.signal[:,-n_active:], dt = 0.5, sc_bar = 0.10)
-        fign.savefig(work_folder+ '/least_active_'+ str(n_active))
-        plt.close()
-        # raster-plot the most active cells and do ica
-        for ix in range(n_group):
-            cell_group = np.arange(n_raster)+ix*n_raster
-            #dff_ica, a_mix = ppl.ica_cell_rank(cell_group, n_components = n_ica)
-            dff_ica, a_mix, s_mean = ica_sorting.ica_dff(ppl.signal[:,cell_group], n_comp = n_ica)
-            NT = dff_ica.shape[0]
-            dff_origin = ppl.get_cells_index(cell_group)[0]
-            figr = signal_plot.dff_rasterplot(dff_origin,dt = 0.5, fw = 7.0)
-            figr.savefig(work_folder+ '/raster_' + 'g'+ str(ix)+ '_'+ str(n_raster))
-            plt.close()
-            fig_ica = stat_present.ic_plot(dff_ica, dt = 0.5)
-            fig_ica.savefig(work_folder + '/ica_'+str(n_ica) + '_g' + str(ix))
-            plt.close()
+    for df_name in data_list:
+        basename = '_'.join(os.path.basename(df_name).split('.')[0].split('_')[:3])
+        print(basename)
+        PL = pipeline(df_name)
+        coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf, n_components = n_ica, n_clusters = n_clu)
+        fig_ic = stat_present.ic_plot(PL.ic, dt = 0.5, title = basename)
+        fig_ic.savefig(full_path + '/'+ basename+ '_ic')
+        plt.close(fig_ic)
+        fig_cl = stat_present.cluster_dimplot(PL.ic_coefs, PL.ic_label)
+        fig_cl.savefig(full_path + '/' + basename + '_icdim')
+        plt.close(fig_cl)
+        PL.clean_up()
 
-            # clustering of a_mix
-            figc, R, Z= clustering.dis2cluster(a_mix, p_levels = 4, yield_z = True)
-            figc.savefig(work_folder+'/ic_cluster_'+str(n_ica)+ '-g' + str(ix))
+        for nc in range(n_clu):
+        #    sub_hf = h5py.File(full_path + '/' + basename + '_cl_'+ str(nc) + '.h5', 'w')
+        #    sub_hf.create_dataset('coord', data = coord_clustered[nc])
+        #    sub_hf.create_dataset('signal', data = signal_clustered[nc])
+        #    sub_hf.close()
+            cl_coord = coord_clustered[nc]
+            cl_signal = signal_clustered[nc]
+            print("# of cells:", cl_signal.shape[1])
+            sub_dset = dict()
+            sub_dset['coord'] = cl_coord
+            sub_dset['signal'] = cl_signal
+            np.savez(full_path + '/' + basename + '_cl_' + str(nc), **sub_dset)
+            NC = cl_coord.shape[0]
+            if NC>200:
+                n_trunc = 200
+            else:
+                n_trunc = None
+            fig_r = signal_plot.dff_rasterplot(cl_signal, n_truncate = n_trunc)
+            fig_r.savefig(full_path + '/' + basename + '_raster_' + str(nc) )
+            plt.close(fig_r)
 
-            ind_list_L = clustering.subtree(Z, n_raster, 'L', True)
-            ind_list_R = clustering.subtree(Z, n_raster, 'R', True)
-            cluster_indices = [ind_list_L, ind_list_R]
-            figl = stat_present.cluster_dimplot(a_mix, cluster_indices, 'rg')
-            figl.savefig(work_folder+ '/ic_cluster_scatter'+ '-g'+str(ix))
 
 
 if __name__ == '__main__':
