@@ -22,6 +22,33 @@ from collections import deque
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
+def npztoh5(fpath, direct = 'f', new_path = None):
+    '''
+    conversion between npz and h5 files.
+    '''
+    if direct == 'f':
+        # convert from npz to h5
+        try:
+            data_set = np.load(fpath)
+        except IOError:
+            print("Wrong data path. Cannot open the file.")
+            return
+
+        k_list = data_set.keys()
+        if new_path is None:
+            base_name = fpath.split('.')[0]
+            output_name = base_name + '.h5'
+        else:
+            output_name = new_path + '.h5'
+        hf = h5py.File(output_name, 'w')
+        for key in k_list:
+            hf.create_dataset(key, data = data_set[key])
+
+        hf.close()
+
+
+
+
 class pipeline(object):
     '''
     Can I follow the design of inControl, name all the core data processing classes as pipeline?
@@ -39,10 +66,11 @@ class pipeline(object):
 
     def parse_data(self, data_file):
         try:
-            self.hf = h5py.File(data_file, 'r+')
+            hf = h5py.File(data_file, 'r+')
             try:
-                self.coord = np.array(self.hf['coord'])
-                self.signal = np.array(self.hf['signal'])
+                self.coord = np.array(hf['coord'])
+                self.signal = np.array(hf['signal'])
+                hf.close()
             except KeyError:
                 print("No signal data stored in the file!")
                 sys.exit(1)
@@ -79,14 +107,18 @@ class pipeline(object):
         '''
         pass # to be filled later
 
-    def _trim_data_(self, ind_kept):
+    def _trim_data_(self, idx , mode = 0):
         '''
-        trim the data and keep the cells with indices ind_kept only.
+        trim the data and keep the cells with indices idx only.
         '''
-        self.signal = self.signal[:,ind_kept]
-        self.coord = self.coord[ind_kept, :]
+        if mode == 0:
+            self.signal = self.signal[:,idx]
+            self.coord = self.coord[idx, :]
+        else: # delete the cells with indices idx
+            self.signal = np.delete(self.signal,idx, 1) # delete columns from signal
+            self.coord = np.delete(self.coord,idx, 0) # delete columns from signal
 
-    def shuffle_data(self, ind_shuffle = None):
+    def reorder_data(self, ind_shuffle = None):
         '''
         shuffle the signal orders and the coordinate orders so that the position is not biasing the groupwise pca output.
         '''
@@ -103,7 +135,7 @@ class pipeline(object):
         perform the layered pca sorting on the data and shrink the size
         '''
         if shuffle:
-            self.shuffle_data()
+            self.reorder_data()
 
         NT, NP = self.get_size()
         var_ratio = var_cut/(1.-var_cut)
@@ -126,7 +158,7 @@ class pipeline(object):
             print(ipre.size)
             self._trim_data_(ipre) # after trim_data, self.signal is updated. 
             if shuffle:
-                self.shuffle_data()
+                self.reorder_data()
             NT, NP = self.get_size()
             gpca.data = self.signal
             gpca.group_division()
@@ -146,7 +178,7 @@ class pipeline(object):
         # is it necessary to perform PCA or I can just simply calculate the covariance?
         CT, V = pca_sorting.pca_raw(self.signal, var_cut)
         a_sorted = pca_sorting.cell_sorting(V)
-        self.shuffle_data(ind_shuffle = a_sorted) #rank cell by the final activities
+        self.reorder_data(ind_shuffle = a_sorted) #rank cell by the final activities
         if verbose:
             print("Final data dimension:", self.get_size())
         # end of pca_layered sorting 
@@ -177,23 +209,52 @@ class pipeline(object):
         ico_total = np.r_[a_mix, lr.coef_] # the ic coefficients of all the extracted neurons 
         cls_pred = KMeans(n_clusters, random_state = None).fit(ico_total)
         labels = cls_pred.labels_
+        km_centers = cls_pred.cluster_centers_
         #------- Next, let's divide the data into the groups based on the clustering labels.
         signal_clustered = deque()
         coord_clustered = deque()
-        a_mix_clustered = deque()
+        idx_clustered = deque()
         for ll in range(n_clusters):
             idx = np.where(labels == ll)[0]
             signal_clustered.append(self.signal[:,idx])
             coord_clustered.append(self.coord[idx])
-            a_mix_clustered.append(idx)
+            idx_clustered.append(idx)
 
         self.ic = dff_ica
         self.ic_coefs = ico_total
-        self.ic_label = a_mix_clustered
+        self.ic_label = idx_clustered
+        self.km_centers = km_centers
         return coord_clustered, signal_clustered
 
+    def ica_interactive_cleaning(self):
+        '''
+        perform interactive cleaning on the raw_data
+        '''
+        NI = len(self.ic_label)
+        ic_select = int(input("Please select the cluster to be removed:"))
+        print("Selected mode:", ic_select)
+        if ic_select in range(NI):
+            try:
+                idx = self.ic_label[ic_select] # find the indices to be deleted 
+                self._trim_data_(idx, mode = 1)
+            except IndexError:
+                print("Index Error.")
+            print('The unwanted cells are deleted.')
+        else:
+            print('Input error.')
+
+
     def clean_up(self):
-        self.hf.close()
+        self.ic = None
+        self.ic_coefs = None
+        self.ic_label = None
+        self.signal = None
+        self.coord = None
+
+
+    def __del__(self):
+        # destructor test 
+        print("The class dies.")
 
 # --------------------------Below is the test section -------------------
 def main():
@@ -218,7 +279,10 @@ def main():
         fig_cl = stat_present.cluster_dimplot(PL.ic_coefs, PL.ic_label)
         fig_cl.savefig(full_path + '/' + basename + '_icdim')
         plt.close(fig_cl)
-        PL.clean_up()
+
+        cluster_size = [len(cluster) for cluster in PL.ic_label]
+        print("cluster sizes:", cluster_size)
+
 
         for nc in range(n_clu):
         #    sub_hf = h5py.File(full_path + '/' + basename + '_cl_'+ str(nc) + '.h5', 'w')
@@ -228,6 +292,7 @@ def main():
             cl_coord = coord_clustered[nc]
             cl_signal = signal_clustered[nc]
             print("# of cells:", cl_signal.shape[1])
+            print("Cluster center:", PL.km_centers[nc])
             sub_dset = dict()
             sub_dset['coord'] = cl_coord
             sub_dset['signal'] = cl_signal

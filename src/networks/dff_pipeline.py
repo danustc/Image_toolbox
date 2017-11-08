@@ -156,7 +156,7 @@ class pipeline(object):
 def main():
     #folder_list = glob.glob(portable_datapath+'May22*')
     data_folder = 'FB_resting_15min'
-    data_list = glob.glob(global_datapath+data_folder + '/*.npz')
+    data_list = glob.glob(global_datapath+data_folder + '/*merged.npz')
     for dset in data_list:
         basename = os.path.basename(dset)
         acquisition_date = '_'.join(basename.split('.')[0].split('_')[:3])
