@@ -194,7 +194,7 @@ class pipeline(object):
 
 
     # -------------------------ica group--------------------------
-    def ica_clustering(self, c_fraction = 0.40, n_components = 3, n_clusters = 4):
+    def ica_clustering(self, c_fraction = 0.40, n_components = 3, n_clusters = 3):
         '''
         given that the data is already cleaned. Perform ica to evaluate the individual components
         clustering the neurons based on their IC coefficients
@@ -272,6 +272,8 @@ def main():
         basename = '_'.join(os.path.basename(df_name).split('.')[0].split('_')[:3])
         print(basename)
         PL = pipeline(df_name)
+        fig_raster = signal_plot.dff_rasterplot(PL.signal, n_truncate = 250)
+        fig_raster.savefig(full_path + '/' + basename + '_rv')
         coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf, n_components = n_ica, n_clusters = n_clu)
         fig_ic = stat_present.ic_plot(PL.ic, dt = 0.5, title = basename)
         fig_ic.savefig(full_path + '/'+ basename+ '_ic')

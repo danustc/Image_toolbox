@@ -51,6 +51,7 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
         n_display = NC
     else:
         n_display = np.min([NC, n_truncate])
+    print("# of cells displayed:", n_display)
     # whether to display in the unit of 10 seconds or 1 min
     if(tunit == 's'):
         time_tick = dt*np.arange(0, NT, 30)
@@ -64,9 +65,11 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
     cell_tick = np.array([1,n_display])
     cell_tick_label = ['Cell 1', 'Cell '+str(n_display)]
 
-    fig = plt.figure(figsize = (fw, fw*4*n_display/NT))
+    canvas_scale = int(np.ceil(200./n_display))
+
+    fig = plt.figure(figsize = (fw, fw*5*canvas_scale*n_display/NT))
     ax = fig.add_subplot(111)
-    rshow = ax.imshow(dff_ordered.T, cmap = 'Greens', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
+    rshow = ax.imshow(dff_ordered.T, cmap = 'Reds', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
     ax.set_xticks(time_tick)
     ax.set_yticks(cell_tick)
     ax.set_yticklabels(cell_tick_label)
@@ -74,9 +77,6 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
     ax.set_xlabel(t_label, fontsize = 12)
     cbar = fig.colorbar(rshow, ax = ax, orientation = 'vertical', pad = 0.02, aspect = n_display/3)
     cbar.ax.tick_params(labelsize = 12)
-    try:
-        plt.tight_layout()
-    except ValueError:
-        pass
+    plt.tight_layout()
 
     return fig

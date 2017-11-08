@@ -134,6 +134,26 @@ def pc_component_grid(V, npc = 3):
     return fig
 
 
+def clusters_3d_distribution(ic_coeffs, cluster_indices, ccode = default_code, title = None):
+    '''
+    The 3D representation of the IC coefficients, clustered
+    '''
+    fig_3d = plt.figure(fig_size = (5,4))
+    ax = Axes3D(fig_3d, elev = 50, azim = 135)
+    ic = 0
+    for cluster in cluster_indices:
+        ax.scatter(ic_coeffs[cluster,0], ic_coeffs[cluster,1], ic_coeffs[cluster,2], c = ccode[ic], s = 10)
+        ic +=1
+
+    ax.set_xlabel('ic 1', fontsize = 12)
+    ax.set_ylabel('ic 2', fontsize = 12)
+    ax.set_zlabel('ic 3', fontsize = 12)
+    ax.dist = 12
+    if title is not None:
+        ax.set_title(title)
+    return fig_3d
+
+
 
 def ic_plot(ic_components, dt = 0.5, ccode = None, title = None):
     '''

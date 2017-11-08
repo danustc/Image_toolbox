@@ -104,7 +104,7 @@ class pipeline(object):
 
 
     def dff_calc(self, ft_width = 6, filt = True):
-        dffr = dff_raw(self.rawf, ft_width, ntruncate = 20)
+        dffr = dff_raw(self.rawf, ft_width, ntruncate = 25)
         if filt:
             self.signal = dff_expfilt_group(dffr, self.dt, 1.5)
         else:
@@ -163,9 +163,9 @@ def main():
         print(acquisition_date)
         raw_data = np.load(dset)
         ppl = pipeline(raw_data)
-        ppl.edge_truncate(edge_width = 5.0)
+        ppl.edge_truncate(edge_width = 6.0)
         ppl.dff_calc(ft_width = 6, filt = True)
-        ppl.svar_sorting(var_cut = 0.99)
+        ppl.svar_sorting(var_cut = 0.95)
         ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
         print("Finished processing:", acquisition_date)
 
