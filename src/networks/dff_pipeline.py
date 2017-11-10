@@ -155,7 +155,7 @@ class pipeline(object):
 
 def main():
     #folder_list = glob.glob(portable_datapath+'May22*')
-    data_folder = 'FB_resting_15min'
+    data_folder = 'Morpholino_15min'
     data_list = glob.glob(global_datapath+data_folder + '/*merged.npz')
     for dset in data_list:
         basename = os.path.basename(dset)
@@ -163,7 +163,7 @@ def main():
         print(acquisition_date)
         raw_data = np.load(dset)
         ppl = pipeline(raw_data)
-        ppl.edge_truncate(edge_width = 6.0)
+        ppl.edge_truncate(edge_width = 5.0)
         ppl.dff_calc(ft_width = 6, filt = True)
         ppl.svar_sorting(var_cut = 0.95)
         ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')

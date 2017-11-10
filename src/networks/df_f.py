@@ -10,6 +10,7 @@ import numpy as np
 from src.shared_funcs.numeric_funcs import smooth_lpf
 from scipy.signal import exponential, fftconvolve
 import matplotlib.pyplot as plt
+import pyfftw
 
 def min_window(shit_data, wd_width):
     """
@@ -74,4 +75,21 @@ def dff_expfilt_group(dff_r, dt, t_width = 2.0):
     print(dff_expf.shape)
 
     return dff_expf
+
+#-------------------------Frequency domain----------------------------
+def dff_frequency(dff_r, dt):
+    '''
+    Calculate the frequency representation of the dff.
+    '''
+    NT, NC = dff_r.shape
+    nbit = int(np.ceil(np.log2(dff_r)))
+    a = pyfftw.empty_aligned(NT, dtype = 'complex128')
+    b = pyfftw.empty_aligned(NT, dtype = 'complex128')
+    dff_freq = np.empty((NT,NC))
+    container = pyfftw.FFTW(a,b)
+    for ic in range(NC):
+        container(dff_r[:,ic])
+        freq_cps = container.get_output_array()
+        dff_freq[:,ic] = np.abs(freq_cps)
+    return dff_freq
 

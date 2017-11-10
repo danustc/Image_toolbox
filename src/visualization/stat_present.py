@@ -61,6 +61,7 @@ def cluster_dimplot(cp_data, cluster_indices, ccode = default_ccode, lb_name = '
             if ax.is_first_row():
                 ax.xaxis.set_visible(True)
                 ax.xaxis.set_ticks_position('top')
+    plt.tight_layout()
     return fig_pc
 
 
@@ -134,11 +135,11 @@ def pc_component_grid(V, npc = 3):
     return fig
 
 
-def clusters_3d_distribution(ic_coeffs, cluster_indices, ccode = default_code, title = None):
+def clusters_3d_distribution(ic_coeffs, cluster_indices, ccode = default_ccode, title = None):
     '''
     The 3D representation of the IC coefficients, clustered
     '''
-    fig_3d = plt.figure(fig_size = (5,4))
+    fig_3d = plt.figure(figsize = (5,4))
     ax = Axes3D(fig_3d, elev = 50, azim = 135)
     ic = 0
     for cluster in cluster_indices:
@@ -169,6 +170,7 @@ def ic_plot(ic_components, dt = 0.5, ccode = None, title = None):
         arow = axes[icon]
         arow.plot(dt*np.arange(NT), ic_components[:,icon],  c = cm, label = "ic_"+str(icon))
         arow.get_xaxis().set_visible(False)
+        arow.get_yaxis().set_visible(False)
         arow.tick_params(labelsize = 12)
         arow.legend(['ic_'+str(icon+1)], loc = 'upper right', fontsize = 12)
 

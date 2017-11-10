@@ -38,7 +38,7 @@ def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
 
 
 # Raster plot, color coded
-def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = None):
+def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = None, title = None):
     '''
     dff_ordered: df_f ordered from most active to least active
     # rows:  # of time points
@@ -77,6 +77,10 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
     ax.set_xlabel(t_label, fontsize = 12)
     cbar = fig.colorbar(rshow, ax = ax, orientation = 'vertical', pad = 0.02, aspect = n_display/3)
     cbar.ax.tick_params(labelsize = 12)
+    if title is not None:
+        ax.set_title(title)
+
+
     plt.tight_layout()
 
     return fig

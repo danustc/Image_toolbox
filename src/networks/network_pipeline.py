@@ -263,8 +263,8 @@ def main():
     '''
     n_ica = 3
     n_clu = 4
-    cf = 0.40
-    local_datafolder = 'FB_resting_15min'
+    cf = 0.60
+    local_datafolder = 'Morpholino_15min'
     full_path = global_datapath + local_datafolder
     data_list = glob.glob(full_path + '/*dff.h5')
 
@@ -272,19 +272,25 @@ def main():
         basename = '_'.join(os.path.basename(df_name).split('.')[0].split('_')[:3])
         print(basename)
         PL = pipeline(df_name)
-        fig_raster = signal_plot.dff_rasterplot(PL.signal, n_truncate = 250)
+        fig_raster = signal_plot.dff_rasterplot(PL.signal, n_truncate = 300)
         fig_raster.savefig(full_path + '/' + basename + '_rv')
         coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf, n_components = n_ica, n_clusters = n_clu)
         fig_ic = stat_present.ic_plot(PL.ic, dt = 0.5, title = basename)
         fig_ic.savefig(full_path + '/'+ basename+ '_ic')
         plt.close(fig_ic)
+        fig_cl = stat_present.clusters_3d_distribution(PL.ic_coefs, PL.ic_label)
+        fig_cl.savefig(full_path + '/' + basename + '_icdist')
+        plt.close(fig_cl)
+
         fig_cl = stat_present.cluster_dimplot(PL.ic_coefs, PL.ic_label)
         fig_cl.savefig(full_path + '/' + basename + '_icdim')
         plt.close(fig_cl)
 
         cluster_size = [len(cluster) for cluster in PL.ic_label]
         print("cluster sizes:", cluster_size)
-
+        #PL.ica_interactive_cleaning()
+        #PL.save_cleaned(df_name.split('.')[0])
+        #npztoh5(df_name.split('.')[0]+'.npz')
 
         for nc in range(n_clu):
         #    sub_hf = h5py.File(full_path + '/' + basename + '_cl_'+ str(nc) + '.h5', 'w')
@@ -300,11 +306,11 @@ def main():
             sub_dset['signal'] = cl_signal
             np.savez(full_path + '/' + basename + '_cl_' + str(nc), **sub_dset)
             NC = cl_coord.shape[0]
-            if NC>200:
-                n_trunc = 200
+            if NC>150:
+                n_trunc = 150
             else:
                 n_trunc = None
-            fig_r = signal_plot.dff_rasterplot(cl_signal, n_truncate = n_trunc)
+            fig_r = signal_plot.dff_rasterplot(cl_signal, n_truncate = n_trunc, title = basename + 'cl' + str(nc))
             fig_r.savefig(full_path + '/' + basename + '_raster_' + str(nc) )
             plt.close(fig_r)
 
