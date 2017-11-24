@@ -82,14 +82,15 @@ def dff_frequency(dff_r, dt):
     Calculate the frequency representation of the dff.
     '''
     NT, NC = dff_r.shape
-    nbit = int(np.ceil(np.log2(dff_r)))
+    dk = 1./NT*dt
     a = pyfftw.empty_aligned(NT, dtype = 'complex128')
     b = pyfftw.empty_aligned(NT, dtype = 'complex128')
-    dff_freq = np.empty((NT,NC))
+    NK = int(NT/2)
+    dff_k = np.empty((NK,NC))
     container = pyfftw.FFTW(a,b)
     for ic in range(NC):
         container(dff_r[:,ic])
         freq_cps = container.get_output_array()
-        dff_freq[:,ic] = np.abs(freq_cps)
-    return dff_freq
+        dff_k[:,ic] = np.abs(freq_cps[:NK])
+    return dff_k, dk
 

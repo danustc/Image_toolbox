@@ -130,7 +130,7 @@ class pipeline(object):
         self._trim_data_(ind_shuffle)
 
 
-    def pca_layered_sorting(self,var_cut = 0.99, shuffle = True, verbose = True):
+    def pca_layered_sorting(self,var_cut = 0.999, shuffle = True, verbose = True):
         '''
         perform the layered pca sorting on the data and shrink the size
         '''
@@ -139,6 +139,7 @@ class pipeline(object):
 
         NT, NP = self.get_size()
         var_ratio = var_cut/(1.-var_cut)
+        print("var ratio:",var_ratio)
         gpca = pca_sorting.group_pca(self.signal, gvar = var_cut)
         gpca.group_division()
         ipre, idis = gpca.subgroup_pca(verbose)
@@ -257,6 +258,22 @@ class pipeline(object):
         print("The class dies.")
 
 # --------------------------Below is the test section -------------------
+def main_k():
+    '''
+    Fourier analysis
+    '''
+    local_datafolder = 'FB_resting_15min'
+    full_path = global_datapath + local_datafolder
+    data_list = glob.glob(full_path + '/*B1*k.npy')
+    for df_name in data_list:
+        dset = np.load(df_name)
+        NT = int(dset.shape[0]/2)
+        basename = os.path.basename(df_name).split('.')[0]
+        print(basename)
+        fig_k = signal_plot.dff_rasterplot(dset[:NT,:250], dt = 0.00028, tunit = 'h', n_truncate = 100)
+        fig_k.savefig(full_path + '/'+ basename, title = basename)
+
+
 def main():
     '''
     The test function of the pipeline.
@@ -264,15 +281,16 @@ def main():
     n_ica = 3
     n_clu = 4
     cf = 0.60
-    local_datafolder = 'Morpholino_15min'
+    local_datafolder = 'FB_resting_15min'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + '/*dff.h5')
+    data_list = glob.glob(full_path + '/*B1*dff.h5')
 
     for df_name in data_list:
         basename = '_'.join(os.path.basename(df_name).split('.')[0].split('_')[:3])
         print(basename)
         PL = pipeline(df_name)
-        fig_raster = signal_plot.dff_rasterplot(PL.signal, n_truncate = 300)
+        #PL.pca_layered_sorting(var_cut = 0.99)
+        fig_raster = signal_plot.dff_rasterplot(PL.signal[:1200], n_truncate = 300)
         fig_raster.savefig(full_path + '/' + basename + '_rv')
         coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf, n_components = n_ica, n_clusters = n_clu)
         fig_ic = stat_present.ic_plot(PL.ic, dt = 0.5, title = basename)
@@ -288,9 +306,9 @@ def main():
 
         cluster_size = [len(cluster) for cluster in PL.ic_label]
         print("cluster sizes:", cluster_size)
-        #PL.ica_interactive_cleaning()
-        #PL.save_cleaned(df_name.split('.')[0])
-        #npztoh5(df_name.split('.')[0]+'.npz')
+        PL.ica_interactive_cleaning()
+        PL.save_cleaned(df_name.split('.')[0])
+        npztoh5(df_name.split('.')[0]+'.npz')
 
         for nc in range(n_clu):
         #    sub_hf = h5py.File(full_path + '/' + basename + '_cl_'+ str(nc) + '.h5', 'w')
@@ -302,7 +320,7 @@ def main():
             print("# of cells:", cl_signal.shape[1])
             print("Cluster center:", PL.km_centers[nc])
             sub_dset = dict()
-            sub_dset['coord'] = cl_coord
+            sub_dset['coord'] = cl_coord[:,[2,1,0]]
             sub_dset['signal'] = cl_signal
             np.savez(full_path + '/' + basename + '_cl_' + str(nc), **sub_dset)
             NC = cl_coord.shape[0]
@@ -310,11 +328,11 @@ def main():
                 n_trunc = 150
             else:
                 n_trunc = None
-            fig_r = signal_plot.dff_rasterplot(cl_signal, n_truncate = n_trunc, title = basename + 'cl' + str(nc))
+            fig_r = signal_plot.dff_rasterplot(cl_signal, fw = 7.0, n_truncate = n_trunc)
             fig_r.savefig(full_path + '/' + basename + '_raster_' + str(nc) )
             plt.close(fig_r)
 
 
 
 if __name__ == '__main__':
-    main()
+    main_k()

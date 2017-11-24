@@ -154,20 +154,24 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main():
-    #folder_list = glob.glob(portable_datapath+'May22*')
-    data_folder = 'Morpholino_15min'
-    data_list = glob.glob(global_datapath+data_folder + '/*merged.npz')
+    data_folder = 'FB_resting_15min'
+    data_list = glob.glob(global_datapath+data_folder + '/*B1*cl_*.npz')
     for dset in data_list:
-        basename = os.path.basename(dset)
-        acquisition_date = '_'.join(basename.split('.')[0].split('_')[:3])
-        print(acquisition_date)
-        raw_data = np.load(dset)
-        ppl = pipeline(raw_data)
-        ppl.edge_truncate(edge_width = 5.0)
-        ppl.dff_calc(ft_width = 6, filt = True)
-        ppl.svar_sorting(var_cut = 0.95)
-        ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
-        print("Finished processing:", acquisition_date)
+        basename = os.path.basename(dset).split('.')[0]
+        cl_dset = np.load(dset)
+        dff_t = cl_dset['signal']
+        dff_k, dk = dff_frequency(dff_t, 0.5)
+        np.save(global_datapath + data_folder + '/'+ basename + '_k', dff_k)
+        print(dk)
+        #acquisition_date = '_'.join(basename.split('.')[0].split('_')[:3])
+        #print(acquisition_date)
+        #raw_data = np.load(dset)
+        #ppl = pipeline(raw_data)
+        #ppl.edge_truncate(edge_width = 5.0)
+        #ppl.dff_calc(ft_width = 6, filt = True)
+        #ppl.svar_sorting(var_cut = 0.95)
+        #ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
+        #print("Finished processing:", acquisition_date)
 
 
 if __name__ == '__main__':
