@@ -230,13 +230,32 @@ class Cell_extract(object):
         Update on 08/16: make the radius of blobs uniform.
         Update on 08/18: merge with the stack_signal_integ
         """
+        n_total = 0
         for n_frame in range(self.n_slice):
             '''
             extract blobs from each frame and save into data_list
             '''
             n_blobs = self.image_blobs(n_frame, bg_sub)
+            n_total += n_blobs
             if verbose:
                 print("# blobs in slice", n_frame, ": ", n_blobs)
+        self.n_total = n_total
+
+    def zd_bloblist_compression(self, coord_only = True):
+        '''
+        compress the dictionary into a python nparray
+        '''
+        n_start = 0
+        n_end = 0
+        if coord_only:
+            d_compression = np.zeros((self.n_total, 3))
+            for key, val in self.data_list.items():
+                n_end += val.shape[0]
+                d_compression[n_start:n_end] = val[:,[2,0,1]]
+                n_start = n_end
+
+        return d_compression
+
 
 
     def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 5):
@@ -340,17 +359,14 @@ def main():
     '''
     The main function for testing the cell extraction code.
     '''
-    #tf_path_win = 'D:\Data/2017-06-06/A2_TS_Compare\\'
-    tf_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    TS_stack = 'TS_folder/rg_A1_TS_Compare_ZP_2.tif'
-    tstack = read_tiff(tf_path+TS_stack, np.arange(400)).astype('float64')
-    CEt = Cell_extract(tstack)
-    ext_blobs = CEt.extract_sampling(nsamples = [4, 5, 6, 7, 8 ], mode = 'a', red_reduct = 6 )
-    print(ext_blobs.shape)
-    bt_stack = CEt.stack_signal_propagate(ext_blobs)
-    np.savez(tf_path+'Compare_test', **bt_stack)
-    figd = slice_display(ext_blobs, title = "extraction", ref_image = tstack[100])
-    figd.savefig(tf_path + 'extracted_blobs')
+    tf_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/CPD/'
+    TS_stack = 'ref_crop.tif'
+    tstack = read_tiff(tf_path+TS_stack ).astype('float64')
+    CEt = Cell_extract(tstack, diam = 7)
+    CEt.stack_blobs()
+    CEt.save_data_list(tf_path + 'ref_ext')
+    d_compression = CEt.zd_bloblist_compression()
+    np.save(tf_path+"compressed", d_compression)
 
 if __name__ == '__main__':
     main()

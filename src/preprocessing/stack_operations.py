@@ -11,6 +11,8 @@ import pyfftw
 import glob
 import os
 import src.shared_funcs.string_funcs as sfc
+import time
+from PIL import Image
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 regist_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
@@ -135,16 +137,6 @@ def rotmat_yaxis(ra):
     rotmat[2] = np.array([-np.sin(rad_ra), 0, np.cos(rad_ra)])
     return rotmat
 
-def resample_rot_frame(coord_ref, pxl_ref, pxl_rot, rot_mat, shift = np.zeros(3)):
-    '''
-    pxl_ref: the pixel size of the imaging stacks in the lab frame
-    pxl_rot: the pixel size of the imaging stacks in the imaging frame
-    rot_mat: the rotational matrix in the 3D space
-    shift: whether the translation from ref to rot occurs
-    Assume that we know the coordinates in the reference frame, this function calculates the coordinates in the rotated frame.
-    '''
-    coord_rot = np.dot(coord_ref*pxl_ref, rot_mat.T)/pxl_rot
-    return coord_rot # the m', n', k' coordinates in the rotated frame. May not be integers
 
 def trilinear_interpolation(stack, coord_px):
     '''
@@ -211,8 +203,39 @@ def trilinear_interpolation(stack, coord_px):
 
     return dz
 
+def sample_from_refstack(stack_ref, sample_range, pxl_ref, pxl_sample,  rotmat, rshift):
+    '''
+    stack_ref: the reference stack, i.e., the Z-brain.
+    sample_range: the range of sampling, in pixels.
+    pxl_ref: the pixel size of the reference stack
+    pxl_sample: the pixel size of the sample stack.
+    r_shift: the translation vecter from the lab frame to the image frame, unit of pixel.
+    '''
+    sx, sy, sz = sample_range
+
+    hx = sx//2
+    hy = sy//2
+    hz = sz//2
+    ix = (np.arange(sx)-hx)*pxl_sample[0]
+    iy = (np.arange(sy)-hy)*pxl_sample[1]
+    iz = (np.arange(sz)-hz)*pxl_sample[2]
+    [MY, MZ, MX]=np.meshgrid(iy, iz, ix) # the grid coordinates of the image stacks
+    fmz = np.ndarray.flatten(MZ)
+    fmy = np.ndarray.flatten(MY)
+    fmx = np.ndarray.flatten(MX)
+    flat_imgcoord = np.c_[fmx, fmy, fmz]
+    flat_labcoord = (np.dot(flat_imgcoord, rotmat))/pxl_ref+rshift # the coordinates in the lab frame. 
+    inter_signal = np.empty(sx*sy*sz) # initialize an empty array
+    ii = 0
+    for coord in flat_labcoord:
+        inter_signal[ii] = trilinear_interpolation(stack_ref, coord)
+        ii+=1
+
+    sample_value = np.reshape(inter_signal, [sz, sy, sx]) #note that the order of indices in 3D python array.
+    return sample_value
 
 
+# +++++++++++++++++++++++++++++++++++++++++++++ The Class ++++++++++++++++++++++++++++++++++
 class Stack_rot_resample(object):
     def __init__(self, stack, pxl_img):
         '''
@@ -246,9 +269,9 @@ class Stack_rot_resample(object):
         self._pxl = new_pxl
 
     #----------------------------- public functions -------------------------
-    def convert2lab(self):
+    def convert2lab(self, shift = None):
         '''
-        convert the imaging frame into lab frame.
+        convert the imaging frame into lab frame. Should have a reverse version.
         '''
         nz, ny, nx = self.imstack.shape
         rz = np.arange(nz)*pxl_img[2]
@@ -262,12 +285,16 @@ class Stack_rot_resample(object):
         fmx = np.ndarray.flatten(MX)
         flat_imgcoord = np.c_[fmx, fmy, fmz]
         flat_labcoord = np.dot(flat_imgcoord, self.rotmat)
+        if shift is not None:
+            flat_coord +=shift # If the origin is shifted from lab frame to the image frame.
         return flat_labcoord
         # this is the stupid method
+
 
     def convert2img_trilinear_interpolation(self, pxl_lab, lab_shape, lab_shift, verbose = True):
         '''
         lab_pxl: the pixel size in the lab frame
+        given a stack coordinate in the lab frame and a known image stack, calculate the representation of the imagein the lab frame.
         '''
         lz, ly, lx = lab_shape
         rz = np.arange(lz)*pxl_lab[2]-lab_shift[2]
@@ -302,11 +329,14 @@ def main():
     #refstack = tf.read_tiff(regist_path+'refbrain/Nov012016B3ZDref.tif')
     #reorient_tiff_RAS(refstack, regist_path+'refbrain/Nov012016B3ZDRASref.tif')
     data_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    img_stack = tf.read_tiff(data_path+'Jun06_A2_GCDA/A2_ZD_before.tif')
+    ref_path = 'cmtkRegistration/refbrain/RFP_temp.tif'
+
     rm_yaxis = rotmat_yaxis(40.0)
     pxl_img = [0.295, 0.295, 1.00]
     pxl_lab = [0.785, 0.785, 2.00]
-    lab_shape = np.array([100, 300, 300])
+    origin_shift = [200, 400, 10]
+    sample_range = np.array([900, 700, 100]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
+    sample_value = sample_from_refstack(ref_stack, pxl_lab, pxl_img, rm_yaxis, origin_shift)
     stk_rot_sample = Stack_rot_resample(img_stack, pxl_img)
     stk_rot_sample.rotmat=rm_yaxis
     lab_value = stk_rot_sample.convert2img_trilinear_interpolation(pxl_lab, lab_shape, lab_shift = [5.0, 0.0, -20.0])
