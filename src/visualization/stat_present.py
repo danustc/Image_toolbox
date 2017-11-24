@@ -21,7 +21,7 @@ def cluster_dimplot(cp_data, cluster_indices, ccode = default_ccode, lb_name = '
     '''
     NT, NP = cp_data.shape
     n_cluster = len(cluster_indices)
-    fig_pc, axes = plt.subplots(nrows = NP , ncols = NP, figsize = (2*NP, 2*NP))
+    fig_pc, axes = plt.subplots(nrows = NP , ncols = NP, figsize = (2.1*NP, 2*NP))
     fig_pc.subplots_adjust(hspace = 0.05, wspace = 0.05)
     for nr in range(NP):
         #iterate over rows
