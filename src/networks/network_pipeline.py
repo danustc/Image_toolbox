@@ -1,6 +1,6 @@
 '''
 A small pipeline for network analysis. Added by Dan on 06/18/2017.
-Last update: 07/27/2017.
+Last update: 12/13/2017.
 '''
 print(__doc__)
 import sys
@@ -20,7 +20,7 @@ from sklearn import linear_model
 from sklearn.cluster import KMeans
 from collections import deque
 
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
 def npztoh5(fpath, direct = 'f', new_path = None):
     '''
@@ -63,9 +63,11 @@ class pipeline(object):
         self._signal = None
         self.dt = dt
         self.parse_data(data_file)
+        print("signal dimensions:", self.signal.shape)
 
     def parse_data(self, data_file):
         try:
+            print(data_file)
             hf = h5py.File(data_file, 'r+')
             try:
                 self.coord = np.array(hf['coord'])
@@ -142,7 +144,7 @@ class pipeline(object):
         print("var ratio:",var_ratio)
         gpca = pca_sorting.group_pca(self.signal, gvar = var_cut)
         gpca.group_division()
-        ipre, idis = gpca.subgroup_pca(verbose)
+        ipre, idis = gpca.subgroup_pca(fine_sort = True)
 
         sig_head = self.signal[:,ipre]
         sig_tail = self.signal[:,idis]
@@ -241,8 +243,10 @@ class pipeline(object):
             except IndexError:
                 print("Index Error.")
             print('The unwanted cells are deleted.')
+            return ic_select
         else:
             print('Input error.')
+            return -1
 
 
     def clean_up(self):
@@ -279,26 +283,29 @@ def main():
     The test function of the pipeline.
     '''
     n_ica = 3
-    n_clu = 4
+    n_clu = 5
     cf = 0.60
-    local_datafolder = 'FB_resting_15min'
+    local_datafolder = 'Jun_GCDA/'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + '/*B1*dff.h5')
+    data_list = glob.glob(full_path + '*B2*merged_dff.h5')
+    clean_list = []
+    clean_fname = full_path+'clean_list.txt'
 
     for df_name in data_list:
-        basename = '_'.join(os.path.basename(df_name).split('.')[0].split('_')[:3])
-        print(basename)
+        basename = os.path.basename(df_name).split('.')[0]
+        print("Processing file:", basename)
         PL = pipeline(df_name)
-        #PL.pca_layered_sorting(var_cut = 0.99)
-        fig_raster = signal_plot.dff_rasterplot(PL.signal[:1200], n_truncate = 300)
+        # -------- PCA and ICA clustering ------------------
+        #PL.pca_layered_sorting(var_cut = 0.95) # This has been done once and the inactive cells are removed.
+        #PL.save_cleaned(df_name.split('.')[0]+'_pc_cleaned')
+        coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf,n_components = n_ica, n_clusters = n_clu)
+        fig_raster = signal_plot.dff_rasterplot(PL.signal, n_truncate = 300)
         fig_raster.savefig(full_path + '/' + basename + '_rv')
-        coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf, n_components = n_ica, n_clusters = n_clu)
-        fig_ic = stat_present.ic_plot(PL.ic, dt = 0.5, title = basename)
-        fig_ic.savefig(full_path + '/'+ basename+ '_ic')
-        plt.close(fig_ic)
-        fig_cl = stat_present.clusters_3d_distribution(PL.ic_coefs, PL.ic_label)
-        fig_cl.savefig(full_path + '/' + basename + '_icdist')
-        plt.close(fig_cl)
+        plt.close(fig_raster)
+
+        fig_ica = stat_present.ic_plot(PL.ic)
+        fig_ica.savefig(full_path + '/'+ basename + '_ic')
+        plt.close(fig_ica)
 
         fig_cl = stat_present.cluster_dimplot(PL.ic_coefs, PL.ic_label)
         fig_cl.savefig(full_path + '/' + basename + '_icdim')
@@ -306,21 +313,18 @@ def main():
 
         cluster_size = [len(cluster) for cluster in PL.ic_label]
         print("cluster sizes:", cluster_size)
-        PL.ica_interactive_cleaning()
-        PL.save_cleaned(df_name.split('.')[0])
-        npztoh5(df_name.split('.')[0]+'.npz')
 
         for nc in range(n_clu):
-        #    sub_hf = h5py.File(full_path + '/' + basename + '_cl_'+ str(nc) + '.h5', 'w')
-        #    sub_hf.create_dataset('coord', data = coord_clustered[nc])
-        #    sub_hf.create_dataset('signal', data = signal_clustered[nc])
-        #    sub_hf.close()
+            sub_hf = h5py.File(full_path + '/' + basename + '_cl_'+ str(nc) + '.h5', 'w')
+            sub_hf.create_dataset('coord', data = coord_clustered[nc])
+            sub_hf.create_dataset('signal', data = signal_clustered[nc])
+            sub_hf.close()
             cl_coord = coord_clustered[nc]
             cl_signal = signal_clustered[nc]
             print("# of cells:", cl_signal.shape[1])
             print("Cluster center:", PL.km_centers[nc])
             sub_dset = dict()
-            sub_dset['coord'] = cl_coord[:,[2,1,0]]
+            sub_dset['coord'] = cl_coord[:,[2,1,0]] # this is for display. x,y,z ordered as x,y,z, so it is consistent with that in the image.
             sub_dset['signal'] = cl_signal
             np.savez(full_path + '/' + basename + '_cl_' + str(nc), **sub_dset)
             NC = cl_coord.shape[0]
@@ -332,7 +336,13 @@ def main():
             fig_r.savefig(full_path + '/' + basename + '_raster_' + str(nc) )
             plt.close(fig_r)
 
+        mk = PL.ica_interactive_cleaning()
+        if mk >=0:
+            PL.save_cleaned(df_name.split('.')[0])
+            npztoh5(df_name.split('.')[0]+'.npz')
+            clean_list.append(df_name)
+
 
 
 if __name__ == '__main__':
-    main_k()
+    main()

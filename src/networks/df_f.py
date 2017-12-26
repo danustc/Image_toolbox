@@ -38,7 +38,7 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     """
     s_filt = smooth_lpf(shit_data[ntruncate:], ft_width)[1]
 
-    f_base = min_window(s_filt, 6*ft_width)
+    f_base = min_window(s_filt, 6*ft_width) + 1.0e-08
     print(np.min(f_base))
     dff_r = (shit_data[ntruncate:]-f_base)/f_base
 
@@ -82,7 +82,7 @@ def dff_frequency(dff_r, dt):
     Calculate the frequency representation of the dff.
     '''
     NT, NC = dff_r.shape
-    dk = 1./NT*dt
+    dk = 1./(NT*dt)
     a = pyfftw.empty_aligned(NT, dtype = 'complex128')
     b = pyfftw.empty_aligned(NT, dtype = 'complex128')
     NK = int(NT/2)

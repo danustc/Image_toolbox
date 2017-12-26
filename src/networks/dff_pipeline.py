@@ -9,7 +9,7 @@ import glob
 import numpy as np
 import h5py
 from df_f import *
-from noise_removal import coord_edgeclean
+from filtering import coord_edgeclean
 import simple_variance as simple_variance
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
@@ -106,7 +106,7 @@ class pipeline(object):
     def dff_calc(self, ft_width = 6, filt = True):
         dffr = dff_raw(self.rawf, ft_width, ntruncate = 25)
         if filt:
-            self.signal = dff_expfilt_group(dffr, self.dt, 1.5)
+            self.signal = dff_expfilt_group(dffr, self.dt, 1.8)
         else:
             self.signal = dffr
 
@@ -154,24 +154,17 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main():
-    data_folder = 'FB_resting_15min'
-    data_list = glob.glob(global_datapath+data_folder + '/*B1*cl_*.npz')
-    for dset in data_list:
-        basename = os.path.basename(dset).split('.')[0]
-        cl_dset = np.load(dset)
-        dff_t = cl_dset['signal']
-        dff_k, dk = dff_frequency(dff_t, 0.5)
-        np.save(global_datapath + data_folder + '/'+ basename + '_k', dff_k)
-        print(dk)
-        #acquisition_date = '_'.join(basename.split('.')[0].split('_')[:3])
-        #print(acquisition_date)
-        #raw_data = np.load(dset)
-        #ppl = pipeline(raw_data)
-        #ppl.edge_truncate(edge_width = 5.0)
-        #ppl.dff_calc(ft_width = 6, filt = True)
-        #ppl.svar_sorting(var_cut = 0.95)
-        #ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
-        #print("Finished processing:", acquisition_date)
+    data_folder = 'FB_resting_15min/'
+    raw_list = glob.glob(global_datapath+'*B3*merged.npz')
+    for raw_file in raw_list:
+        acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-2])
+        raw_data = np.load(raw_file)
+        ppl = pipeline(raw_data)
+        ppl.edge_truncate(edge_width = 5.0)
+        ppl.dff_calc(ft_width = 6, filt = True)
+        ppl.svar_sorting(var_cut = 0.99)
+        ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
+        print("Finished processing:", acquisition_date)
 
 
 if __name__ == '__main__':

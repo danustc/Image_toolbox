@@ -38,7 +38,7 @@ def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
 
 
 # Raster plot, color coded
-def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = None, title = None, ax = None):
+def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = None, title = None):
     '''
     dff_ordered: df_f ordered from most active to least active
     # rows:  # of time points
@@ -68,11 +68,10 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
 
     cell_tick = np.array([1,n_display])
     cell_tick_label = ['Cell 1', 'Cell '+str(n_display)]
-
     canvas_scale = int(np.ceil(200./n_display))
-    if ax is None:
-        fig = plt.figure(figsize = (fw, fw*5*canvas_scale*n_display/NT))
-        ax = fig.add_subplot(111)
+    print("fig size:", fw, fw*5*canvas_scale*n_display/NT)
+    fig = plt.figure(figsize = (fw, fw*5*canvas_scale*n_display/NT))
+    ax = fig.add_subplot(111)
     rshow = ax.imshow(dff_ordered.T, cmap = 'Greens', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
     ax.set_xticks(time_tick)
     ax.set_yticks(cell_tick)
@@ -83,7 +82,6 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
     cbar.ax.tick_params(labelsize = 14)
     if title is not None:
         ax.set_title(title)
-
 
     plt.tight_layout()
 

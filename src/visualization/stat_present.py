@@ -8,7 +8,7 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-default_ccode = ['coral', 'teal', 'darkviolet', 'sienna']
+default_ccode = ['coral', 'teal', 'darkviolet', 'sienna', 'mediumblue', 'dimgrey']
 
 
 

@@ -16,7 +16,7 @@ def dis2cluster(dataset, p_levels = None, yield_z = False):
     '''
     dendrogram clustering
     '''
-    Z = linkage(dataset, 'ward')
+    Z = linkage(dataset, 'ward') # this should be paid more attention to.
     c, coph_dists = cophenet(Z,pdist(dataset))
     print(c)
     figc = plt.figure()

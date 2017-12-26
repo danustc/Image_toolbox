@@ -14,7 +14,7 @@ import src.shared_funcs.string_funcs as sfc
 import time
 from PIL import Image
 
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+global_datapath = '/home/sillycat/Programming/Python/data_test/'
 regist_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
 
 
@@ -102,6 +102,18 @@ def stack_section(raw_stack, px_position, view = 'z'):
         im_section = raw_stack[:,:,xslice]
     return im_section
 
+def stack_padding(raw_stack, dest_size):
+    '''
+    pad a new stack with zeros
+    '''
+    new_stack = np.zeros(dest_size)
+    nz, ny, nx = raw_stack.shape
+    dz, dy, dx = dest_size
+    hz = (dz-nz)//2
+    hy = (dy-ny)//2
+    hx = (dx-nx)//2
+    new_stack[hz:hz+nz, hy:hy+ny, hx:hx+nx] = raw_stack
+    return new_stack
 
 def reorient_tiff_general(imstack, axis = 0):
     '''
@@ -216,6 +228,7 @@ def sample_from_refstack(stack_ref, sample_range, pxl_ref, pxl_sample,  rotmat, 
     hx = sx//2
     hy = sy//2
     hz = sz//2
+    print("Half range:", hx, hy, hz)
     ix = (np.arange(sx)-hx)*pxl_sample[0]
     iy = (np.arange(sy)-hy)*pxl_sample[1]
     iz = (np.arange(sz)-hz)*pxl_sample[2]
@@ -224,16 +237,53 @@ def sample_from_refstack(stack_ref, sample_range, pxl_ref, pxl_sample,  rotmat, 
     fmy = np.ndarray.flatten(MY)
     fmx = np.ndarray.flatten(MX)
     flat_imgcoord = np.c_[fmx, fmy, fmz]
-    flat_labcoord = (np.dot(flat_imgcoord, rotmat))/pxl_ref+rshift # the coordinates in the lab frame. 
+    flat_labcoord = (np.dot(flat_imgcoord, rotmat))/pxl_ref+rshift # the coordinates in the lab frame in the unit of pixels. 
     inter_signal = np.empty(sx*sy*sz) # initialize an empty array
     ii = 0
     for coord in flat_labcoord:
         inter_signal[ii] = trilinear_interpolation(stack_ref, coord)
         ii+=1
+        if ii%10000 == 0:
+            print("----------Finished %d out of %d calculations.------------"%(ii,sx*sy*sz))
 
     sample_value = np.reshape(inter_signal, [sz, sy, sx]) #note that the order of indices in 3D python array.
     return sample_value
 
+
+
+def sample_to_refstack(substack, ref_range, pxl_sample, pxl_ref, rotmat, rshift):
+    '''
+    A reference stack with size known, a registered chunk of image, which should be filled into the empty reference frame.
+    '''
+    ref_stack = np.zeros(ref_range) # create an empty stack
+    rz, ry, rx = ref_range
+    sz, sy, sx = substack.shape
+    hz = sz//2
+    hx = sx//2
+    hy = sy//2
+    idx_offset = np.array([hx,hy,hz])
+    ix = (np.arange(sx)-hx)*pxl_sample[0]
+    iy = (np.arange(sy)-hy)*pxl_sample[1]
+    iz = (np.arange(sz)-hz)*pxl_sample[2]
+    [MY, MZ, MX]=np.meshgrid(iy, iz, ix) # the grid coordinates of the image stacks
+    fmz = np.ndarray.flatten(MZ)
+    fmy = np.ndarray.flatten(MY)
+    fmx = np.ndarray.flatten(MX)
+    flat_imgcoord = np.c_[fmx, fmy, fmz]
+    flat_labcoord = np.round((np.dot(flat_imgcoord, rotmat))/pxl_ref+rshift) # the coordinates in the lab system, unit pixel
+    flat_imgcoord_approx = np.dot((flat_labcoord-rshift)*pxl_ref, rotmat.T)/pxl_sample   # convert back to the image coordinate
+    ii = 0
+    for coord in flat_imgcoord_approx:
+        indx = flat_labcoord[ii,[2,1,0]].astype('int') # nz, ny, nx
+        img_coord = coord+idx_offset
+        if (indx[0] < rz and indx[1] < ry and indx[2] < rx):
+            if(sx > img_coord[0] and sy > img_coord[1] and sz > img_coord[2]):
+                ref_stack[indx[0], indx[1], indx[2]] = trilinear_interpolation(substack, img_coord)
+        ii+=1
+        if ii%10000 == 0:
+            print("--------Finished %d out of %d calculations. ------"%(ii, sx*sy*sz))
+    return ref_stack
+    # [MY, MZ, MX] = np.meshgrid(iy,iz, ix)
 
 # +++++++++++++++++++++++++++++++++++++++++++++ The Class ++++++++++++++++++++++++++++++++++
 class Stack_rot_resample(object):
@@ -323,24 +373,41 @@ class Stack_rot_resample(object):
 
 
  #--------------------------------Test the the stack operations---------------
+def scr_padding():
+    '''
+    pad all the ZD stacks with zeros and resave
+    '''
+    ZD_list = glob.glob(global_datapath+'*/*ZD*.tif')
+    padded_size = [103, 810, 1052]
+    print(ZD_list)
+    for ZD_file in ZD_list:
+        basename = ZD_file.split('/')[-2]
+        ZD_stack = tf.read_tiff(ZD_file)
+        ZD_padded = stack_padding(ZD_stack, padded_size)
+        tf.write_tiff(ZD_padded, global_datapath+basename+'.tif')
+        ZD_front = stack_split(ZD_padded, np.arange(101), global_datapath+basename + '_f.tif')
+        ZD_back= stack_split(ZD_padded, np.arange(101)+1, global_datapath+basename + '_b.tif')
 
 def main():
     # test slice splitting function
     #refstack = tf.read_tiff(regist_path+'refbrain/Nov012016B3ZDref.tif')
     #reorient_tiff_RAS(refstack, regist_path+'refbrain/Nov012016B3ZDRASref.tif')
-    data_path = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-    ref_path = 'cmtkRegistration/refbrain/RFP_temp.tif'
+    data_path = '/home/sillycat/Programming/Python/cmtkRegistration/'
+    ref_path = 'refbrain/rfp_temp.tif'
+    im_path = 'GCamp_reg1.tif'
 
+    #ref_stack = tf.read_tiff(data_path+ref_path)
+    substack = tf.read_tiff(data_path+im_path)
     rm_yaxis = rotmat_yaxis(40.0)
     pxl_img = [0.295, 0.295, 1.00]
-    pxl_lab = [0.785, 0.785, 2.00]
-    origin_shift = [200, 400, 10]
-    sample_range = np.array([900, 700, 100]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
-    sample_value = sample_from_refstack(ref_stack, pxl_lab, pxl_img, rm_yaxis, origin_shift)
-    stk_rot_sample = Stack_rot_resample(img_stack, pxl_img)
-    stk_rot_sample.rotmat=rm_yaxis
-    lab_value = stk_rot_sample.convert2img_trilinear_interpolation(pxl_lab, lab_shape, lab_shift = [5.0, 0.0, -20.0])
-    tf.write_tiff(lab_value, data_path + 'ZD_resample.tif' )
+    pxl_lab = [0.798, 0.798, 2.00]
+    origin_shift = [240, 310, 80]
+    sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
+    ref_range = np.array([138, 621, 1406])
+    #sample_value = sample_from_refstack(ref_stack, sample_range, pxl_lab, pxl_img, rm_yaxis, origin_shift)
+    ref_empty = sample_to_refstack(substack, ref_range, pxl_img, pxl_lab, rm_yaxis, origin_shift)
+    tf.write_tiff(ref_empty, data_path + 'GCamp_resample.tif' )
+    print("done!")
 
 if __name__ =='__main__':
-    main()
+    scr_padding()

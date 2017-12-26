@@ -11,6 +11,7 @@ import src.visualization.stat_present as stat_present
 import src.visualization.brain_navigation as brain_navigation
 from src.shared_funcs import tifffunc as tf
 import matplotlib.pyplot as plt
+global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
 
 def pca_dff(dff_data, n_comp = 3):
     '''
@@ -104,6 +105,7 @@ class group_pca(object):
         '''
         if n_group is None:
             n_group = int(2*self.NP/self.NT)+1 # suggested divisions based on the data dimensions
+            print("Group division:", n_group)
         self.n_group = n_group
         self.groups = np.array_split(self.data, n_group, axis = 1)
         self.cum_count = np.array([sgroup.shape[1] for sgroup in self.groups]).cumsum() #cumulative count in the subgroups
@@ -135,9 +137,9 @@ class group_pca(object):
 
         if fine_sort: # keep those cells that relatively have large variance in the to-be-discarded group
             data_residue = self.data[:,idis]
-            CT, V = pca_raw(data_residue, sub_var)
+            CT, V = pca_raw(data_residue, self.gvar)
             a_sorted = cell_sorting(V)
-            arg_head, arg_tail = group_varsplit(data_residue, a_sorted, self.gvar)
+            arg_head, arg_tail = group_varsplit(data_residue, a_sorted, self.gvar**2)
             idis_fine = idis[arg_tail]
             ipre_fine = np.concatenate((ipre, idis[arg_head]))
             return ipre_fine, idis_fine
@@ -146,7 +148,7 @@ class group_pca(object):
 #----------------------------------------------Test the function-------------------------------------------
 
 def main():
-    global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/Jun06_A2_GCDA/'
+    local_datafolder = 'Jun_GCDA/'
 
 if __name__ == '__main__':
     main()
