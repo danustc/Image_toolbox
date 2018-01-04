@@ -377,16 +377,18 @@ def scr_padding():
     '''
     pad all the ZD stacks with zeros and resave
     '''
-    ZD_list = glob.glob(global_datapath+'*/*ZD*.tif')
-    padded_size = [103, 810, 1052]
+    ZD_list = glob.glob(global_datapath+'Dec*/*ZD*.tif')
+    #padded_size = [101, 804, 1020]
     print(ZD_list)
     for ZD_file in ZD_list:
-        basename = ZD_file.split('/')[-2]
+        basename = ''.join(ZD_file.split('/')[-2].split('_'))
         ZD_stack = tf.read_tiff(ZD_file)
-        ZD_padded = stack_padding(ZD_stack, padded_size)
-        tf.write_tiff(ZD_padded, global_datapath+basename+'.tif')
-        ZD_front = stack_split(ZD_padded, np.arange(101), global_datapath+basename + '_f.tif')
-        ZD_back= stack_split(ZD_padded, np.arange(101)+1, global_datapath+basename + '_b.tif')
+        zz, zy, zx = np.where(ZD_stack==0)
+        ZD_stack[zz,zy,zx] = np.std(ZD_stack)/2.0 + np.random.randn(len(zz))*10
+        #ZD_padded = stack_padding(ZD_stack, padded_size)
+        tf.write_tiff(ZD_stack, global_datapath+basename+'.tif')
+        #ZD_front = stack_split(ZD_padded, np.arange(101), global_datapath+basename + '_f.tif')
+        #ZD_back= stack_split(ZD_padded, np.arange(101)+1, global_datapath+basename + '_b.tif')
 
 def main():
     # test slice splitting function

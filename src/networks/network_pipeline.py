@@ -285,9 +285,9 @@ def main():
     n_ica = 3
     n_clu = 5
     cf = 0.60
-    local_datafolder = 'Jun_GCDA/'
+    local_datafolder = 'Liquid_delivery/'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + '*B2*merged_dff.h5')
+    data_list = glob.glob(full_path + '*merged_dff.h5')
     clean_list = []
     clean_fname = full_path+'clean_list.txt'
 

@@ -12,7 +12,7 @@ from df_f import *
 from filtering import coord_edgeclean
 import simple_variance as simple_variance
 
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+global_datapath = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/HQFB_redundancy_removed/'
 # ---------------------Below are small functions for data cleaning -------------
 
@@ -154,10 +154,10 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main():
-    data_folder = 'FB_resting_15min/'
-    raw_list = glob.glob(global_datapath+'*B3*merged.npz')
+    data_folder = 'GCDA_treated/'
+    raw_list = glob.glob(global_datapath+'Dec*merged.npz')
     for raw_file in raw_list:
-        acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-2])
+        acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
         ppl = pipeline(raw_data)
         ppl.edge_truncate(edge_width = 5.0)
