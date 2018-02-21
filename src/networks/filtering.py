@@ -1,7 +1,7 @@
 '''
 Removing high-frequency noises (those wrongly extracted cells)
 Additional signal processing
-Last update: 12/13/2017
+Last update: 01/03/2018
 '''
 
 import sys
@@ -9,6 +9,7 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import numpy as np
 import pyfftw
 import scipy.fftpack as fftpack
+from scipy import signal
 import src.networks.clustering as clustering
 
 def freq_cut(dff_raw, fcut, dt = 0.5):
@@ -46,5 +47,21 @@ def coord_edgeclean(coord_3d, edge_pos, dim = 'x', direct = 1):
         ind_discard = np.where(c_list < edge_pos)[0]
     return ind_discard
 
+
+def stimuli_trigger(T, dt, NT, hl_ratio, t_off):
+    '''
+    T: period
+    dt: time steps
+    NT: Number of time points
+    hl_ratio: duty, the fraction of high-level in each period
+    t_off: offset, must between 0 and T
+    '''
+    sig_raw = signal.square(2*np.pi*np.arange(NT)*dt/T, duty = hl)
+    if(t_off ==0):
+        return sig_raw
+    else:
+        n_shift = int(np.round(t_off/dt))
+        sig_shift  = np.roll(sig_raw, n_shift)
+        return sig_shift
 
 

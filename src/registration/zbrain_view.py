@@ -9,11 +9,14 @@ import scipy.io as sio
 import os
 import matplotlib.pyplot as plt
 from shared_funcs import tifffunc as tf
+from preprocessing import stack_operations as stkop
 
-anatomy_path='/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/pool/AnatomyLabelDatabase.hdf5'
-anatomy_folder = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/pool/'
+anatomy_path='/home/sillycat/Programming/Python/cmtkRegistration/AnatomyLabelDatabase.hdf5'
+anatomy_folder = '/home/sillycat/Programming/Python/cmtkRegistration/'
 
 
+zb_origin_shift = [240, 310, 80]
+zb_sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
 
 def load_mat(mat_path):
     '''
@@ -49,6 +52,8 @@ class Zbrain(object):
             return self.keys[n]
         except IndexError:
             print("Out of bound key index! ")
+
+
 
     def close(self):
         self.hf.close()

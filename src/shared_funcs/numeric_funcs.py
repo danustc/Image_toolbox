@@ -217,3 +217,15 @@ def lateral_distance(coord_1, coord_2):
     dR = np.sqrt( (YR-YC)**2 + (XR-XC)**2)
 
     return dR
+
+def solid_angle(vec):
+    '''
+    calculate the solid angle of a vector (theta, phi)
+    vec can be a list
+    '''
+    print(vec.shape)
+    nn = np.diag(1./np.linalg.norm(vec,axis = 1))
+    nvec = np.dot(nn, vec)
+    theta = np.arccos(nvec[:,2]) #theta
+    phi = np.angle(np.complex(nvec[:,0], nvec[:,1]))
+    return theta, phi

@@ -287,7 +287,7 @@ def main():
     cf = 0.60
     local_datafolder = 'Liquid_delivery/'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + '*merged_dff.h5')
+    data_list = glob.glob(full_path + 'Feb*_merged_dff.h5')
     clean_list = []
     clean_fname = full_path+'clean_list.txt'
 
@@ -296,8 +296,8 @@ def main():
         print("Processing file:", basename)
         PL = pipeline(df_name)
         # -------- PCA and ICA clustering ------------------
-        #PL.pca_layered_sorting(var_cut = 0.95) # This has been done once and the inactive cells are removed.
-        #PL.save_cleaned(df_name.split('.')[0]+'_pc_cleaned')
+        PL.pca_layered_sorting(var_cut = 0.95) # This has been done once and the inactive cells are removed.
+        PL.save_cleaned(df_name.split('.')[0]+'_pc_cleaned')
         coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf,n_components = n_ica, n_clusters = n_clu)
         fig_raster = signal_plot.dff_rasterplot(PL.signal, n_truncate = 300)
         fig_raster.savefig(full_path + '/' + basename + '_rv')

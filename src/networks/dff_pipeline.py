@@ -154,15 +154,15 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main():
-    data_folder = 'GCDA_treated/'
-    raw_list = glob.glob(global_datapath+'Dec*merged.npz')
+    data_folder = 'Liquid_delivery/'
+    raw_list = glob.glob(global_datapath+data_folder+'Feb*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
         ppl = pipeline(raw_data)
         ppl.edge_truncate(edge_width = 5.0)
         ppl.dff_calc(ft_width = 6, filt = True)
-        ppl.svar_sorting(var_cut = 0.99)
+        ppl.svar_sorting(var_cut = 0.99) #after the edge cut, do the simple var sorting to remove very inactive cells.
         ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
         print("Finished processing:", acquisition_date)
 
