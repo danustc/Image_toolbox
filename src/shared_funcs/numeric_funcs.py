@@ -224,8 +224,8 @@ def solid_angle(vec):
     vec can be a list
     '''
     print(vec.shape)
-    nn = np.diag(1./np.linalg.norm(vec,axis = 1))
-    nvec = np.dot(nn, vec)
+    nn = np.linalg.norm(vec,axis = 1)
+    nvec = (vec.T/nn).T
     theta = np.arccos(nvec[:,2]) #theta
-    phi = np.angle(np.complex(nvec[:,0], nvec[:,1]))
+    phi = np.angle(nvec[:,0]+1j* nvec[:,1])
     return theta, phi

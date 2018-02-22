@@ -33,28 +33,34 @@ class mask_db(object):
 
         return mask_idx, outline_idx
 
-    def mask_multi_coord(self, n_mask, coord, sa_div = [10, 20]):
+    def mask_multi_direct_search(self,n_mask, raw_coord):
         '''
-        assume that the coordinate has been transformed into the z-brain template frame and ordered as (x,y,z).
-        sa_div: solid angle division, default: theta (0,pi) divided into 10 bins while phi (0. 2*pi) divided into 20 bins
+        direct search instead of histogram over the 4pi solid angle.
         '''
-        ncoord = coord.shape[1]
+        ncoord = raw_coord.shape[0]
         mask_status = []
-        cos_theta_bin = np.linspace(-1, 1, sa_div[0]+1)
-        phi_bin = np.linspace(0, np.pi*2, sa_div[1]+1)
+        floor_pxls = np.floor(raw_coord).astype('int')
+        ceil_pxls = np.ceil(raw_coord).astype('int')
         mask_idx, outline_idx = self.get_mask(n_mask)
-        mask_z, mask_y, mask_x = np.unravel_index(mask_idx,zb_shape)
-        mask_coord = np.c_[mask_x, mask_y, mask_z]
-        for blob_coord in coord:
-            theta, phi = numfunc.solid_angle(mask_coord - blob_coord)
-            H, ct_edges, ph_edges = np.histogram2d(np.cos(theta), phi, bins = (cos_theta_bin, phi_bin))
-            print(H.shape)
-            if(np.all(H)):
-                mask_status.append(True)
-            else:
-                mask_status.append(False)
-        return mask_status
+        set_mask = set(mask_idx)
+        masked = []
 
+        print(floor_pxls.shape)
+        c_000 = np.ravel_multi_index(floor_pxls.T, zb_shape)
+        c_111 = np.ravel_multi_index(ceil_pxls.T, zb_shape)
+        c_001 = np.ravel_multi_index([floor_pxls[:,0], floor_pxls[:,1], ceil_pxls[:,2]], zb_shape)
+        c_011 = np.ravel_multi_index([floor_pxls[:,0], ceil_pxls[:,1], ceil_pxls[:,2]], zb_shape)
+        c_101 = np.ravel_multi_index([ceil_pxls[:,0], floor_pxls[:,1], ceil_pxls[:,2]], zb_shape)
+        c_100 = np.ravel_multi_index([ceil_pxls[:,0], floor_pxls[:,1], floor_pxls[:,2]], zb_shape)
+        c_010 = np.ravel_multi_index([floor_pxls[:,0], ceil_pxls[:,1], floor_pxls[:,2]], zb_shape)
+        c_110 = np.ravel_multi_index([ceil_pxls[:,0], ceil_pxls[:,1], floor_pxls[:,2]], zb_shape)
+        nearest_vortices = np.c_[c_000, c_100, c_010, c_001, c_110, c_101, c_011, c_111]
+        print(nearest_vortices.shape)
+        for v in nearest_vortices:
+            masked.append(set(v).issubset(set_mask))
+
+
+        return masked
 
     def shutdown(self):
         self.db.close()
