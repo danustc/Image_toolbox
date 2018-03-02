@@ -36,9 +36,11 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     ntruncate: the number of datapoits to be discarded.
     Get both F0 and df_f.
     """
+    shit_data += 1.0e-06
     s_filt = smooth_lpf(shit_data[ntruncate:], ft_width)[1]
 
-    f_base = min_window(s_filt, 6*ft_width) + 1.0e-08
+
+    f_base = min_window(s_filt, 6*ft_width) + 2.0e-08
     print(np.min(f_base))
     dff_r = (shit_data[ntruncate:]-f_base)/f_base
 

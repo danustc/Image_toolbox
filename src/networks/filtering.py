@@ -48,7 +48,7 @@ def coord_edgeclean(coord_3d, edge_pos, dim = 'x', direct = 1):
     return ind_discard
 
 
-def stimuli_trigger(T, dt, NT, hl_ratio, t_off):
+def stimuli_trigger_period(T, dt, NT, hl_ratio, t_off):
     '''
     T: period
     dt: time steps
@@ -64,4 +64,21 @@ def stimuli_trigger(T, dt, NT, hl_ratio, t_off):
         sig_shift  = np.roll(sig_raw, n_shift)
         return sig_shift
 
+def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0.):
+    '''
+    dt: time step
+    NT: number of time points
+    t_sti: stimulation onset time
+    d_sti: duration of stimulation
+    t_shift: how much to shift back the onset. Default: 0
+    a_sti: amplitude of stimulation, default 1.0
+    '''
+    sig_sti = np.zeros(NT)
+    t_duration = np.ceil(d_sti/dt).astype('int')
+    t_back = np.ceil(t_shift/dt).astype('int')
+    t_onset = t_sti//dt - t_back
+    t_onset[t_onset < 0] = 0
+    for nt in t_onset:
+        sig_sti[nt:nt+t_duration]=1.
 
+    return sig_sti

@@ -11,6 +11,7 @@ import numpy as np
 from src.shared_funcs.tifffunc import read_tiff
 import src.visualization.stat_present as stat_present
 import src.visualization.signal_plot as signal_plot
+import src.networks.filtering as filtering
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
 import matplotlib.pyplot as plt
@@ -249,6 +250,28 @@ class pipeline(object):
             return -1
 
 
+    def stimuli_sort(self, trigger_signal, nbins = 50 ):
+        '''
+        sort the signals based on their correlation with the trigger.
+        generate a histogram of the correlation function
+        '''
+        NT, NC = self.get_size()
+        trig_corr = np.empty(NC)
+        ntri = len(trigger_signal)
+        if (NT > ntri):
+            dff = self.signal[:ntri]
+        elif(NT < ntri):
+            dff = self.signal
+            trigger_signal = trigger_signal[:nt] #truncate the longer one
+        else:
+            dff = self.signal
+
+        for ii in range(NC):
+            trig_corr[ii] = np.corrcoef(trigger_signal, dff[:,ii])[1,0]
+
+        ind_sort = np.argsort(trig_corr)[::-1]
+        return ind_sort, trig_corr[ind_sort]
+
     def clean_up(self):
         self.ic = None
         self.ic_coefs = None
@@ -262,32 +285,20 @@ class pipeline(object):
         print("The class dies.")
 
 # --------------------------Below is the test section -------------------
-def main_k():
-    '''
-    Fourier analysis
-    '''
-    local_datafolder = 'FB_resting_15min'
-    full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + '/*B1*k.npy')
-    for df_name in data_list:
-        dset = np.load(df_name)
-        NT = int(dset.shape[0]/2)
-        basename = os.path.basename(df_name).split('.')[0]
-        print(basename)
-        fig_k = signal_plot.dff_rasterplot(dset[:NT,:250], dt = 0.00028, tunit = 'h', n_truncate = 100)
-        fig_k.savefig(full_path + '/'+ basename, title = basename)
-
-
 def main():
     '''
     The test function of the pipeline.
     '''
+    ld_time = np.array([100, 200, 300, 400, 500, 600, 700])
+    ld_signal = filtering.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = ld_time, d_sti =  16.0, t_shift = 2.0 )
+
+
     n_ica = 3
     n_clu = 5
     cf = 0.60
     local_datafolder = 'Liquid_delivery/'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + 'Feb*_merged_dff.h5')
+    data_list = glob.glob(full_path + 'Feb*B*_merged_dff.h5')
     clean_list = []
     clean_fname = full_path+'clean_list.txt'
 
@@ -296,7 +307,21 @@ def main():
         print("Processing file:", basename)
         PL = pipeline(df_name)
         # -------- PCA and ICA clustering ------------------
-        PL.pca_layered_sorting(var_cut = 0.95) # This has been done once and the inactive cells are removed.
+
+        sti_ind, corr_cf = PL.stimuli_sort(ld_signal)
+        plt.hist(corr_cf, bins = 70, range = (-0.25,0.7), color = 'g')
+        plt.yscale('log')
+        plt.show()
+        PL.reorder_data(ind_shuffle = sti_ind)
+        n_sample = 25
+        plt.plot(ld_signal)
+        plt.plot(PL.signal[:,:n_sample:5])
+        plt.show()
+        fig_sti = signal_plot.dff_rasterplot(PL.signal, n_truncate = 100)
+        print("max sorted:",np.max(PL.signal[:,:50]))
+        fig_sti.savefig(full_path + '/' + basename + '_sti')
+
+        PL.pca_layered_sorting(var_cut = 0.98) # This has been done once and the inactive cells are removed.
         PL.save_cleaned(df_name.split('.')[0]+'_pc_cleaned')
         coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf,n_components = n_ica, n_clusters = n_clu)
         fig_raster = signal_plot.dff_rasterplot(PL.signal, n_truncate = 300)
@@ -341,6 +366,9 @@ def main():
             PL.save_cleaned(df_name.split('.')[0])
             npztoh5(df_name.split('.')[0]+'.npz')
             clean_list.append(df_name)
+
+
+
 
 
 
