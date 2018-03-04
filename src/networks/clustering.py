@@ -75,3 +75,11 @@ def assert_subtree(dmat, ind_list):
     return fig_sbt, R
 
 
+def histo_clustering(feature_hist, bin_range, n_fold = 2, ridc = 0.):
+    '''
+    feature_hist: the histogram of features
+    bin_range: the range of the bins
+    n_fold: the fold factor of bins
+    ridc: the gaussian distribution of the background center
+    '''
+

@@ -14,6 +14,7 @@ import src.visualization.signal_plot as signal_plot
 import src.networks.filtering as filtering
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
+import src.networks.clustering as clustering
 import matplotlib.pyplot as plt
 import h5py
 
@@ -269,8 +270,9 @@ class pipeline(object):
         for ii in range(NC):
             trig_corr[ii] = np.corrcoef(trigger_signal, dff[:,ii])[1,0]
 
-        ind_sort = np.argsort(trig_corr)[::-1]
-        return ind_sort, trig_corr[ind_sort]
+        ind_sort = np.argsort(trig_corr)[::-1] # descending order
+        self.reorder_data(ind_shuffle = ind_sort)
+        return trig_corr[ind_sort]
 
     def clean_up(self):
         self.ic = None
@@ -289,8 +291,8 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    ld_time = np.array([100, 200, 300, 400, 500, 600, 700])
-    ld_signal = filtering.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = ld_time, d_sti =  16.0, t_shift = 2.0 )
+    ld_time = np.array([101, 200, 303, 400, 500, 600, 710])
+    ld_signal = filtering.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = ld_time, d_sti =  35.0, t_shift = 8.0 )
 
 
     n_ica = 3
@@ -307,12 +309,11 @@ def main():
         print("Processing file:", basename)
         PL = pipeline(df_name)
         # -------- PCA and ICA clustering ------------------
-
-        sti_ind, corr_cf = PL.stimuli_sort(ld_signal)
-        plt.hist(corr_cf, bins = 70, range = (-0.25,0.7), color = 'g')
-        plt.yscale('log')
+        bin_range = (-0.2, 0.7)
+        corr_cf = PL.stimuli_sort(ld_signal)
+        feature_hist = plt.hist(corr_cf, bins = 70, range = bin_range, color = 'g')[0]
+        #plt.yscale('log')
         plt.show()
-        PL.reorder_data(ind_shuffle = sti_ind)
         n_sample = 25
         plt.plot(ld_signal)
         plt.plot(PL.signal[:,:n_sample:5])

@@ -64,7 +64,7 @@ def stimuli_trigger_period(T, dt, NT, hl_ratio, t_off):
         sig_shift  = np.roll(sig_raw, n_shift)
         return sig_shift
 
-def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0.):
+def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0., mode = 'q'):
     '''
     dt: time step
     NT: number of time points
@@ -75,10 +75,23 @@ def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0.):
     '''
     sig_sti = np.zeros(NT)
     t_duration = np.ceil(d_sti/dt).astype('int')
+    print(t_duration)
     t_back = np.ceil(t_shift/dt).astype('int')
     t_onset = t_sti//dt - t_back
     t_onset[t_onset < 0] = 0
-    for nt in t_onset:
-        sig_sti[nt:nt+t_duration]=1.
+
+    if mode == 'q':
+        # square wave
+        for nt in t_onset:
+            sig_sti[nt:nt+t_duration]=1.
+    elif mode == 'e':
+        # exponential decay
+        a = 1./(1.-np.exp(-3*t_duration*dt))
+        b = 1.-a
+        for nt in t_onset:
+            sig_sti[nt:nt+3*t_duration]=a*np.exp(-np.arange(3*t_duration)*dt)+b
 
     return sig_sti
+
+
+
