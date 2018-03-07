@@ -309,15 +309,12 @@ def main():
         print("Processing file:", basename)
         PL = pipeline(df_name)
         # -------- PCA and ICA clustering ------------------
-        bin_range = (-0.2, 0.7)
         corr_cf = PL.stimuli_sort(ld_signal)
-        feature_hist = plt.hist(corr_cf, bins = 70, range = bin_range, color = 'g')[0]
-        #plt.yscale('log')
+        merged_hist, mb_centers = clustering.histo_clustering(corr_cf,nbin = 300, bin_cut = 0.50, n_fold = 5 , sca = 1.00)
+        plt.bar(mb_centers,merged_hist,width = 0.012)
         plt.show()
-        n_sample = 25
-        plt.plot(ld_signal)
-        plt.plot(PL.signal[:,:n_sample:5])
-        plt.show()
+
+
         fig_sti = signal_plot.dff_rasterplot(PL.signal, n_truncate = 100)
         print("max sorted:",np.max(PL.signal[:,:50]))
         fig_sti.savefig(full_path + '/' + basename + '_sti')

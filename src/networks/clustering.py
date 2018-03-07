@@ -6,6 +6,7 @@ Last modification: 11/05/2017
 import numpy as np
 from scipy.cluster.hierarchy import dendrogram, linkage, cophenet
 from scipy.spatial.distance import pdist
+from scipy import stats
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from collections import deque
@@ -75,11 +76,36 @@ def assert_subtree(dmat, ind_list):
     return fig_sbt, R
 
 
-def histo_clustering(feature_hist, bin_range, n_fold = 2, ridc = 0.):
+def histo_clustering(feature, nbin, bin_cut = None,n_fold = 2, sca = 1.00):
     '''
-    feature_hist: the histogram of features
+    feature: the histogram of features
     bin_range: the range of the bins
     n_fold: the fold factor of bins
-    ridc: the gaussian distribution of the background center
     '''
+    hist, bins = np.histogram(feature, bins = nbin)
+    xbin = bins[1] - bins[0]
 
+    if bin_cut is not None:
+        norm_feature = feature[feature<bin_cut]
+        res_feature = feature[feature>=bin_cut]
+        m, s = stats.norm.fit(norm_feature) # m: mean, #s: spreading
+        pdf_g = stats.norm.pdf(bins, m, s)*len(norm_feature)*xbin # spread functin
+    else:
+        m, s = stats.norm.fit(feature) # no cutting off
+        pdf_g = stats.norm.pdf(bins, m, s)*len(feature)*xbin
+        # spread functin
+
+    mpdf = (pdf_g[:-1]+pdf_g[1:])//2
+    res_hist = hist - np.floor(mpdf*sca)
+    res_hist[res_hist<0] = 0
+    n_padding = nbin%n_fold
+    if n_padding:
+        res_hist = np.append(res_hist, np.zeros(n_fold -n_padding))
+    # next, merge the bins
+    n_rows = len(res_hist) //n_fold
+    merged_hist = np.sum(np.reshape(res_hist, (n_rows, n_fold)),axis = 1)
+    mb_centers = np.arange(n_rows)*xbin*n_fold+(bins[0]+bins[1])*0.50
+
+    # to be added: find the cut off.
+
+    return merged_hist, mb_centers
