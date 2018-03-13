@@ -84,6 +84,8 @@ def histo_clustering(feature, nbin, bin_cut = None,n_fold = 2, sca = 1.00):
     '''
     hist, bins = np.histogram(feature, bins = nbin)
     xbin = bins[1] - bins[0]
+    plt.hist(feature, bins = nbin)
+    plt.show()
 
     if bin_cut is not None:
         norm_feature = feature[feature<bin_cut]

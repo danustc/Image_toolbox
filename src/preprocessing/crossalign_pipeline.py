@@ -166,9 +166,12 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
         for km in di_keys:
             coor_list.append(afc_merge[km])
             data_list.append(fluo_merge[km])
+            print(fluo_merge[km].shape)
 
         coor_3d = np.concatenate(coor_list, axis = 0)
         coor_3d[:,1:]*= rpixel
+        print(len(data_list))
+        print(data_list[0])
         data_3d = np.concatenate(data_list, axis = 1)
 
         compiled_data = {'coord': coor_3d, 'data': data_3d}
@@ -181,7 +184,7 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 def main():
     #relative_path = 'Nov01_2016_A1/'
     #full_path = global_datapath + relative_path
-    folder_list = glob.glob(global_datapath+'Feb*/')
+    folder_list = glob.glob(global_datapath+'Feb27_A1/')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)

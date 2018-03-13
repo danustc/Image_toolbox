@@ -155,7 +155,7 @@ class pipeline(object):
 
 def main():
     data_folder = 'Liquid_delivery/'
-    raw_list = glob.glob(global_datapath+data_folder+'Feb19*merged.npz')
+    raw_list = glob.glob(global_datapath+data_folder+'Feb27*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)

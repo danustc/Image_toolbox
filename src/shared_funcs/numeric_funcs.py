@@ -109,6 +109,30 @@ def circ_mask_patch(frame_size, cr, dr):
 
     # end of circ_mask
 
+def spheri_mask_patch(frame_size, cr, dr, pxl):
+    '''
+    frame_size:(nz, ny, nx)
+    cr:(cz, cy, cx), unit micron
+    dr:The radius of the blob, unit micron
+    pxl: pixel size (pz, py, px)
+    '''
+    sz, sy, sx = frame_size
+    # convert to unit of pixels
+    idx_upper = ((cr+dr)//pxl+1).astype('int')
+    idx_lower = ((cr-dr)//pxl).astype('int')
+    n_begin = int(dr)+1
+    zz = np.arange(idx_lower[0], idx_upper[0])*pxl[0]-cr[0]
+    yy = np.arange(idx_lower[1], idx_upper[1])*pxl[1]-cr[1]
+    xx = np.arange(idx_lower[2], idx_upper[2])*pxl[2]-cr[2]
+
+    [MY, MZ, MX] = np.meshgrid(yy,zz,xx)
+    RR = np.sqrt( MY**2 + MZ**2 + MX**2)
+    idz, idy, idx = np.where(RR<dr)
+    inr = np.c_[idz, idy, idz] + idx_lower
+    return inr
+
+
+
 def circs_reconstruct(dims, blob_list, dr = 3):
     """
     Reconstruct an image (a 2d array) with a list of blobs marked on it.

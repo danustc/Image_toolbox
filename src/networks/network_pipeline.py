@@ -14,6 +14,7 @@ import src.visualization.signal_plot as signal_plot
 import src.networks.filtering as filtering
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
+import src.networks.simple_variance as simple_variance
 import src.networks.clustering as clustering
 import matplotlib.pyplot as plt
 import h5py
@@ -188,12 +189,15 @@ class pipeline(object):
             print("Final data dimension:", self.get_size())
         # end of pca_layered sorting 
 
-    def save_cleaned(self, save_path):
+    def save_cleaned(self, save_path, rev_zyx = True):
         '''
         Compile a dictionary and save it
         '''
         cleaned_data = dict()
-        cleaned_data['coord'] = self.coord
+        if rev_zyx:
+            cleaned_data['coord'] = self.coord[::-1]
+        else:
+            cleaned_data['coord'] = self.coord
         cleaned_data['signal'] = self.signal
         np.savez(save_path, **cleaned_data)
 
@@ -235,21 +239,19 @@ class pipeline(object):
         '''
         perform interactive cleaning on the raw_data
         '''
+        mk =0
         NI = len(self.ic_label)
-        ic_select = int(input("Please select the cluster to be removed:"))
+        ic_select = input("Please select the cluster to be removed:")
         print("Selected mode:", ic_select)
-        if ic_select in range(NI):
+        ic_list = ic_select.split(',')
+        for ic in ic_list:
             try:
-                idx = self.ic_label[ic_select] # find the indices to be deleted 
+                idx = self.ic_label[int(ic)] # find the indices to be deleted 
                 self._trim_data_(idx, mode = 1)
+                mk+=1
             except IndexError:
                 print("Index Error.")
-            print('The unwanted cells are deleted.')
-            return ic_select
-        else:
-            print('Input error.')
-            return -1
-
+        return mk
 
     def stimuli_sort(self, trigger_signal, nbins = 50 ):
         '''
@@ -291,16 +293,18 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    ld_time = np.array([101, 200, 303, 400, 500, 600, 710])
-    ld_signal = filtering.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = ld_time, d_sti =  35.0, t_shift = 8.0 )
+    ld_Feb19 = np.array([101, 200, 303, 400, 503, 603, 708])
+    ld_Feb27A = np.array([101, 200, 303, 400, 450])
+    ld_Feb27B = np.array([452, 500, 600, 700, 800])
+    ld_signal = filtering.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = ld_Feb27B, d_sti =  26.0, t_shift = 4.0 )
 
 
-    n_ica = 3
-    n_clu = 5
+    n_ica = 4
+    n_clu = 3
     cf = 0.60
     local_datafolder = 'Liquid_delivery/'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + 'Feb*B*_merged_dff.h5')
+    data_list = glob.glob(full_path + 'Feb27*B*_merged_dff.h5')
     clean_list = []
     clean_fname = full_path+'clean_list.txt'
 
@@ -309,22 +313,27 @@ def main():
         print("Processing file:", basename)
         PL = pipeline(df_name)
         # -------- PCA and ICA clustering ------------------
+
+        # commented by Dan on 03/07
         corr_cf = PL.stimuli_sort(ld_signal)
-        merged_hist, mb_centers = clustering.histo_clustering(corr_cf,nbin = 300, bin_cut = 0.50, n_fold = 5 , sca = 1.00)
+        merged_hist, mb_centers = clustering.histo_clustering(corr_cf,nbin = 300, bin_cut = 0.40, n_fold = 5 , sca = 1.00)
         plt.bar(mb_centers,merged_hist,width = 0.012)
         plt.show()
 
+        plt.plot(ld_signal)
+        plt.plot(PL.signal[:,:20:5])
 
-        fig_sti = signal_plot.dff_rasterplot(PL.signal, n_truncate = 100)
-        print("max sorted:",np.max(PL.signal[:,:50]))
+        plt.show()
+        ntr = 300
+        print("cutoff:", corr_cf[ntr])
+        PL.reorder_data(ind_shuffle = np.arange(ntr))
+        crank,_ = simple_variance.simvar_global_sort(PL.signal)
+        PL.reorder_data(ind_shuffle = crank)
+        #PL.pca_layered_sorting(var_cut = 0.98) # This has been done once and the inactive cells are removed.
+        #PL.save_cleaned(df_name.split('.')[0]+'_pc_cleaned')
+        fig_sti = signal_plot.dff_rasterplot(PL.signal, n_truncate = ntr)
         fig_sti.savefig(full_path + '/' + basename + '_sti')
-
-        PL.pca_layered_sorting(var_cut = 0.98) # This has been done once and the inactive cells are removed.
-        PL.save_cleaned(df_name.split('.')[0]+'_pc_cleaned')
         coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf,n_components = n_ica, n_clusters = n_clu)
-        fig_raster = signal_plot.dff_rasterplot(PL.signal, n_truncate = 300)
-        fig_raster.savefig(full_path + '/' + basename + '_rv')
-        plt.close(fig_raster)
 
         fig_ica = stat_present.ic_plot(PL.ic)
         fig_ica.savefig(full_path + '/'+ basename + '_ic')
@@ -338,10 +347,6 @@ def main():
         print("cluster sizes:", cluster_size)
 
         for nc in range(n_clu):
-            sub_hf = h5py.File(full_path + '/' + basename + '_cl_'+ str(nc) + '.h5', 'w')
-            sub_hf.create_dataset('coord', data = coord_clustered[nc])
-            sub_hf.create_dataset('signal', data = signal_clustered[nc])
-            sub_hf.close()
             cl_coord = coord_clustered[nc]
             cl_signal = signal_clustered[nc]
             print("# of cells:", cl_signal.shape[1])
@@ -360,11 +365,13 @@ def main():
             plt.close(fig_r)
 
         mk = PL.ica_interactive_cleaning()
-        if mk >=0:
-            PL.save_cleaned(df_name.split('.')[0])
-            npztoh5(df_name.split('.')[0]+'.npz')
-            clean_list.append(df_name)
+        PL.save_cleaned(df_name.split('.')[0]+'_sti',rev_zyx = True)
+            #npztoh5(df_name.split('.')[0]+'_sti'+'.npz')
+        clean_list.append(df_name)
+        fig_r = signal_plot.dff_rasterplot(PL.signal, fw = 7.0, title = basename )
+        fig_r.savefig(full_path + '/' + basename + '_sti' )
 
+        plt.close('all')
 
 
 

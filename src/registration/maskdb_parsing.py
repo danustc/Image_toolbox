@@ -21,6 +21,10 @@ class mask_db(object):
         self.outline_ir = outline_list['ir']
         self.outline_jc = outline_list['jc']
 
+    def get_name(self, n_mask):
+        rawname_idx = self.name_list[n_mask][0]
+        name_idx = ''.join(chr(i) for i in self.db[rawname_idx][:])
+        return name_idx
 
     def get_mask(self, n_mask):
         mstart = self.mask_jc[n_mask]
@@ -45,7 +49,7 @@ class mask_db(object):
         set_mask = set(mask_idx)
         masked = []
 
-        print(floor_pxls.shape)
+        # zb_shape: z, y, x.
         c_000 = np.ravel_multi_index(floor_pxls.T, zb_shape)
         c_111 = np.ravel_multi_index(ceil_pxls.T, zb_shape)
         c_001 = np.ravel_multi_index([floor_pxls[:,0], floor_pxls[:,1], ceil_pxls[:,2]], zb_shape)
@@ -55,7 +59,6 @@ class mask_db(object):
         c_010 = np.ravel_multi_index([floor_pxls[:,0], ceil_pxls[:,1], floor_pxls[:,2]], zb_shape)
         c_110 = np.ravel_multi_index([ceil_pxls[:,0], ceil_pxls[:,1], floor_pxls[:,2]], zb_shape)
         nearest_vortices = np.c_[c_000, c_100, c_010, c_001, c_110, c_101, c_011, c_111]
-        print(nearest_vortices.shape)
         for v in nearest_vortices:
             masked.append(set(v).issubset(set_mask))
 

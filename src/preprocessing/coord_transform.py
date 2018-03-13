@@ -119,7 +119,7 @@ def sample_to_refstack_list(coord_list, sample_range, pxl_sample, pxl_ref, rotma
     convert a list of coordinates into the coordinates in the reference frame.
     '''
     half_range = sample_range//2
-    img_coord = (coord_list-half_range)*pxl_sample
+    img_coord = (coord_list/pxl_sample-half_range)*pxl_sample
     lab_coord = np.dot(img_coord, rotmat)/pxl_ref + rshift
 
     return lab_coord
