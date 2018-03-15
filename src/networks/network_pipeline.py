@@ -253,13 +253,12 @@ class pipeline(object):
                 print("Index Error.")
         return mk
 
-    def stimuli_sort(self, trigger_signal, nbins = 50 ):
+    def stimuli_sort(self, trigger_signal, nbins = 50, mode = 'p'):
         '''
         sort the signals based on their correlation with the trigger.
         generate a histogram of the correlation function
         '''
         NT, NC = self.get_size()
-        trig_corr = np.empty(NC)
         ntri = len(trigger_signal)
         if (NT > ntri):
             dff = self.signal[:ntri]
@@ -268,13 +267,19 @@ class pipeline(object):
             trigger_signal = trigger_signal[:nt] #truncate the longer one
         else:
             dff = self.signal
+        if mode =='p': # pearson correlation
+            trig_corr = np.empty(NC)
+            for ii in range(NC):
+                trig_corr[ii] = np.corrcoef(trigger_signal, dff[:,ii])[1,0]
 
-        for ii in range(NC):
-            trig_corr[ii] = np.corrcoef(trigger_signal, dff[:,ii])[1,0]
-
-        ind_sort = np.argsort(trig_corr)[::-1] # descending order
-        self.reorder_data(ind_shuffle = ind_sort)
-        return trig_corr[ind_sort]
+            ind_sort = np.argsort(trig_corr)[::-1] # descending order
+            self.reorder_data(ind_shuffle = ind_sort)
+            return trig_corr[ind_sort]
+        else: # cross correlation
+            trig_xcorr = np.empty(NT, NC) # cross correlation
+            for ii in range(NC):
+                trig_xcorr[:,ii] = np.correlate(trigger_signal, dff[:,ii], mode = 'same')
+            return trig_xcorr
 
     def clean_up(self):
         self.ic = None
