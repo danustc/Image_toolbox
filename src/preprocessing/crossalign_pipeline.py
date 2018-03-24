@@ -184,7 +184,7 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 def main():
     #relative_path = 'Nov01_2016_A1/'
     #full_path = global_datapath + relative_path
-    folder_list = glob.glob(global_datapath+'Feb27_A1/')
+    folder_list = glob.glob(global_datapath+'Feb27_*/')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)

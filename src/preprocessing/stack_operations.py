@@ -148,4 +148,9 @@ def reorient_tiff_RAS(imstack, fname):
     tf.write_tiff(rot_stack, fname)
 
 
-
+def dynamic_reduce(imstack, nbit = 8):
+    '''
+    reduce the dynamic range of given images
+    '''
+    red_stack = imstack/(2**nbit)
+    return np.round(red_stack).astype('uint16') # return as uint16
