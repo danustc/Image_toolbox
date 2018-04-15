@@ -61,12 +61,10 @@ class pipeline(object):
     Conventions:    a. self.signal stores signals (either F or \Delta F/F) of all the extracted cells.
                     b. self.cood stores the coordinates (in micron) of all the extracted cells. If coord has two columns, the 0th is y and the 1st is x; if coord has three columns, the order is z,y,x (instead of x,y,z, to be consistent with Python array dimension orders)
     '''
-    def __init__(self, data_file, dt=0.5):
+    def __init__(self):
         self._coord = None
         self._signal = None
-        self.dt = dt
-        self.parse_data(data_file)
-        print("signal dimensions:", self.signal.shape)
+        self.dt = 0.5
 
     def parse_data(self, data_file):
         try:

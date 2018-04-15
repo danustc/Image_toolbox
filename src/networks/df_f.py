@@ -7,8 +7,9 @@ Last update: 06/19/17
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-from src.shared_funcs.numeric_funcs import smooth_lpf
+from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit
 from scipy.signal import exponential, fftconvolve
+from scipy import stats
 import matplotlib.pyplot as plt
 import pyfftw
 
@@ -41,11 +42,58 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
 
 
     f_base = min_window(s_filt, 6*ft_width) + 2.0e-08
-    print(np.min(f_base))
     dff_r = (shit_data[ntruncate:]-f_base)/f_base
 
     return dff_r
     # done with dff_raw
+
+
+def dff_hist(shit_data, ft_width, ntruncate = 20, rect= True, noise_norm = False):
+    shit_data +=1.0e-06
+    _,s_filt = smooth_lpf(shif_data[ntruncate:], ft_width)
+    f_base = min_window(s_filt, 6*ft_width) + 2.0e-08
+    dff_r = (shit_data[ntruncate:]-f_base)/f_base # raw_dff
+    hist, be =np.histogram(dff_r, bins = 100) # histogram
+    hind = np.argmax(hist)
+    mu = be[hind]+be[hind+1]
+    if mu>0:
+        fb_new = f_base*(1.+mu) # correct the residue of the deltaF/F
+        dff_r = (shit_data[n_truncate:]-fb_new)/fb_new
+    m,s = stats.norm.fit(dff_r) #s: the noise level
+    if rect:
+        dff_r[dff_r<0] = 0. #rectify so that there are no negative dff values.
+    if noise_norm: # normalize to the noise level
+        dff_r/=s # this is actually signal-to-noise level
+
+    return dff_r, s # dff_zscore = dff_r/s
+
+def dff_AB(dff_r, gam = 0.05):
+    '''
+    Using Bayesian theory to infer the identity of the data points (signal or noise)
+    '''
+    Zn = dff_r[:-1]
+    Zp = dff_r[1:]
+    h2, ne, pe = np.histogram2d(Zn, Zp, bins = 50) #2d histogram distribution of (Zn_k, Zn_k+1)
+    hne = (ne[:-1]+ne[1:])/2.
+    hpe = (pe[:-1]+pe[1:])/2.
+    [NE, PE] = np.meshgrid(hne, hpe)
+    popt, pcov = gaussian2d_fit(x = NE, y = PE, data = h2.ravel(), x0=0., y0=0., sig_x = 0.5, sig_y = 0.5, rho = 0.60, A = 10, offset = 0.10)
+    mx, my, a,b,c, A, ofst = popt # the fitted parameters
+    sxq = 2*b/(4*a*b-c*c)
+    syq = 2*a/(4*a*b-c*c)
+    sxy = np.sqrt(sxq*syq)
+    rho = c/(2.*np.sqrt(a*b))
+    rv = stats.multivariate_normal(mean = [mx, my], cov = [[sxq, rho*sxy], [rho*sxy, syq]])
+    PZB = rv.pdf(np.dstack((Zn,Zp))) # the distribution of B: dual-variate Gaussian
+    Z_dist = h2/h2.sum() # normalized distribution
+    ind_zn = np.searchsorted(ne, Zn)-1 #indices of %Zn in the histogram 
+    ind_zp = np.searchsorted(pe, Zp)-1 #indices of Zn+1 in the histogram
+    PZ = Z_dist[ind_zn, ind_zp] # the probability of data transitions
+    PBZ = PZB/(PZ+0.001) # Bayesian theory, the activity posterior probability 
+    beta = gam/(1.+gam)
+    id_A = np.where(PBZ<beta)[0]
+    return id_A
+
 
 
 

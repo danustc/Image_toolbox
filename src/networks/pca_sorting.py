@@ -18,11 +18,13 @@ def pca_dff(dff_data, n_comp = 3):
     0. load dff_data. Each column represents the df_f of a neuron.
     1. perform PCA on n_comp.
     2. visualization.
+    This has consistent results with pca_raw. However, var_cut is not available.
     '''
     pc_dff = PCA(n_components = n_comp)
     pc_dff.fit(dff_data)
     pc_trans = pc_dff.transform(dff_data)
-    return pc_trans
+    pc_vecs = pc_dff.components_
+    return pc_trans, pc_vecs
 
 
 # to understand PCA better, let's write a PCA from scratch (Yay! )
