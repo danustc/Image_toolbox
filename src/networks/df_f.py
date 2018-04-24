@@ -7,7 +7,7 @@ Last update: 06/19/17
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit
+from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit, gaussian1d_fit
 from scipy.signal import exponential, fftconvolve
 from scipy import stats
 import matplotlib.pyplot as plt
@@ -35,37 +35,46 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     calculate df_f for shit_sig.
     ft_width: the time scale of features in the raw f(t). Unit: 1 (not in seconds)
     ntruncate: the number of datapoits to be discarded.
-    Get both F0 and df_f.
+    Get both F0 and df_f. Correct the baseline if necessary.
     """
     shit_data += 1.0e-06
     s_filt = smooth_lpf(shit_data[ntruncate:], ft_width)[1]
-
-
     f_base = min_window(s_filt, 6*ft_width) + 2.0e-08
     dff_r = (shit_data[ntruncate:]-f_base)/f_base
+
+    hist, be =np.histogram(dff_r, bins = 100) # histogram
+    hind = np.argmax(hist)
+    mu = (be[hind]+be[hind+1])*0.5 # the average of mu
+    if mu>0:
+        fb_new = f_base*(1.+mu)
+        dff_r = (shit_data[n_truncate:]-fb_new)/fb_new
 
     return dff_r
     # done with dff_raw
 
 
-def dff_hist(shit_data, ft_width, ntruncate = 20, rect= True, noise_norm = False):
-    shit_data +=1.0e-06
-    _,s_filt = smooth_lpf(shif_data[ntruncate:], ft_width)
-    f_base = min_window(s_filt, 6*ft_width) + 2.0e-08
-    dff_r = (shit_data[ntruncate:]-f_base)/f_base # raw_dff
-    hist, be =np.histogram(dff_r, bins = 100) # histogram
-    hind = np.argmax(hist)
-    mu = be[hind]+be[hind+1]
-    if mu>0:
-        fb_new = f_base*(1.+mu) # correct the residue of the deltaF/F
-        dff_r = (shit_data[n_truncate:]-fb_new)/fb_new
-    m,s = stats.norm.fit(dff_r) #s: the noise level
-    if rect:
-        dff_r[dff_r<0] = 0. #rectify so that there are no negative dff values.
-    if noise_norm: # normalize to the noise level
-        dff_r/=s # this is actually signal-to-noise level
+def dff_hist(dff_r, nbin = 100, rect= False, noise_norm = False):
+    '''
+    assumption: dff is already calculated.
+    '''
+    #m,s = stats.norm.fit(dff_r) does not work. More constraints should be added to the fit.
+    hist, be = np.histogram(dff_r, nbin) # fit with histogram
+    mu_ind = np.argmax(hist) # find the maximum
+    A0 = hist[mu_ind] # the initial guess of the coefficient
+    print(A0)
 
-    return dff_r, s # dff_zscore = dff_r/s
+    xx = (be[:-1]+be[1:])*0.50
+    popt, pcov  = gaussian1d_fit(xx,hist,x0 = 0.0,sig_x = 0.10, A = A0/2, offset = 0.)
+    s = np.sqrt(0.5/popt[1])
+    print("noise level:", s)
+
+    dff_n = dff_r
+    if rect:
+        dff_n[dff_r<0] = 0. #rectify so that there are no negative dff values.
+    if noise_norm: # normalize to the noise level
+        dff_n/=s # this is actually signal-to-noise level
+
+    return dff_n,  popt # dff_zscore = dff_r/s
 
 def dff_AB(dff_r, gam = 0.05):
     '''

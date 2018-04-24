@@ -154,3 +154,11 @@ def dynamic_reduce(imstack, nbit = 8):
     '''
     red_stack = imstack/(2**nbit)
     return np.round(red_stack).astype('uint16') # return as uint16
+
+
+def stack_global_thresholding(stack, nsig = 3):
+    s_mean = stack.mean()
+    s_std = stack.std()
+    th_stack = np.copy(stack)
+    th_stack[stack>s_mean+nsig*s_std] = s_mean+nsig*s_std
+    return th_stack

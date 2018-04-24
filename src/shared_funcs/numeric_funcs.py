@@ -27,13 +27,53 @@ def smooth_lpf(shit_data, ft_width = 3):
     # done with smooth_lpf
 
 
+def gaussian1D(xx, x0, aa, A, ofst= 0.):
+    '''
+    sx^2 = sqrt(0.5/aa)
+    '''
+    x0 = float(x0)
+    k = aa*(xx-x0)**2
+    g = A*np.exp(-k) + ofst
+    return g.ravel()
 
-def gaussian2D(height, center_x, center_y, width_x, width_y, ofst=0.):
-    """Returns a gaussian function with the given parameters"""
-    width_x = float(width_x)
-    width_y = float(width_y)
-    return lambda x,y: height*np.exp(-(((center_x-x)/width_x)**2+((center_y-y)/width_y)**2)/2)+ofst
+def gaussian2D(ds_xy, x0, y0,a,b,c, A, ofst=0.):
+    '''
+    rho = c/(2*sqrt(ab))
+    sx^2 = 2b/(4ab-c)
+    sy^2 = 2a/(4ab-c)
+    '''
+    x0 = float(x0)
+    y0 = float(y0)
+    x = ds_xy[:,:,0]
+    y = ds_xy[:,:,1]
+    #g = A*np.exp(-(((x-x0)/sx)**2+((y-y0)/sy)**2+(x-x0)*(y-y0)/(ss*ss))/2)+ofst
+    k = a*(x-x0)**2 + b*(y-y0)**2 - c*(x-x0)*(y-y0)
+    g = A*np.exp(-k) + ofst
 
+    return g.ravel()
+
+
+def gaussian1d_fit(xx, data, x0, sig_x, A, offset):
+    '''
+    fit to a 1d gaussian function with initial guess
+    '''
+    a0 = 0.5/(sig_x**2)
+    initial_guess = (x0, a0, A, offset)
+    popt, pcov = optimize.curve_fit(gaussian1D, xx, data, p0 = initial_guess)
+    return popt, pcov
+
+
+def gaussian2d_fit(x,y, data, x0, y0, sig_x, sig_y, rho, A, offset):
+    '''
+    fit to a 2d gaussian function with initial guess
+    rho: correlation, between[-1,1]
+    '''
+    a0 = 0.5/(np.sqrt(1-rho**2)*sig_x**2)
+    b0 = a0*sig_x**2/(sig_y**2)
+    c0 = a0*2*rho*sig_x/sig_y
+    initial_guess = (x0, y0, a0,b0,c0, A, offset)
+    popt, pcov = optimize.curve_fit(gaussian2D, np.dstack((x,y)), data, p0=initial_guess)
+    return popt, pcov
 
 
 def moments(data):
