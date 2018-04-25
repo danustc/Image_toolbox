@@ -5,7 +5,7 @@ import pyfftw
 import numpy as np
 from collections import deque
 from scipy.ndimage import interpolation
-
+from tifffile import TiffFile
 
 def _phase_construct_(row_range, col_range, n_denom, forward = True, shift_r = False, shift_c = False ):
     '''
@@ -148,3 +148,30 @@ def cross_corr_shift_stack(stack_1, stack_2=None, up_rate = 2, verbose = False):
             stack_2[ii] = shifted_frame
 
     return shift_coord
+
+
+
+def cross_coord_shift_huge_stack(tif_handle, crop_ratio, n_cut = 5, close_handle = True):
+    '''
+    self-alignment of a very long stack.
+    crop ratio: how much to crop in each dimension
+    instead of loading the entile huge stack, we just pass the handle of the stack to the function.
+    WARNING: Don't forget to close the handle!
+    '''
+    nz, ny, nx = tif_handle.series[0].shape
+    sub_size = nz // n_cut + 1 # the size of each substack
+    # first of all, align the first 
+    istack = tif_handle.asarray()
+    if crop_ratio is None:
+        stack = istack
+
+    if np.isscalar(crop_ratio):
+        # crop x and y by the same fraction
+        
+
+    for sub_z in range(1, n_cut):
+        sub_stack = np.
+
+
+    if close_handle:
+        tif_handle.close()

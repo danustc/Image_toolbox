@@ -7,7 +7,6 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import src
 import numpy as np
 import src.shared_funcs.tifffunc as tf
-from PIL import Image
 
 
 def binning(stack, nb = 2):
