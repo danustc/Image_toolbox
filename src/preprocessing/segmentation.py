@@ -176,6 +176,23 @@ def position_signal_compile(coords, signals):
     blob_time_stack['data'] = signals
     return blob_time_stack
 
+def stack_signal_propagate(self, blob_lists):
+    '''
+    OMG... This so badly written.
+    blob_lists: it contains 3 columns: y, x, dr.
+    '''
+    stack = self.stack
+    n_blobs = len(blob_lists)# merging extracted cells in several frames
+        # ----- end else, n_frame is an array instead of a slice number
+    train_signal = stack_reextract(stack, blob_lists) # updated on 07/07/2017
+
+    '''
+    for z_frame in range(self.n_slice):
+        z_signal = frame_reextract(stack[z_frame], blob_lists)
+        train_signal[z_frame, :] = z_signal
+    '''
+    return train_signal
+# done with stack_signal_propagate
 
 
 #-----------------------------------------------------------------------------------
@@ -199,30 +216,6 @@ class Cell_extract(object):
         self.redund = True
 
 
-    def image_blobs(self, n_frame, bg_sub):
-        '''
-        Last update: 06/14/2017.
-        Extract number of blobs from the frame n_frame.
-        Updated: self.data_list; a data_slice is returned.
-        each data_slice is a 5-column array: y, x, z,dr, signal intensity.
-        This is only called by the function stack_blobs, which extracts blobs from each slice individually.
-        '''
-        im0 = frame_deblur(self.stack[n_frame], bg_sub)
-        cblobs = frame_blobs(im0, self.diam)
-        signal_int = frame_reextract(im0, cblobs)
-
-        n_blobs = cblobs.shape[0]
-        frame_size = self.frame_size
-        if n_blobs > 0:
-            data_slice = np.zeros((n_blobs, 5))
-            data_slice[:,2] = n_frame
-            data_slice[:,[0,1,3]] = cblobs
-            data_slice[:,4] =signal_int
-
-            kwd = 's_'+ str(n_frame).zfill(3)
-            self.data_list[kwd] = data_slice
-        return n_blobs
-
     def stack_blobs(self, bg_sub=40, verbose = True):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
@@ -234,8 +227,24 @@ class Cell_extract(object):
             '''
             extract blobs from each frame and save into data_list
             '''
-            n_blobs = self.image_blobs(n_frame, bg_sub)
-            n_total += n_blobs
+            im_raw = self.stack[n_frame]
+            if bg_sub > 0:
+                im0 = frame_deblur(im_raw, bg_sub)
+                cblobs = frame_blobs(im0, self.diam)
+            else:
+                cblobs = frame_blobs(im_raw, self.diam)
+            signal_int = frame_reextract(im_raw)
+            n_blobs = cblobs.shape[0]
+            if n_blobs > 0:
+                data_slice = np.zeros((n_blobs, 5))
+                data_slice[:,2] = n_frame # z-coordinate
+                data_slice[:,[0,1,3]] = cblobs # x,y coordinate and diameter
+                data_slice[:,4] =signal_int # signal intensity
+                n_total += n_blobs
+
+                kwd = 's_'+ str(n_frame).zfill(3)
+                self.data_list[kwd] = data_slice
+
             if verbose:
                 print("# blobs in slice", n_frame, ": ", n_blobs)
         self.n_total = n_total
@@ -290,27 +299,6 @@ class Cell_extract(object):
 
         return cblobs
 
-
-
-    def stack_signal_propagate(self, blob_lists):
-        '''
-        OMG... This so badly written.
-        blob_lists: it contains 3 columns: y, x, dr.
-        '''
-        stack = self.stack
-        n_blobs = len(blob_lists)# merging extracted cells in several frames
-            # ----- end else, n_frame is an array instead of a slice number
-        train_signal = stack_reextract(stack, blob_lists) # updated on 07/07/2017
-
-        '''
-        for z_frame in range(self.n_slice):
-            z_signal = frame_reextract(stack[z_frame], blob_lists)
-            train_signal[z_frame, :] = z_signal
-        '''
-        return train_signal
-    # done with stack_signal_propagate
-
-
     def save_data_list(self, dph):
         """
         Presumption: self.data_list has been fully updated
@@ -335,8 +323,6 @@ class Cell_extract(object):
         Updates the signal of the nth frame while keep the coordinates.
         """
         self.data_list[nkey][:,-1] = new_sig
-
-
 
     def stack_reload(self, new_stack, refill = True):
         """
