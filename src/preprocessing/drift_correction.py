@@ -80,10 +80,10 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
     ft_2 = container_2.get_output_array()
 
     F_prod = np.conj(ft_1)*ft_2
-    phase_spec = F_prod/np.absolute(F_prod+1.0e-06) # phase_spec
-
-    container_inv(phase_spec)
+    phase_spec = F_prod/np.absolute(F_prod) # phase_spec
+    container_inv(F_prod)
     corr_spec = np.abs(container_inv.get_output_array())
+    print(corr_spec[:3, :3])
     shy, shx = np.unravel_index(np.argmax(corr_spec), (N,M)) # find the maximum index of normalized correlation matrix
 
     if shy > hy:
@@ -103,11 +103,41 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
         shy = (iny-2*up_rate)/up_rate + shy
         shx = (inx-2*up_rate)/up_rate + shx
         return shy, shx, corr_spec_nbhd
+        # OK this passes test.
 
-def cross_corr_shift_stack(stack_1, stack_2=None, up_rate = 2, adj_ref = False, verbose = False):
+
+
+def cross_corr_shift_self(stack, up_rate = 2, adj_ref = False, verbose = True):
     '''
-    calculate the cross correlation
+    Align a stack to itself. If adj_ref is True, then align each slice to the neighboring slice preceeding it.
     Added: subpixel precision
+    '''
+    nz, ny, nx = stack.shape
+    hy = ny//2
+    hx = nx//2
+    shift_coord = []
+    container_1 = pyfftw_container(ny, nx)
+    container_2 = pyfftw_container(ny, nx)
+    container_invx = pyfftw_container(ny, nx, bwd = True)
+
+    ref_frame = stack[0]
+    for ii in range(nz-1):
+        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii+1], container_1, container_2, container_invx,up_rate)[:2]
+        if verbose:
+            print("slice ", ii+1, '-->', shy, shx)
+        shift_coord.append([-shy, -shx])
+        # then we have to shift im 2 by (-shy, -shx)
+        if adj_ref: # if the stack is aligned in the adjacent mode, them each slice should be updated in place; otherwise we can just return the shift coordinates.
+            shifted_frame = interpolation.shift(stack[ii+1],shift = [-shy, -shx])
+            ref_frame = shifted_frame
+            stack[ii+1] = shifted_frame
+
+    return shift_coord # Hmmmm, this is much nicer.
+
+
+def cross_corr_shift_two(stack_1, stack_2, up_rate = 2, verbose = True, inplace_correction = False):
+    '''
+    Align stack_2 to stack_1
     '''
     nz, ny, nx = stack_1.shape
     hy = ny//2
@@ -116,102 +146,71 @@ def cross_corr_shift_stack(stack_1, stack_2=None, up_rate = 2, adj_ref = False, 
     container_1 = pyfftw_container(ny, nx)
     container_2 = pyfftw_container(ny, nx)
     container_invx = pyfftw_container(ny, nx, bwd = True)
-    N = ny
-    M = nx
-
-    if stack_2 is None: # align the stack to itself, every frame to its adjacent frame
-        ref_frame = stack_1[0]
-        for ii in range(nz-1):
-            y0, x0, ft_1, ft_2= cross_corr_shift_frame(ref_frame, stack_1[ii+1], container_1, container_2, container_invx)
-            F_prod = np.conj(ft_1)*ft_2
-            print("Initial guess:", y0, x0)
-            # construct the phase matrix with smaller dimensions
-            #phase_N = _phase_construct_([y0-2*up_rate, y0+2*up_rate+1], ny, ny*up_rate, forward=False)
-            phase_N = _phase_construct_([(y0-2)*up_rate, (y0+2)*up_rate+1], [-hy, ny-hy], ny*up_rate, forward=False, shift_c = True)
-            phase_M = _phase_construct_([-hx, nx-hx], [(x0-2)*up_rate, (x0+2)*up_rate+1], nx*up_rate, forward=False, shift_r = True)
-            #phase_M = _phase_construct_(nx, [x0-2*up_rate, x0+2*up_rate+1], nx*up_rate, forward=False)
-
-            corr_spec_nbhd = np.matmul(np.matmul(phase_N, F_prod), phase_M) # cross correlation in the neighborhood of (x0,y0)
-            iny, inx = np.unravel_index(np.argmax(np.abs(corr_spec_nbhd)), corr_spec_nbhd.shape)
-
-            shy = (iny-2*up_rate)/up_rate+y0
-            shx = (inx-2*up_rate)/up_rate+x0 # the real shift in original pixel
-
-            if verbose:
-                print("slice ", ii, '-->', shy, shx)
-            shift_coord.append([-shy, -shx])
-            # then we have to shift im 2 by (-shy, -shx)
-            shifted_frame = interpolation.shift(stack_1[ii+1],shift = [-shy, -shx])
-            stack_1[ii+1] = shifted_frame
-            if adj_ref:
-                ref_frame = shifted_frame
 
 
-    else: # align one stack to the other
-        for ii in range(nz):
-            y0, x0, ft_1, ft_2= cross_corr_shift_frame(stack_1[ii], stack_2[ii], container_1, container_2, container_invx)
-            F_prod = np.conj(ft_1)*ft_2
-            print("Initial guess:", y0, x0)
+    for ii in range(nz):
+        shy, shx = cross_corr_shift_frame(stack_1[ii], stack_2[ii], container_1, container_2, container_invx, up_rate)[:2]
 
-            # construct the phase matrix with smaller dimensions
-            phase_N = _phase_construct_([(y0-2)*up_rate, (y0+2)*up_rate+1], [-hy, ny-hy], ny*up_rate, forward=False, shift_c = False)
-            phase_M = _phase_construct_([-hx, nx-hx], [(x0-2)*up_rate, (x0+2)*up_rate+1], nx*up_rate, forward=False, shift_r = False)
-
-            corr_spec_nbhd = np.matmul(np.matmul(phase_N, F_prod), phase_M) # cross correlation in the neighborhood of (x0,y0)
-            iny, inx = np.unravel_index(np.argmax(np.abs(corr_spec_nbhd)), corr_spec_nbhd.shape)
-
-            shy = (iny-2*up_rate)/up_rate+y0
-            shx = (inx-2*up_rate)/up_rate+x0 # the real shift in original pixel
-
-
-            if verbose:
-                print("slice ", ii, '-->', shy, shx)
-            shift_coord.append([-shy, -shx])
+        if verbose:
+            print("slice ", ii, '-->', shy, shx)
+        shift_coord.append([-shy, -shx])
+        if inplace_correction:
             shifted_frame = interpolation.shift(stack_2[ii],shift = [-shy, -shx])
             stack_2[ii] = shifted_frame
 
-    return shift_coord
+    return shift_coord # Yay! This is much nicer.
 
 
 
-def cross_coord_shift_huge_stack(tif_handle, crop_ratio, n_cut = 5, up_rate = 2, close_handle = True):
+def cross_coord_shift_huge_stack(huge_stack, crop_ratio = 0.8, n_cut = 5, up_rate = None):
     '''
     self-alignment of a very long stack.
     crop ratio: how much to crop in each dimension
     instead of loading the entile huge stack, we just pass the handle of the stack to the function.
     WARNING: Don't forget to close the handle!
     '''
-    nz, ny, nx = tif_handle.series[0].shape
-    sub_size = nz // n_cut + 1 # thenumber of slices in each substack
-    print(sub_size)
+    nz, ny, nx = huge_stack.shape
+    if (nz&n_cut ==0):
+        sub_size = nz // n_cut
+    else:
+        sub_size = nz // n_cut + 1 # thenumber of slices in each substack
+
+    substack_posit = np.arange(1, n_cut+1)*sub_size
+    substack_posit[-1] = nz # make sure that the last position is consistent with the stack size
     hy = ny // 2
     hx = nx // 2
     coord_all = []
     if crop_ratio is None:
-        pass # this should be changed
+        cstack = huge_stack
     elif np.isscalar(crop_ratio):
         # crop x and y by the same fraction
         sy = int(crop_ratio*hy)
         sx = int(crop_ratio*hx)
+        cstack = huge_stack[:,hy-sy:hy+sy, hx-sx:hx+sx]
     else:
         sy = int(crop_ratio[0]*hy)
         sx = int(crop_ratio[1]*hx)
+        rg_y = np.arange(hy-sy, hy+sy)
+        rg_x = np.arange(hx-sx, hx+sx)
+        cstack = huge_stack[:,rg_y, rg_x]
 
-    ss_0 = tif_handle.asarray()[:sub_size].astype('float64') # the first substack
-    sub_0 = ss_0[:, hy-sy:hy+sy, hx-sx:hx+sx] # crop the stack to reduce the size
-    shift_coord = cross_corr_shift_stack(sub_0, None, up_rate, adj_ref = False, verbose = True )
+    sub_0 = cstack[:sub_size] # crop the stack to reduce the size
+    shift_coord = cross_corr_shift_self(sub_0, up_rate, adj_ref = False, verbose = True )
+    shift_stack(huge_stack[:sub_size], shift_coord) # self-align the first substack
     coord_all = coord_all + shift_coord
-    shift_stack(ss_0, shift_coord)
-    sec_start = sub_size
-    for sub_z in range(1, n_cut):
-        ss_new = tif_handle.asarray()[sec_start:sec_start+sub_size]
-        sub_new = ss_new[:, hy-sy:hy+sy, hx-sx:hx+sx]
-        shift_coord = cross_corr_shift_stack(sub_0, sub_new, up_rate, adj_ref = True, verbose = True)
-        shift_stack(ss_new, shift_coord)
-        sub_0 = sub_new
+    sub_0 = cstack[:sub_size] # This might be redundant 
+    for sub_z in range(n_cut-1):
+        sec_start = substack_posit[sub_z]
+        sec_end = substack_posit[sub_z+1]
+        sub_new = cstack[sec_start:sec_end]
+        shift_coord = cross_corr_shift_two(sub_0, sub_new, up_rate, verbose = True, inplace_correction = False)
+        shift_stack(huge_stack[sec_start:sec_end], shift_coord)
         coord_all = coord_all + shift_coord
 
-    if close_handle:
-        tif_handle.close()
+    return np.array(coord_all)
 
-    return coord_all
+
+
+
+def main():
+    pass
