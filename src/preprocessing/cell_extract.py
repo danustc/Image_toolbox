@@ -55,13 +55,13 @@ def frame_deblur(raw_frame, sig = 40 ):
     db_frame = raw_frame - ifilt*sca*0.999
     return db_frame
 
-def frame_blobs(filled_frame, bsize = 8, btolerance = 3, bsteps =7, verbose = False):
+def frame_blobs(filled_frame, bsize = 9, btolerance = 2, bsteps =7, verbose = False):
     '''
     extract blobs from a single frame. Added on 06/10/2017
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
-    th = (np.mean(filled_frame) - np.std(filled_frame))/10.
+    th = (np.mean(filled_frame) - np.std(filled_frame))/6.
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
