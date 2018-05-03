@@ -237,8 +237,8 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_rootpath ='D:\Data/2017-06-27/A1_GCDA\\'
-    folder_list = glob.glob(data_rootpath+"/A1*TS*\\")
+    data_rootpath ='D:\Data/2018--06/A1_GCDA\\'
+    folder_list = glob.glob(data_rootpath+"/TS_registration\\")
     for data_path in folder_list:
         print(data_path)
         pt = pipeline_tstacks(data_path, fname_flags = 'rg')
