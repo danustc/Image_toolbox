@@ -4,13 +4,15 @@ last update: 07/07/2017
 '''
 import sys
 #sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
+sys.path.append('/c/Users/Admin/Documents/GitHub/Image_toolbox/')
 import os
 import numpy as np
 import glob
 import src.preprocessing.affine as Affine
 from src.visualization.brain_navigation import slice_display,stack_display
 from src.preprocessing.red_detect import redund_detect_merge
-global_datapath = '/home/sillycat/Programming/Python/data_test/'
+global_datapath = '/d/Data/2018-04-23/'
+#global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
 
 def Coord_read_transform(fn_trans, fn_data):
@@ -184,7 +186,7 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 def main():
     #relative_path = 'Nov01_2016_A1/'
     #full_path = global_datapath + relative_path
-    folder_list = glob.glob(global_datapath+'Feb27_*/')
+    folder_list = glob.glob(global_datapath+'Apr*/')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)
