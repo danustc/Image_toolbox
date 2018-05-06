@@ -2,16 +2,18 @@
 cross align between a ZD stack and a group of TS stacks.
 last update: 07/07/2017
 '''
-import sys
 #sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
-sys.path.append('/c/Users/Admin/Documents/GitHub/Image_toolbox/')
+package_path =r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\"
 import os
+import sys
+sys.path.append(package_path)
 import numpy as np
 import glob
-import src.preprocessing.affine as Affine
+from src.preprocessing import affine as Affine
 from src.visualization.brain_navigation import slice_display,stack_display
 from src.preprocessing.red_detect import redund_detect_merge
-global_datapath = '/d/Data/2018-04-23/'
+#global_datapath = r"D:\/Data/2018-04-23\\"
+global_datapath = r"X:\/Zebrafish_ispim/2018-04-16\\"
 #global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
 
@@ -33,7 +35,7 @@ def cross_align_simple(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
     cross align without redundancy removal
     '''
     regilist = glob.glob(work_folder + '*' + rg_flag + '*.txt')
-    datalist = glob.glob(work_folder+ '*Extracted/*' + data_flag + '*.npz')
+    datalist = glob.glob(work_folder+ '*TS/Extracted/*' + data_flag + '*.npz')
     nregi = np.array([int(os.path.basename(regfile).split('.')[0].split('_')[-1] ) for regfile in regilist ])
     ndata = np.array([int(os.path.basename(datafile).split('.')[0].split('_')[-1]) for datafile in datalist])
     print("regi:",nregi)
@@ -80,6 +82,8 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
     '''
     regilist = glob.glob(work_folder + '*' + rg_flag + '*.txt')
     datalist = glob.glob(work_folder+ 'Extracted/*' + data_flag + '*.npz')
+    if len(datalist) ==0:
+	    datalist = glob.glob(work_folder+ '*/Extracted/*' + data_flag + '*.npz')
     nregi = np.array([int(os.path.basename(regfile).split('.')[0].split('_')[-1] ) for regfile in regilist ])
     ndata = np.array([int(os.path.basename(datafile).split('.')[0].split('_')[-1]) for datafile in datalist])
     arg_regi = np.argsort(nregi)
@@ -186,7 +190,7 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 def main():
     #relative_path = 'Nov01_2016_A1/'
     #full_path = global_datapath + relative_path
-    folder_list = glob.glob(global_datapath+'Apr*/')
+    folder_list = glob.glob(global_datapath+'Apr*\\')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)
