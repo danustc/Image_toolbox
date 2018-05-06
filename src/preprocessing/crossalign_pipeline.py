@@ -3,7 +3,7 @@ cross align between a ZD stack and a group of TS stacks.
 last update: 07/07/2017
 '''
 import sys
-sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
+#sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import numpy as np
 import glob
@@ -31,7 +31,7 @@ def cross_align_simple(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
     cross align without redundancy removal
     '''
     regilist = glob.glob(work_folder + '*' + rg_flag + '*.txt')
-    datalist = glob.glob(work_folder+ 'Extracted/*' + data_flag + '*.npz')
+    datalist = glob.glob(work_folder+ '*Extracted/*' + data_flag + '*.npz')
     nregi = np.array([int(os.path.basename(regfile).split('.')[0].split('_')[-1] ) for regfile in regilist ])
     ndata = np.array([int(os.path.basename(datafile).split('.')[0].split('_')[-1]) for datafile in datalist])
     print("regi:",nregi)

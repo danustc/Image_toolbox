@@ -13,7 +13,7 @@ sys.path.append(package_path)
 import src.shared_funcs.tifffunc as tf
 import src.preprocessing.segmentation as segmentation
 import src.preprocessing.drift_correction as drc
-import src.preprocessing.crossalign_pipeline as crossaling_pipeline
+import src.preprocessing.crossalign_pipeline as crossalign
 
 
 class pipeline(object):
@@ -118,7 +118,7 @@ class pipeline(object):
         self.tif_handle.close() # close the tif handle 
         self.tif_handle = None
 
-    def run_pipeline(self, n_samples, verbose = True):
+    def batch_segmentation(self, n_samples, verbose = True):
         '''
         run the pipeline
         '''
@@ -133,6 +133,7 @@ class pipeline(object):
                 print("Current file:", self.current_file)
             self.sampling(n_samples)
             self.segment_sample_propagate()
+
 
     def shutDown(self):
         if self.tif_handle is not None:
