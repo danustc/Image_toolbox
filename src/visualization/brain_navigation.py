@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 global_ccode = 'grbmcyk'
 px_size = 0.295 # pixel size: 0.295 microns
 
-def slice_display(slice_blobs, title = None, ref_image = None):
+def slice_display(slice_blobs, title = None, ref_image = None, s_diag = 15):
     '''
     slice_blobs: a 2-D array specifying the cell coordinates
     ref_image: a 2-D array specifying the reference image.
@@ -33,10 +33,10 @@ def slice_display(slice_blobs, title = None, ref_image = None):
         ii = 0
         NS = len(slice_blobs)
         for fr in slice_blobs:
-            ax.scatter(fr[:,1], fr[:,0], edgecolors = global_ccode[ii], facecolors = 'none', s = 40)
+            ax.scatter(fr[:,1], fr[:,0], edgecolors = global_ccode[ii], facecolors = 'none', s = s_diag)
             ii+=1
     else:
-        ax.scatter(slice_blobs[:,1], slice_blobs[:,0], c='g', s = 40)
+        ax.scatter(slice_blobs[:,1], slice_blobs[:,0], c='g', s = s_diag, facecolors = 'none')
 
     ax.set_title(title, fontsize = 14)
     ax.get_xaxis().set_visible(False)

@@ -24,6 +24,9 @@ def tiff_describe(fname, handle_open = True):
         return stack_size,stack_shape
 
 
+
+
+
 def read_tiff(fname, nslice = None):
     # the fname should include the absolute path and extension name
     # nslice can be a number or an array, indicating multiple slices

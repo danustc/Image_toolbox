@@ -176,12 +176,11 @@ def position_signal_compile(coords, signals):
     blob_time_stack['data'] = signals
     return blob_time_stack
 
-def stack_signal_propagate(self, blob_lists):
+def stack_signal_propagate(stack, blob_lists):
     '''
     OMG... This so badly written.
     blob_lists: it contains 3 columns: y, x, dr.
     '''
-    stack = self.stack
     n_blobs = len(blob_lists)# merging extracted cells in several frames
         # ----- end else, n_frame is an array instead of a slice number
     train_signal = stack_reextract(stack, blob_lists) # updated on 07/07/2017

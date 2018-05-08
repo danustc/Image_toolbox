@@ -8,9 +8,7 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import os
 import glob
 import numpy as np
-from src.shared_funcs.tifffunc import read_tiff
-import src.visualization.stat_present as stat_present
-import src.visualization.signal_plot as signal_plot
+from src.visualization import stat_present, signal_plot
 import src.networks.filtering as filtering
 import src.networks.pca_sorting as pca_sorting
 import src.networks.ica_sorting as ica_sorting
@@ -67,19 +65,34 @@ class pipeline(object):
         self.dt = 0.5
 
     def parse_data(self, data_file):
-        try:
-            print(data_file)
-            hf = h5py.File(data_file, 'r+')
+        fmt = os.path.basename(data_file).split('.')[-1]
+        if fmt == 'h5':
             try:
-                self.coord = np.array(hf['coord'])
-                self.signal = np.array(hf['signal'])
-                hf.close()
-            except KeyError:
-                print("No signal data stored in the file!")
+                print(data_file)
+                hf = h5py.File(data_file, 'r+')
+                try:
+                    self.coord = np.array(hf['coord'])
+                    self.signal = np.array(hf['signal'])
+                    hf.close()
+                except KeyError:
+                    print("No signal data stored in the file!")
+                    sys.exit(1)
+            except OSError:
+                print("Unable to open the file.")
                 sys.exit(1)
-        except OSError:
-            print("Unable to open the file.")
-            sys.exit(1)
+        else:
+            try:
+                data_pz = np.load(data_file)
+                try:
+                    self.coord = data_pz['coord']
+                    self.signal = data_pz['signal']
+                except KeyError:
+                    print('No signal data stored in the file!')
+                    sys.exit(1)
+            except OSError:
+                print("Unable to open the file.")
+                sys.exit(1)
+
     #-----------------------Below are the property members-----------------
 
     @property

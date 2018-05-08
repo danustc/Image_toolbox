@@ -38,7 +38,7 @@ def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
 
 
 # Raster plot, color coded
-def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = None, title = None):
+def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = None, title = None, fig = None):
     '''
     dff_ordered: df_f ordered from most active to least active
     # rows:  # of time points
@@ -70,7 +70,9 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
     cell_tick_label = ['Cell 1', 'Cell '+str(n_display)]
     canvas_scale = int(np.ceil(200./n_display))
     print("fig size:", fw, fw*5*canvas_scale*n_display/NT)
-    fig = plt.figure(figsize = (fw, fw*5*canvas_scale*n_display/NT))
+    if fig is None:
+        fig = plt.figure(figsize = (fw, fw*5*canvas_scale*n_display/NT))
+
     ax = fig.add_subplot(111)
     rshow = ax.imshow(dff_ordered[:, :n_display].T, cmap = 'Greens', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
     ax.set_xticks(time_tick)
@@ -84,5 +86,4 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
         ax.set_title(title)
 
     plt.tight_layout()
-
     return fig
