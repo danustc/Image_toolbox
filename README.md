@@ -4,18 +4,23 @@
 
 ### -------------------Package dependence------------------
 tifffile: developed by [Christoph Gohlke](http://www.lfd.uci.edu/~gohlke/code/tifffile.py.html)         
-scikit-image (version 0.12 or later)
+scikit-image (version 0.14 or later)
 
-### -------------------Demos folder ---------------------
-Demos.py: contains test codes under Ubuntu.  
-Shittest.py: contains test codes under Windows (Because windows is shit!)
-### ------------------src folder ------------------------
-++ last update: 11/05/2016 by Dan ++
+### -------------------Main pipelines---------------------
 
-**Alignments.py**: remove the translational drift, based on Fourier transform-cross correlations.   
-**Background_correction.py**: Remove low-frequency background in plane.   
-**Cell_extract.py**: extrack nuclei using blob detection.   
-df_f.py: Calculating \Delta F/F from the raw fluorescence train.  
-**Pipeline.py**: The whole set of pre-processing, including background subtraction, drift correction, cell extraction.  The extracted cellular fluorescence and coordinates are saved as .npz files.  
-**z_dense.py**: Extract cells from a densely sampled volume, save the cellular coordinates as position references, remove the overcounting across slices, and register the sparsely-sampled z-stacks to the dense z-reference stack.  
-**correlations.py**:Calculate pearson correlations between the \Delta F/F profiles between all the pairs of cells inside the imaged stack.
+### ------------------Modules (src folder) ------------------------
+
+####  **preprocessing**
+* **crossalign\_pipeline.py**: cross align T-stacks to Z-stacks.
+* **stack\_operations.py**: some basic tiff stack operations: cropping, thresholding, binning, etc.
+* **segmentation.py**: segmentating regions of interest (ROI) using blob detection in scikit-image.
+####  **visualization**
+* **signal\_plot.py**: plot \Delta F/F signals in different styles.
+* **stat\_present.py**: visualization of statistical analysis results, including PCA, ICA, K-means and regressions.
+* **brain\_navigation.py**: display raw image slices or volumes, highlight marked neurons.
+####  **networks**
+* **pca\_sorting.py**: PCA-based neuronal activity sorting.
+* **dff\_pipeline.py**: calculate \Delta F/F over calcium signals of a population of neurons, do edge artifact correction and smoothing if necessary.
+* **network\_ui.py**: an interactive UI for individual dataset analysis and visualization.
+####  **registration**
+* **anatomy\_annotation.py**: annotate neuronal identities of selected neurons based on image registration outputs. Image stacks should be registered to the Z-brain template.
