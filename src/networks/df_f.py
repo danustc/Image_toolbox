@@ -1,7 +1,7 @@
 """
 This is df/f calculation based on the paper: Nature protocols, 6, 28–35, 2011
 Created by Dan on 08/18/16
-Last update: 06/19/17
+Last update: 05/09/18
 """
 
 import sys

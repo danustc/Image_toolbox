@@ -5,17 +5,18 @@ import network_pipeline
 import numpy as np
 from functools import partial
 from collections import deque
-from network_pipeline import pipeline
+from network_pipeline import pipeline as nw_pipeline
+from dff_pipeline import pipeline as dff_pipeline
 from src.visualization import stat_present, signal_plot
 import network_design
 
 
 class UI(object):
-    def __init__(self, pl):
+    def __init__(self):
         '''
         initialize the UI.
         '''
-        self._pipeline = pl
+        self.network_pipeline = pl
         self._app = QtWidgets.QApplication(sys.argv)
         self._window = QtWidgets.QMainWindow()
         self._window.closeEvent = self.shutDown
@@ -43,17 +44,18 @@ class UI(object):
     def load_data(self):
         fname, _ =QtWidgets.QFileDialog.getOpenFileName(None,'data file to load:')
         self._ui.lineEdit_data.setText(fname)
-        self._pipeline.parse_data(data_file = fname)
+        self.network_pipeline.parse_data(data_file = fname)
         self.work_folder = os.path.dirname(fname)
         self.basename = os.path.basename(fname).split('.')[0]
         self.data_loaded = True
+        self.dt = float(self._ui.lineEdit_tstep.text()) # time step
 
 
     def ica(self):
         if self.data_loaded:
             self.n_ica = self._ui.spinBox_nICs.value()
             self.n_clu = self._ui.spinBox_nclus.value()
-            self._pipeline.ica_clustering(c_fraction = 0.50,n_components = self.n_ica, n_clusters = self.n_clu)
+            self.network_pipeline.ica_clustering(c_fraction = 0.50,n_components = self.n_ica, n_clusters = self.n_clu)
             print("Finished!")
             self.display_ICs()
         else:
@@ -90,7 +92,7 @@ class UI(object):
             sind = np.arange(disp_range[0])
         else:
             sind = np.arange(int(disp_range[0]), int(disp_range[1]))
-        signal_show = self._pipeline.get_cells_index(sind)[0]
+        signal_show = self.network_pipeline.get_cells_index(sind)[0]
 
         self._ui.mpl_analysis.figure.clf()
         signal_plot.dff_rasterplot(signal_show, fig = self._ui.mpl_analysis.figure)
@@ -100,7 +102,7 @@ class UI(object):
         '''
         OK This works!
         '''
-        icas = self._pipeline.ic
+        icas = self.network_pipeline.ic
         NT, NC = icas.shape
         print(NT, NC)
         for ii in range(NC):
@@ -121,8 +123,6 @@ class UI(object):
             fname, _ = QtWidgets.QFileDialog.getSaveFileName(None,'Save as:', self.work_folder+'/'+self.basename + '*.png', "Images (*.png, *.jpg)"  )
             self._ui.mpl_analysis.figure.savefig(fname)
 
-    def display_dff_raster(self):
-        pass
 
     def shutDown(self, event):
         self.data = None
@@ -131,8 +131,7 @@ class UI(object):
 
 
 def main():
-    nw_pipeline = pipeline()
-    nw_ui = UI(nw_pipeline)
+    nw_ui = UI()
 
 if __name__ == '__main__':
     main()
