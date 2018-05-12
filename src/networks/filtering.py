@@ -102,3 +102,16 @@ class Regressor_dialog(QtWidgets.QDialog):
         QtWidgets.QDialog.__init__(self, parent)
         self._ui = regressor_dialog_design.Ui_Dialog()
         self._ui.setupUi(self)
+
+
+        self._ui.pushButton_exp.clicked.connect(self.exp_regressor)
+        self._ui.pushButton_add.clicked.connect(self.add_steps)
+
+
+        def exp_regressor(self):
+            pass
+
+        def add_steps(self):
+            pass
+
+        def 
