@@ -9,6 +9,7 @@ from network_pipeline import pipeline as nw_pipeline
 from dff_pipeline import pipeline as dff_pipeline
 from src.visualization import stat_present, signal_plot
 import network_design
+from filtering import Regressor_dialog
 
 
 class UI(object):
@@ -16,7 +17,7 @@ class UI(object):
         '''
         initialize the UI.
         '''
-        self.network_pipeline = pl
+        self.network_pipeline = nw_pipeline()
         self._app = QtWidgets.QApplication(sys.argv)
         self._window = QtWidgets.QMainWindow()
         self._window.closeEvent = self.shutDown
@@ -34,7 +35,8 @@ class UI(object):
         self._ui.pushButton_kmeans.clicked.connect(self.kmeans)
         self._ui.pushButton_regress.clicked.connect(self.regression)
         self._ui.pushButton_loaddata.clicked.connect(self.load_data)
-        self._ui.pushButton_expfig.clicked.connect(self.figure_export)
+        self._ui.pushButton_expsig.clicked.connect(self.figure_export)
+        self._ui.pushButton_regdes.clicked.connect(self.set_regressor)
         self._ui.pushButton_display.clicked.connect(self.display_signal)
         self._ui.lineEdit_numneurons.returnPressed.connect(self.set_numNeurons)
 
@@ -49,6 +51,7 @@ class UI(object):
         self.basename = os.path.basename(fname).split('.')[0]
         self.data_loaded = True
         self.dt = float(self._ui.lineEdit_tstep.text()) # time step
+        self.NT = self.network_pipeline.get_size()[0]
 
 
     def ica(self):
@@ -80,6 +83,15 @@ class UI(object):
 
     def set_numNeurons(self):
         pass
+
+
+    def set_regressor(self):
+        '''
+        custom design of regressor.
+        '''
+        regressor_dialog = Regressor_dialog(self.dt, self.NT)
+        if regressor_dialog.exec_():
+            print("Regressor design:")
 
     # ------------------------------Below are a couple of visualization functions -------------------------------
     def display_signal(self):

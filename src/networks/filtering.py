@@ -11,6 +11,8 @@ import pyfftw
 import scipy.fftpack as fftpack
 from scipy import signal
 import src.networks.clustering as clustering
+from PyQt5 import QtWidgets
+import regressor_dialog_design
 
 def freq_cut(dff_raw, fcut, dt = 0.5):
     '''
@@ -93,3 +95,10 @@ def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0., mode = 'q'):
 
     return sig_sti
 
+
+class Regressor_dialog(QtWidgets.QDialog):
+
+    def __init__(self, dt, NT, parent = None):
+        QtWidgets.QDialog.__init__(self, parent)
+        self._ui = regressor_dialog_design.Ui_Dialog()
+        self._ui.setupUi(self)
