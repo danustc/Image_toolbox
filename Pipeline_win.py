@@ -237,11 +237,11 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_rootpath ='D:/Data/2018-05-07/\\'
-    folder_list = glob.glob(data_rootpath+"/TS_registration\\")
+    data_rootpath ='D:/Data/2018-05-07/May07_2018_B1\\'
+    folder_list = glob.glob(data_rootpath+"/B1_TS\\")
     for data_path in folder_list:
         print(data_path)
-        pt = pipeline_tstacks(data_path, fname_flags = 'rg')
+        pt = pipeline_tstacks(data_path, fname_flags = '_9')
         pt.run_pipeline([5,10,15,20])
     #pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
     #pt.run_pipeline([5,10,15,20])
