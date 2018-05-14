@@ -1,12 +1,13 @@
 '''
 Convert a series of coordinates (x,y,z in microns) into txt list file.
+For registration purpose
 '''
 import os
 import numpy as np
 import glob as glob
 global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
-def coord_convert(coord, dest_path, reorder = None):
+def coord_fmtconvert(coord, dest_path, reorder = None):
     '''
     convert z,y,x coordinates into x,y,z
     '''
@@ -27,12 +28,11 @@ def main():
     data_list = glob.glob(global_datapath + 'Jun_GCDA/'+'Jun27_B1*cl*.txt')
     for df_name in data_list:
         coord_new = np.loadtxt(df_name)
-        #coord_new[:,1] = 300-coord_new[:,1]
         df_base = os.path.basename(df_name).split('.')[0]
         cluster_base = df_base+'.npz'
         df_folder = os.path.dirname(df_name)
         cluster_set = np.load(df_folder+'/'+cluster_base)
-        coord_convert(cluster_set['coord'], df_folder + '/'+ df_base + '_coord.list')
+        coord_fmtconvert(cluster_set['coord'], df_folder + '/'+ df_base + '_coord.list')
         coord_integrate(coord_new, cluster_set, df_folder+'/'+ df_base + '_reform')
 
 
