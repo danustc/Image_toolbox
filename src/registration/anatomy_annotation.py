@@ -21,12 +21,21 @@ def registered_coord_convert(rg_path, coord_source, coord_dest, inv = True):
     subprocess.Popen(command%(rg_path, coord_source, coord_dest), shell = True)
 
 
-def coord_convert_preprocess(fpath, reg_list):
+def coord_convert_preprocess(fpath, reg_list, origin_x = 975, order = 'r'):
+    '''
+    Convert the unregistered coordinates into registered coordinates
+    origin_x: the original x length. I need to have a database for this.
+    order: if the original coordinate order is 'x-y-z', then order = 'f'; otherwise order = 'r'.
+    '''
     raw_data = np.load(fpath)
     basename = os.path.basename(fpath).split('.')[0].split('_')[0]
     parent_path= os.path.dirname(fpath)
     coord = raw_data['coord']
-    coord[:,2] = 975*0.295-coord[:,2]
+    if order == 'r':
+        coord[:,2] = origin_x*0.295-coord[:,2] # This needs to be validated.
+        coord = coord[:,::-1]
+    else:
+        coord[:,0] = origin_x*0.295-coord[:,0]
     try:
         signal = raw_data['data'].T
     except KeyError:
@@ -39,7 +48,7 @@ def coord_convert_preprocess(fpath, reg_list):
     finedest_name = parent_path + '/' + basename + '_ref'
     NC = coord.shape[0]
     if os.path.isdir(reg_list):
-        np.savetxt(source_name, coord[:,::-1], fmt = '%12.5f')
+        np.savetxt(source_name, coord, fmt = '%12.5f')# save the coordinate in the x,y,z order.  
         registered_coord_convert(reg_list, source_name, dest_name, inv = True)
         time.sleep(5) # wait until the file is saved
         f = open(dest_name, 'r')
@@ -48,6 +57,7 @@ def coord_convert_preprocess(fpath, reg_list):
         fine_coord = []
         fine_data = []
         nf = 0
+        # here I add some correction for FAILED coordinates.
         for nc in range(NC):
             s = raw_coord[nc]
             d = signal[nc]
@@ -71,12 +81,12 @@ def coord_convert_preprocess(fpath, reg_list):
 
 
 def main():
-    response_list = glob.glob(data_path+'Good_registrations/*merged.npz')
+    response_list = glob.glob(data_path+'Good_registrations/Feb19A1_resp.npz')
     print(response_list)
     for response_file in response_list:
         basename = os.path.basename(response_file).split('.')[0].split('_')[0]
         reg_list = data_path + 'Good_registrations/' + basename + '.list'
-        sta = coord_convert_preprocess(response_file,reg_list)
+        sta = coord_convert_preprocess(response_file,reg_list, 836)
         print(sta)
 
 
