@@ -79,7 +79,7 @@ def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0., mode = 'q'):
     t_duration = np.ceil(d_sti/dt).astype('int')
     print(t_duration)
     t_back = np.ceil(t_shift/dt).astype('int')
-    t_onset = t_sti//dt - t_back
+    t_onset = (t_sti//dt - t_back).astype('int')
     t_onset[t_onset < 0] = 0
 
     if mode == 'q':
@@ -106,12 +106,21 @@ class Regressor_dialog(QtWidgets.QDialog):
 
         self._ui.pushButton_exp.clicked.connect(self.exp_regressor)
         self._ui.pushButton_add.clicked.connect(self.add_steps)
+        self._ui.pushButton_gen.clicked.connect(self.generate_regressor)
+        self._ui.pushButton_cl.clicked.connect(self.clear_regressor)
 
 
-        def exp_regressor(self):
-            pass
+    def exp_regressor(self):
+        pass
 
-        def add_steps(self):
-            pass
+    def add_steps(self):
+        pass
 
-        def 
+
+    def generate_regressor(self):
+        pass
+
+    def clear_regressor(self):
+        pass
+
+

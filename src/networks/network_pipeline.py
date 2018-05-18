@@ -264,7 +264,7 @@ class pipeline(object):
                 print("Index Error.")
         return mk
 
-    def stimuli_sort(self, trigger_signal, nbins = 50, mode = 'p'):
+    def stimuli_sort(self, trigger_signal, nbins = 50, n_iter = 1, n_sample = 5):
         '''
         sort the signals based on their correlation with the trigger.
         generate a histogram of the correlation function
@@ -275,22 +275,25 @@ class pipeline(object):
             dff = self.signal[:ntri]
         elif(NT < ntri):
             dff = self.signal
-            trigger_signal = trigger_signal[:nt] #truncate the longer one
+            trigger_signal = trigger_signal[:NT] #truncate the longer one
         else:
             dff = self.signal
-        if mode =='p': # pearson correlation
-            trig_corr = np.empty(NC)
-            for ii in range(NC):
-                trig_corr[ii] = np.corrcoef(trigger_signal, dff[:,ii])[1,0]
+        trig_corr = np.empty(NC)
+        for ii in range(NC):
+            trig_corr[ii] = np.corrcoef(trigger_signal, dff[:,ii])[1,0]
 
-            ind_sort = np.argsort(trig_corr)[::-1] # descending order
-            self.reorder_data(ind_shuffle = ind_sort)
-            return trig_corr[ind_sort]
-        else: # cross correlation
-            trig_xcorr = np.empty(NT, NC) # cross correlation
+        ind_sort = np.argsort(trig_corr)[::-1] # descending order
+        self.reorder_data(ind_shuffle = ind_sort)
+        if n_iter > 1:
+            regressor = self.signal[:,:n_sample].mean(axis = 1)*trigger_signal
+            dff = self.signal
             for ii in range(NC):
-                trig_xcorr[:,ii] = np.correlate(trigger_signal, dff[:,ii], mode = 'same')
-            return trig_xcorr
+                trig_corr[ii] = np.corrcoef(regressor, dff[:,ii])[1,0]
+            ind_sort = np.argsort(trig_corr)[::-1]
+            self.reorder_data(ind_shuffle = ind_sort)
+            return trig_corr[ind_sort], regressor
+        else:
+            return trig_corr[ind_sort]
 
     def clean_up(self):
         self.ic = None
@@ -309,83 +312,92 @@ def main():
     '''
     The test function of the pipeline.
     '''
-    ld_Feb19 = np.array([101, 200, 303, 400, 503, 603, 708])
-    ld_Feb27A = np.array([101, 200, 303, 400, 450])
-    ld_Feb27B = np.array([452, 500, 600, 700, 800])
-    ld_signal = filtering.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = ld_Feb27B, d_sti =  26.0, t_shift = 4.0 )
+    sti_fmr1 = np.array([50, 100, 150, 200, 250, 300, 600, 650, 700, 750, 800, 850])
+    ld_signal = filtering.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = sti_fmr1, d_sti =  30.0, t_shift = 7.0 )
 
 
     n_ica = 4
     n_clu = 3
     cf = 0.60
-    local_datafolder = 'Liquid_delivery/'
+    local_datafolder = 'FMR1/'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + 'Feb27*B*_merged_dff.h5')
+    data_list = glob.glob(full_path + 'Apr*_merged_dff.h5')
     clean_list = []
     clean_fname = full_path+'clean_list.txt'
 
+    PL = pipeline()
     for df_name in data_list:
-        basename = os.path.basename(df_name).split('.')[0]
+        basename = '_'.join(os.path.basename(df_name).split('.')[0].split('_')[:-2])
         print("Processing file:", basename)
-        PL = pipeline(df_name)
+        PL.parse_data(df_name)
         # -------- PCA and ICA clustering ------------------
 
         # commented by Dan on 03/07
-        corr_cf = PL.stimuli_sort(ld_signal)
+        corr_cf, regressor = PL.stimuli_sort(ld_signal, n_iter = 2)
         merged_hist, mb_centers = clustering.histo_clustering(corr_cf,nbin = 300, bin_cut = 0.40, n_fold = 5 , sca = 1.00)
         plt.bar(mb_centers,merged_hist,width = 0.012)
-        plt.show()
+        plt.title(basename+ '_regression')
+        plt.savefig(full_path + '/'+ basename + '_corrhist.png')
+        #plt.show()
+        fig_reg = plt.figure(figsize = (7,4))
+        ax = fig_reg.add_subplot(111)
+        ax.plot(regressor*2, '--')
+        ax.plot(ld_signal*2, ':k')
+        ax.plot(PL.signal[:, :3])
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+        fig_reg.savefig(full_path + '/' + basename + '_top3.png')
 
-        plt.plot(ld_signal)
-        plt.plot(PL.signal[:,:20:5])
+        corr_cutoff = 0.40
+        PL.reorder_data(np.where(corr_cf > corr_cutoff)[0])
+        fig_nat = signal_plot.nature_style_dffplot(PL.signal[:,:15], sc_bar = 0.25)
+        fig_nat.savefig(full_path + '/'+ basename + '_resp.png')
 
-        plt.show()
-        ntr = 300
+        ntr = 200
         print("cutoff:", corr_cf[ntr])
-        PL.reorder_data(ind_shuffle = np.arange(ntr))
-        crank,_ = simple_variance.simvar_global_sort(PL.signal)
-        PL.reorder_data(ind_shuffle = crank)
+        #PL.reorder_data(ind_shuffle = np.arange(ntr))
+        #crank,_ = simple_variance.simvar_global_sort(PL.signal)
+        #PL.reorder_data(ind_shuffle = crank)
         #PL.pca_layered_sorting(var_cut = 0.98) # This has been done once and the inactive cells are removed.
-        #PL.save_cleaned(df_name.split('.')[0]+'_pc_cleaned')
         fig_sti = signal_plot.dff_rasterplot(PL.signal, n_truncate = ntr)
         fig_sti.savefig(full_path + '/' + basename + '_sti')
-        coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf,n_components = n_ica, n_clusters = n_clu)
+        #coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf,n_components = n_ica, n_clusters = n_clu)
 
-        fig_ica = stat_present.ic_plot(PL.ic)
-        fig_ica.savefig(full_path + '/'+ basename + '_ic')
-        plt.close(fig_ica)
+        #fig_ica = stat_present.ic_plot(PL.ic)
+        #fig_ica.savefig(full_path + '/'+ basename + '_ic')
+        #plt.close(fig_ica)
 
-        fig_cl = stat_present.cluster_dimplot(PL.ic_coefs, PL.ic_label)
-        fig_cl.savefig(full_path + '/' + basename + '_icdim')
-        plt.close(fig_cl)
+        #fig_cl = stat_present.cluster_dimplot(PL.ic_coefs, PL.ic_label)
+        #fig_cl.savefig(full_path + '/' + basename + '_icdim')
+        #plt.close(fig_cl)
 
-        cluster_size = [len(cluster) for cluster in PL.ic_label]
-        print("cluster sizes:", cluster_size)
+        #cluster_size = [len(cluster) for cluster in PL.ic_label]
+        #print("cluster sizes:", cluster_size)
 
-        for nc in range(n_clu):
-            cl_coord = coord_clustered[nc]
-            cl_signal = signal_clustered[nc]
-            print("# of cells:", cl_signal.shape[1])
-            print("Cluster center:", PL.km_centers[nc])
-            sub_dset = dict()
-            sub_dset['coord'] = cl_coord[:,[2,1,0]] # this is for display. x,y,z ordered as x,y,z, so it is consistent with that in the image.
-            sub_dset['signal'] = cl_signal
-            np.savez(full_path + '/' + basename + '_cl_' + str(nc), **sub_dset)
-            NC = cl_coord.shape[0]
-            if NC>150:
-                n_trunc = 150
-            else:
-                n_trunc = None
-            fig_r = signal_plot.dff_rasterplot(cl_signal, fw = 7.0, n_truncate = n_trunc)
-            fig_r.savefig(full_path + '/' + basename + '_raster_' + str(nc) )
-            plt.close(fig_r)
+        #for nc in range(n_clu):
+        #    cl_coord = coord_clustered[nc]
+        #    cl_signal = signal_clustered[nc]
+        #    print("# of cells:", cl_signal.shape[1])
+        #    print("Cluster center:", PL.km_centers[nc])
+        #    sub_dset = dict()
+        #    sub_dset['coord'] = cl_coord[:,[2,1,0]] # this is for display. x,y,z ordered as x,y,z, so it is consistent with that in the image.
+        #    sub_dset['signal'] = cl_signal
+        #    np.savez(full_path + '/' + basename + '_cl_' + str(nc), **sub_dset)
+        #    NC = cl_coord.shape[0]
+        #    if NC>150:
+        #        n_trunc = 150
+        #    else:
+        #        n_trunc = None
+        #    fig_r = signal_plot.dff_rasterplot(cl_signal, fw = 7.0, n_truncate = n_trunc)
+        #    fig_r.savefig(full_path + '/' + basename + '_' + str(nc) )
+        #    plt.close(fig_r)
 
-        mk = PL.ica_interactive_cleaning()
-        PL.save_cleaned(df_name.split('.')[0]+'_sti',rev_zyx = True)
+        #mk = PL.ica_interactive_cleaning()
+        PL.save_cleaned(full_path+ '/'+ basename +'_sti',rev_zyx = True)
             #npztoh5(df_name.split('.')[0]+'_sti'+'.npz')
-        clean_list.append(df_name)
-        fig_r = signal_plot.dff_rasterplot(PL.signal, fw = 7.0, title = basename )
-        fig_r.savefig(full_path + '/' + basename + '_sti' )
+        #clean_list.append(df_name)
+        #fig_r = signal_plot.dff_rasterplot(PL.signal, fw = 7.0, title = basename )
+        #fig_r.savefig(full_path + '/' + basename + '_sti' )
 
         plt.close('all')
 

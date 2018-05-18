@@ -47,7 +47,7 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     mu = (be[hind]+be[hind+1])*0.5 # the average of mu
     if mu>0:
         fb_new = f_base*(1.+mu)
-        dff_r = (shit_data[n_truncate:]-fb_new)/fb_new
+        dff_r = (shit_data[ntruncate:]-fb_new)/fb_new
 
     return dff_r
     # done with dff_raw

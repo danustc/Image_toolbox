@@ -28,7 +28,7 @@ def coord_convert_preprocess(fpath, reg_list, origin_x = 975, order = 'r'):
     order: if the original coordinate order is 'x-y-z', then order = 'f'; otherwise order = 'r'.
     '''
     raw_data = np.load(fpath)
-    basename = os.path.basename(fpath).split('.')[0].split('_')[0]
+    basename = '_'.join(os.path.basename(fpath).split('.')[0].split('_')[:-1])
     parent_path= os.path.dirname(fpath)
     coord = raw_data['coord']
     if order == 'r':
@@ -45,7 +45,7 @@ def coord_convert_preprocess(fpath, reg_list, origin_x = 975, order = 'r'):
             return -1
     source_name = parent_path + '/' + basename + '_coord.txt'
     dest_name = parent_path + '/' + basename + '_rawref.txt'
-    finedest_name = parent_path + '/' + basename + '_ref'
+    finedest_name = parent_path + '/' + basename + '_ref'  # the destination filename of .npz
     NC = coord.shape[0]
     if os.path.isdir(reg_list):
         np.savetxt(source_name, coord, fmt = '%12.5f')# save the coordinate in the x,y,z order.  
@@ -81,13 +81,16 @@ def coord_convert_preprocess(fpath, reg_list, origin_x = 975, order = 'r'):
 
 
 def main():
-    response_list = glob.glob(data_path+'Good_registrations/Feb19A1_resp.npz')
+    response_list = glob.glob(data_path+'Good_registrations/Apr16*_resp.npz')
     print(response_list)
     for response_file in response_list:
-        basename = os.path.basename(response_file).split('.')[0].split('_')[0]
+        basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
+
+        print("Fish:", basename)
+        xdim = input("Enter the x-dimension of the raw data:")
+        print(xdim)
         reg_list = data_path + 'Good_registrations/' + basename + '.list'
-        sta = coord_convert_preprocess(response_file,reg_list, 836)
-        print(sta)
+        sta = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
 
 
 if __name__ == '__main__':

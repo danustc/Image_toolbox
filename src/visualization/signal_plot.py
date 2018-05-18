@@ -5,6 +5,12 @@ Last modification:
 import matplotlib.pyplot as plt
 import numpy as np
 
+def compact_dffplot(dff_data, dt = 0.5, ts_bar = 200, sc_bar = 0.25):
+    '''
+    compact df/f plot.
+    '''
+
+
 def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
     """
     Present delta F/F data in nature style
@@ -14,7 +20,7 @@ def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
 
     tmark = -dt*10
 
-    fig = plt.figure(figsize = (7.0*n_time/500,10))
+    fig = plt.figure(figsize = (7.0*n_time/1500,10))
     for ii in range(n_cell):
         dff = dff_data[:,ii]
         ax = fig.add_subplot(n_cell,1, ii+1)
