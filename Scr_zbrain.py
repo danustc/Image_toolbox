@@ -12,7 +12,7 @@ from src.shared_funcs.numeric_funcs import circ_mask_patch, spheri_mask_patch
 #---------------Some global variables--------------------
 #package_path ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/' # for windows
 global_datapath = '/home/sillycat/Programming/Python/data_test/'
-#global_datapath = '/d/Data/2018-05-07/'
+#global_datapath = '/d/Data/Stacks_2b_registered/'
 regist_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
 cluster_path = global_datapath + 'Liquid_delivery/Responsive_clusters/'
 pxl_img = [0.295, 0.295, 1.00]
@@ -35,10 +35,10 @@ def scr_padding():
 
 def scr_fromref():
     # test slice splitting function
-    data_path = '/home/sillycat/Programming/Python/cmtkRegistration/'
-    ref_path = 'refbrain/rfp_temp.tif'
+    #data_path = '/home/sillycat/Programming/Python/cmtkRegistration/'
+    ref_path = 'rfp_temp.tif'
 
-    ref_stack = tf.read_tiff(data_path+ref_path)
+    ref_stack = tf.read_tiff(global_datapath+ref_path)
     rm_yaxis = coord_trans.rotmat_yaxis(40.0)
     pxl_img = [0.295, 0.295, 1.00]
     pxl_lab = [0.798, 0.798, 2.00]
@@ -48,7 +48,7 @@ def scr_fromref():
     sample_range_MB = np.array([1450, 1050, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
     ref_range = np.array([138, 621, 1406])
     sample_value = coord_trans.sample_from_refstack(ref_stack, sample_range_MB, pxl_lab, pxl_img, rm_yaxis, origin_shift_MB)
-    tf.write_tiff(sample_value, data_path + 'RFP_midbrain.tif' )
+    tf.write_tiff(sample_value, global_datapath + 'RFP_midbrain.tif' )
     print("done!")
 
 
