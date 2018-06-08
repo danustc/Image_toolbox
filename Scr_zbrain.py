@@ -39,14 +39,16 @@ def scr_fromref():
     ref_path = 'refbrain/rfp_temp.tif'
 
     ref_stack = tf.read_tiff(data_path+ref_path)
-    rm_yaxis = rotmat_yaxis(40.0)
+    rm_yaxis = coord_trans.rotmat_yaxis(40.0)
     pxl_img = [0.295, 0.295, 1.00]
     pxl_lab = [0.798, 0.798, 2.00]
     origin_shift = [240, 310, 80]
+    origin_shift_MB = [540, 310, 80]
     sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
+    sample_range_MB = np.array([1450, 1050, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
     ref_range = np.array([138, 621, 1406])
-    sample_value = coord_trans.sample_from_refstack(ref_stack, sample_range, pxl_lab, pxl_img, rm_yaxis, origin_shift)
-    tf.write_tiff(sample_value, data_path + 'RFP_temp.tif' )
+    sample_value = coord_trans.sample_from_refstack(ref_stack, sample_range_MB, pxl_lab, pxl_img, rm_yaxis, origin_shift_MB)
+    tf.write_tiff(sample_value, data_path + 'RFP_midbrain.tif' )
     print("done!")
 
 
@@ -161,7 +163,7 @@ def scr_tempcrop():
     hf = h5py.File(data_path + ref_path, 'r')
     kl = list(hf.keys())
     print(kl)
-    rm_yaxis = rotmat_yaxis(40.0)
+    rm_yaxis = coord_trans.rotmat_yaxis(40.0)
     pxl_img = [0.295, 0.295, 1.00]
     pxl_lab = [0.798, 0.798, 2.00]
     origin_shift = [240, 310, 80]
@@ -177,4 +179,4 @@ def scr_tempcrop():
 
 if __name__ =='__main__':
      #scr_mask_compare()
-     scr_coord_toref()
+     scr_fromref()
