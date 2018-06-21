@@ -13,7 +13,7 @@ import numpy as np
 sys.path.append(package_path)
 import src.shared_funcs.tifffunc as tifffunc
 
-from src.preprocessing.cell_extract import *
+from src.preprocessing.segmentation import *
 
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -237,11 +237,11 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_rootpath ='D:/Data/2018-05-07/May07_2018_B1\\'
-    folder_list = glob.glob(data_rootpath+"/B1_TS\\")
+    data_rootpath ='D:/Data/2018-06-07/\\'
+    folder_list = glob.glob(data_rootpath+"/TS_registration\\")
     for data_path in folder_list:
         print(data_path)
-        pt = pipeline_tstacks(data_path, fname_flags = '_9')
+        pt = pipeline_tstacks(data_path, fname_flags = 'rg')
         pt.run_pipeline([5,10,15,20])
     #pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
     #pt.run_pipeline([5,10,15,20])
