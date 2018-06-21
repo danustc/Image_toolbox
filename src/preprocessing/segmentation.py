@@ -59,7 +59,7 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 3, bsteps =7, verbose = Tr
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
-    th = (np.mean(filled_frame) - np.std(filled_frame))/20.
+    th = (np.mean(filled_frame) - np.std(filled_frame))/7.
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
