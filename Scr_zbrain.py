@@ -31,7 +31,10 @@ def scr_padding():
     ZD_list = glob.glob(global_datapath+'Jun*/*ZD*.tif') # This is for windows 
     print(ZD_list)
     for ZD_file in ZD_list:
-        basename = ''.join(ZD_file.split('/')[-2].split('_'))
+        basename = os.path.basename(ZD_file)
+        dirname = os.path.dirname(ZD_file)
+        base_dir = ''.join(os.path.basename(dirname).split('_'))
+        print(basename)
         ZD_stack = tf.read_tiff(ZD_file)
         zz, zy, zx = np.where(ZD_stack==0)
         ZD_stack[zz,zy,zx] = np.std(ZD_stack)/2.0 + np.random.randn(len(zz))*10
