@@ -12,6 +12,7 @@ from src.shared_funcs.numeric_funcs import circ_mask_patch, spheri_mask_patch
 #---------------Some global variables--------------------
 #package_path ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/' # for windows
 global_datapath = '/home/sillycat/Programming/Python/data_test/'
+portable_datapath = '/media/sillycat/DanData/'
 #global_datapath = '/d/Data/Stacks_2b_registered/'
 regist_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
 cluster_path = global_datapath + 'Liquid_delivery/Responsive_clusters/'
@@ -22,7 +23,7 @@ def scr_padding():
     '''
     pad all the ZD stacks with zeros and resave
     '''
-    ZD_list = glob.glob(global_datapath+'May*/*ZD*.tif')
+    ZD_list = glob.glob(portable_datapath+'Jul26*/*ZD*.tif')
     print(ZD_list)
     for ZD_file in ZD_list:
         basename = ''.join(ZD_file.split('/')[-2].split('_'))
@@ -179,4 +180,4 @@ def scr_tempcrop():
 
 if __name__ =='__main__':
      #scr_mask_compare()
-     scr_fromref()
+     scr_padding()
