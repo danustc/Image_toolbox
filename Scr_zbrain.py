@@ -11,7 +11,7 @@ from src.shared_funcs.numeric_funcs import circ_mask_patch, spheri_mask_patch
 #---------------Some global variables--------------------
 package_path ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/' # for windows
 #global_datapath = '/home/sillycat/Programming/Python/data_test/'
-global_datapath = 'D:\\/Data/Stacks_2b_registered/'
+global_datapath = 'D:\\/Data/2018-06-07/'
 #sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 sys.path.append(package_path)
 #package_path ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/' # for windows
@@ -27,7 +27,8 @@ def scr_padding():
     '''
     pad all the ZD stacks with zeros and resave
     '''
-    ZD_list = glob.glob(portable_datapath+'Jul26*/*ZD*.tif')
+    #ZD_list = glob.glob(portable_datapath+'Jul26*/*ZD*.tif') # This is for ubuntu
+    ZD_list = glob.glob(global_datapath+'Jul*/*ZD*.tif') # This is for windows 
     print(ZD_list)
     for ZD_file in ZD_list:
         basename = ''.join(ZD_file.split('/')[-2].split('_'))
