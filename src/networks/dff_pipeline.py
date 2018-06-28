@@ -12,7 +12,11 @@ from df_f import *
 from filtering import coord_edgeclean
 import simple_variance as simple_variance
 
-global_datapath = '/home/sillycat/Programming/Python/data_test/'
+package_path =r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\" # This is for windows
+sys.path.append(package_path)
+#global_datapath = '/home/sillycat/Programming/Python/data_test/'
+#global_datapath = r"X:\/Zebrafish_ispim/2017-07-19\\"
+global_datapath = r"D:\/Data/2018-06-07\\"
 portable_datapath = '/media/sillycat/DanData/HQFB_redundancy_removed/'
 # ---------------------Below are small functions for data cleaning -------------
 
@@ -155,8 +159,8 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main():
-    data_folder = 'FMR1/'
-    raw_list = glob.glob(global_datapath+data_folder+'Apr16*merged.npz')
+    #data_folder = 'FMR1/'
+    raw_list = glob.glob(global_datapath+'Jun*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
@@ -164,7 +168,7 @@ def main():
         ppl.edge_truncate(edge_width = 6.0)
         ppl.dff_calc(ft_width = 6, filt = True)
         #ppl.svar_sorting(var_cut = 0.99) #after the edge cut, do the simple var sorting to remove very inactive cells.
-        ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
+        ppl.save_cleaned(global_datapath + '/'+ acquisition_date + '_merged_dff.h5')
         print("Finished processing:", acquisition_date)
 
 
