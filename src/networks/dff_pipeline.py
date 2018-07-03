@@ -13,7 +13,7 @@ from filtering import coord_edgeclean
 import simple_variance as simple_variance
 
 global_datapath = '/home/sillycat/Programming/Python/data_test/'
-portable_datapath = '/media/sillycat/DanData/HQFB_redundancy_removed/'
+portable_datapath = '/media/sillycat/DanData/'
 # ---------------------Below are small functions for data cleaning -------------
 
 def raw2dff_clean(raw_loaded, dff_flag = 'dff', dt = 0.5, t_width = 1.5, saveraw = False):
@@ -143,7 +143,7 @@ class pipeline(object):
             print("Final data dimension:", self.get_size())
 
 
-    def save_cleaned(self, save_path):
+    def save_cleaned_h5(self, save_path):
         '''
         compile a dictinary and save it
         '''
@@ -152,19 +152,26 @@ class pipeline(object):
         fo.create_dataset('signal', data = self.signal)
         fo.close()
 
+
+    def save_cleaned_dff(self, save_path):
+        '''
+        compile a dictinary and save it
+        '''
+        data = {'signal':self.signal, 'coord':self.coord}
+        np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
 
 def main():
-    data_folder = 'FMR1/'
-    raw_list = glob.glob(global_datapath+data_folder+'Apr16*merged.npz')
+    #raw_list = glob.glob(global_datapath+data_folder+'Apr*merged.npz')
+    raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
         ppl = pipeline(raw_data)
-        ppl.edge_truncate(edge_width = 6.0)
+        ppl.edge_truncate(edge_width = 7.0)
         ppl.dff_calc(ft_width = 6, filt = True)
         #ppl.svar_sorting(var_cut = 0.99) #after the edge cut, do the simple var sorting to remove very inactive cells.
-        ppl.save_cleaned(global_datapath + data_folder+'/'+ acquisition_date + '_merged_dff.h5')
+        ppl.save_cleaned_dff(global_datapath  +'/'+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
 
