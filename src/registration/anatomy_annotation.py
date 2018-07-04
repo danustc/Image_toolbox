@@ -1,17 +1,83 @@
 import os
 import sys
+sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import glob
 import numpy as np
 import subprocess
 import time
 import pandas as pd
 import calendar
-
+import src.preprocessing.coord_transform as coord_trans
+#-------------------Global variables-----------------
 exu = "cmtk streamxform"
 data_path="/home/sillycat/Programming/Python/data_test/"
 meta_path = data_path + 'metadata_sheet.csv'
 month_num = {v: k for k,v in enumerate(calendar.month_abbr)}
-print(month_num)
+
+pxl_img = [0.295, 0.295, 1.00]
+pxl_lab = [0.798, 0.798, 2.00]
+origin_shift = [240, 310, 80]
+ref_range = np.array([138, 621, 1406])
+sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
+
+def anatomical_labeling(coord_file):
+    '''
+    transform the coordinate into those in the reference frame, then annotate each cell
+    coord_file: the file (reformatted) to be labeledannatomically.
+    '''
+    dest_path = coord_file.split('.')[0]+'_lb'
+    MD = maskdb.mask_db()
+    rm_yaxis = coord_trans.rotmat_yaxis(40.0) # rotational matrix
+    print(coord_file)
+        #coord = np.loadtxt(coord_file)
+    data = np.load(coord_file)
+    coord = data['coord']
+    n_cells = coord.shape[0]
+    mask_labels = np.zeros(n_cells, 294)
+    annotation_labels = np.zeros(n_cells)
+    lab_coord = coord_trans.sample_to_refstack_list(coord, sample_range, pxl_img, pxl_lab, rm_yaxis,origin_shift )
+
+
+    for n_mask in range(294):
+        mask_labels[:,n_mask] = MD.mask_multi_direct_search(n_mask, np.fliplr(lab_coord))
+        mask_idx, outline_idx = MD.get_mask(n_mask)
+        name_idx = MD.get_name(n_mask)
+        print(name_idx)
+
+    #next, label each cell 
+    mask_dup = np.sum(mask_labels, axis = 1) # for each cell, sum up the masks to count how many brain regions are annotated
+    for ii in range(n_cells):
+        if mask_dup[ii]>1:
+            '''
+            this cell is labeled by more than one
+            '''
+            mdup = mask_dup[ii]
+            m_labeled = np.where(mask_labels[ii] > 0)[0]
+            MM = 0
+            for jj in range(mdup):
+                MM+=294**(mdup-1-jj)*m_labeled[jj]
+
+            annotation_labels[ii] = MM
+
+        elif mask_dup[ii] ==1:
+            MM = np.argmax(mask_labels[ii])
+            annotation_labels[ii] = MM
+
+        else:
+            annotation_labels[ii] = -1
+
+
+      labeled_dataset = dict()
+      labeled_coord = np.zeros([n_cells, 4])
+      labeled_coord[:,:3] = coord
+      labeled_coord[:,3] = annotation_labels
+      labeled_dataset['coord'] = labeled_coord
+      labeled_dataset['signal'] = data['signal']
+
+      np.savez(dest_path, **labeled_dataset)
+
+
+
 
 
 
