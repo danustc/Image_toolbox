@@ -162,8 +162,9 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main():
-    #raw_list = glob.glob(global_datapath+data_folder+'Apr*merged.npz')
-    raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
+    data_folder = 'FB_resting_15min/'
+    raw_list = glob.glob(global_datapath+data_folder+'Jun*merged.npz')
+    #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
@@ -171,7 +172,7 @@ def main():
         ppl.edge_truncate(edge_width = 7.0)
         ppl.dff_calc(ft_width = 6, filt = True)
         #ppl.svar_sorting(var_cut = 0.99) #after the edge cut, do the simple var sorting to remove very inactive cells.
-        ppl.save_cleaned_dff(global_datapath  +'/'+ acquisition_date + '_dff')
+        ppl.save_cleaned_dff(global_datapath  +data_folder+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
 

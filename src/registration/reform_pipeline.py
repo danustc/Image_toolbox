@@ -16,56 +16,18 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 #sys.path.append(package_path_win)
 portable_datapath = '/media/sillycat/DanData/'
 regist_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
+cluster_path = global_datapath + 'Liquid_delivery/Responsive_clusters/'
 pxl_img = [0.295, 0.295, 1.00]
 pxl_lab = [0.798, 0.798, 2.00]
 
-def scr_padding():
-    '''
-    pad all the ZD stacks with zeros and resave
-    '''
-    ZD_list = glob.glob(portable_datapath+'Jul19*/A*ZD*.tif') # This is for ubuntu
-    #ZD_list = glob.glob(global_datapath+'Jun*/*ZD*.tif') # This is for windows 
-    print(ZD_list)
-    for ZD_file in ZD_list:
-        basename = os.path.basename(ZD_file)
-        dirname = os.path.dirname(ZD_file)
-        base_dir = ''.join(os.path.basename(dirname).split('_'))
-        print(basename)
-        ZD_stack = tf.read_tiff(ZD_file)
-        zz, zy, zx = np.where(ZD_stack==0)
-        ZD_stack[zz,zy,zx] = np.std(ZD_stack)/2.0 + np.random.randn(len(zz))*10
-        #TH_stack = stack_operations.stack_global_thresholding(ZD_stack, nsig = th_sig)
-        tf.write_tiff(ZD_stack, global_datapath+base_dir+'.tif')
-
-
-def scr_fromref():
-    # test slice splitting function
-    #data_path = '/home/sillycat/Programming/Python/cmtkRegistration/'
-    ref_path = 'rfp_temp.tif'
-
-    ref_stack = tf.read_tiff(global_datapath+ref_path)
-    rm_yaxis = coord_trans.rotmat_yaxis(36.0)
-    pxl_img = [0.295, 0.295, 1.00]
-    pxl_lab = [0.798, 0.798, 2.00]
-    origin_shift = [240, 310, 80]
-    origin_shift_MB = [540, 310, 115]
-    sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
-    sample_range_MB = np.array([1050, 1450, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
-    ref_range = np.array([138, 621, 1406])
-    sample_value = coord_trans.sample_from_refstack(ref_stack, sample_range_MB, pxl_lab, pxl_img, rm_yaxis, origin_shift_MB)
-    tf.write_tiff(sample_value, global_datapath + 'RFP_midbrain.tif' )
-    print("done!")
-
-
-def scr_coord_toref():
+def anatomical_labeling(fname):
     '''
     transform the coordinate into those in the reference frame
-    has been tested on the RFP template.
     '''
-    mark_stat = np.zeros([294, 2])
+    mark_stat = np.zeros(294])
     MD = maskdb.mask_db()
-    resp_list_a = glob.glob(global_datapath_ubn+ 'Good_registrations/Apr*_homo.npz')
-    resp_list_b = glob.glob(global_datapath_ubn+ 'Good_registrations/Apr*_het.npz')
+    resp_list_a = glob.glob(global_datapath+ 'Good_registrations/Apr*_homo.npz')
+    resp_list_b = glob.glob(global_datapath+ 'Good_registrations/Apr*_het.npz')
     rm_yaxis = coord_trans.rotmat_yaxis(40.0)
     origin_shift = [240, 310, 80]
     ref_range = np.array([138, 621, 1406])
@@ -80,10 +42,6 @@ def scr_coord_toref():
         n_cells = coord.shape[0]
         N_tot += n_cells
         lab_coord = coord_trans.sample_to_refstack_list(coord, sample_range, pxl_img, pxl_lab, rm_yaxis,origin_shift )
-        #for rr in lab_coord:
-         #   idr = spheri_mask_patch(ref_range, (rr*pxl_lab)[::-1], 3., np.array(pxl_lab[::-1]))
-          #  zidx = np.where(idr[:,0]<138)[0]
-           # mark_stack[idr[zidx,0], idr[zidx,1], idr[zidx,2]] = 1000
 
 
         for n_mask in range(294):
@@ -186,5 +144,5 @@ def scr_tempcrop():
 
 
 if __name__ =='__main__':
-     scr_coord_toref()
+     scr_mask_compare()
      #scr_padding()
