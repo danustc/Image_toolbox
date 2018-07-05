@@ -8,6 +8,7 @@ import time
 import pandas as pd
 import calendar
 import src.preprocessing.coord_transform as coord_trans
+import maskdb_parsing as maskdb
 #-------------------Global variables-----------------
 exu = "cmtk streamxform"
 data_path="/home/sillycat/Programming/Python/data_test/"
@@ -25,24 +26,32 @@ def anatomical_labeling(coord_file):
     transform the coordinate into those in the reference frame, then annotate each cell
     coord_file: the file (reformatted) to be labeledannatomically.
     '''
-    dest_path = coord_file.split('.')[0]+'_lb'
+    if coord_file[-4] == '.':
+        dest_path = coord_file.split('.')[0]+'_lb'
+        data = np.load(coord_file)
+    else:
+        dest_path = coord_file+'_lb'
+        data = np.load(coord_file+'.npz')
+
     MD = maskdb.mask_db()
     rm_yaxis = coord_trans.rotmat_yaxis(40.0) # rotational matrix
     print(coord_file)
         #coord = np.loadtxt(coord_file)
-    data = np.load(coord_file)
     coord = data['coord']
-    n_cells = coord.shape[0]
-    mask_labels = np.zeros(n_cells, 294)
-    annotation_labels = np.zeros(n_cells)
     lab_coord = coord_trans.sample_to_refstack_list(coord, sample_range, pxl_img, pxl_lab, rm_yaxis,origin_shift )
 
+    if_outlier = lab_coord[:,2] < 137
+    lab_coord = lab_coord[if_outlier]
+    n_cells = lab_coord.shape[0]
+    mask_labels = np.zeros([n_cells, 294])
+    annotation_labels = np.zeros(n_cells)
 
     for n_mask in range(294):
         mask_labels[:,n_mask] = MD.mask_multi_direct_search(n_mask, np.fliplr(lab_coord))
         mask_idx, outline_idx = MD.get_mask(n_mask)
         name_idx = MD.get_name(n_mask)
         print(name_idx)
+    print("Finished anatomical identification.")
 
     #next, label each cell 
     mask_dup = np.sum(mask_labels, axis = 1) # for each cell, sum up the masks to count how many brain regions are annotated
@@ -51,7 +60,8 @@ def anatomical_labeling(coord_file):
             '''
             this cell is labeled by more than one
             '''
-            mdup = mask_dup[ii]
+            mdup = int(mask_dup[ii])
+            print("Duplication level: ", mdup)
             m_labeled = np.where(mask_labels[ii] > 0)[0]
             MM = 0
             for jj in range(mdup):
@@ -67,17 +77,14 @@ def anatomical_labeling(coord_file):
             annotation_labels[ii] = -1
 
 
-      labeled_dataset = dict()
-      labeled_coord = np.zeros([n_cells, 4])
-      labeled_coord[:,:3] = coord
-      labeled_coord[:,3] = annotation_labels
-      labeled_dataset['coord'] = labeled_coord
-      labeled_dataset['signal'] = data['signal']
+    labeled_dataset = dict()
+    labeled_coord = np.zeros([n_cells, 4])
+    labeled_coord[:,:3] = coord[if_outlier]
+    labeled_coord[:,3] = annotation_labels
+    labeled_dataset['coord'] = labeled_coord
+    labeled_dataset['signal'] = data['signal'][:,if_outlier]
 
-      np.savez(dest_path, **labeled_dataset)
-
-
-
+    np.savez(dest_path, **labeled_dataset)
 
 
 
@@ -154,6 +161,8 @@ def coord_convert_preprocess(fpath, reg_list, origin_x = 975, order = 'r'):
             d = signal[nc]
             if 'F' in s:
                 nf +=1
+            elif '-' in s:
+                nf +=1
             else:
                 sn = [float(ii) for ii in s[:-2].split(' ')]
                 fine_coord.append(sn)
@@ -165,10 +174,11 @@ def coord_convert_preprocess(fpath, reg_list, origin_x = 975, order = 'r'):
         ref_data['signal'] = np.array(fine_data).T
         np.savez(finedest_name, **ref_data)
         time.sleep(1)
+        return finedest_name
     else:
         print('The registration parameter does not exist.')
+        return 'x'
 
-    return 0
 
 
 
@@ -226,7 +236,8 @@ def main():
         reglist  = ''.join([temp_list[0], temp_list[-1]])
 
         reg_list = data_path + 'Good_registrations/Jul2017_rest/' + reglist +  '.list'
-        sta = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
+        fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
+        anatomical_labeling(fine_dest_name)
 
 
 if __name__ == '__main__':

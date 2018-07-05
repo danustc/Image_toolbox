@@ -48,8 +48,6 @@ class mask_db(object):
         mask_idx, outline_idx = self.get_mask(n_mask)
         set_mask = set(mask_idx)
         masked = []
-
-        # zb_shape: z, y, x.
         c_000 = np.ravel_multi_index(floor_pxls.T, zb_shape)
         c_111 = np.ravel_multi_index(ceil_pxls.T, zb_shape)
         c_001 = np.ravel_multi_index([floor_pxls[:,0], floor_pxls[:,1], ceil_pxls[:,2]], zb_shape)
