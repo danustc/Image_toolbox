@@ -30,7 +30,7 @@ def scr_padding():
         basename = os.path.basename(ZD_file)
         dirname = os.path.dirname(ZD_file)
         base_dir = ''.join(os.path.basename(dirname).split('_'))
-        print(basename)
+        print(base_dir)
         ZD_stack = tf.read_tiff(ZD_file)
         zz, zy, zx = np.where(ZD_stack==0)
         ZD_stack[zz,zy,zx] = np.std(ZD_stack)/2.0 + np.random.randn(len(zz))*10

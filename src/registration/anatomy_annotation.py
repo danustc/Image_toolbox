@@ -218,9 +218,10 @@ def outer_shell(thickness = 10):
 
 
 
-
-
 def main():
+    '''
+    register and annotate
+    '''
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)

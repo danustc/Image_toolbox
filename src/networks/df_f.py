@@ -6,6 +6,8 @@ Last update: 05/09/18
 
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
+package_path =r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\"
+sys.path.append(package_path)
 import numpy as np
 from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit, gaussian1d_fit
 from scipy.signal import exponential, fftconvolve
