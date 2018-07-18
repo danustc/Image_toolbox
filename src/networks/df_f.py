@@ -58,12 +58,12 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
 def dff_hist(dff_r, nbin = 100, rect= False, noise_norm = False):
     '''
     assumption: dff is already calculated.
+    This is for 1-D array dff only.
     '''
     #m,s = stats.norm.fit(dff_r) does not work. More constraints should be added to the fit.
     hist, be = np.histogram(dff_r, nbin) # fit with histogram
     mu_ind = np.argmax(hist) # find the maximum
     A0 = hist[mu_ind] # the initial guess of the coefficient
-    print(A0)
 
     xx = (be[:-1]+be[1:])*0.50
     popt, pcov  = gaussian1d_fit(xx,hist,x0 = 0.0,sig_x = 0.10, A = A0/2, offset = 0.)
@@ -104,7 +104,6 @@ def dff_AB(dff_r, gam = 0.05):
     beta = gam/(1.+gam)
     id_A = np.where(PBZ<beta)[0]
     return id_A
-
 
 
 

@@ -12,17 +12,12 @@ from df_f import *
 from filtering import coord_edgeclean
 import simple_variance as simple_variance
 
-<<<<<<< HEAD
-global_datapath = '/home/sillycat/Programming/Python/data_test/'
+global_datapath_ubn  = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/'
-=======
-package_path =r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\" # This is for windows
+package_path_win  = r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\" # This is for windows
 sys.path.append(package_path)
-#global_datapath = '/home/sillycat/Programming/Python/data_test/'
-#global_datapath = r"X:\/Zebrafish_ispim/2017-07-19\\"
-global_datapath = r"D:\/Data/2018-06-07\\"
-portable_datapath = '/media/sillycat/DanData/HQFB_redundancy_removed/'
->>>>>>> 72e055c9354571428d3d2c9346e55f958f11909d
+#global_datapath_win = r"D:\/Data/2018-06-07\\"
+
 # ---------------------Below are small functions for data cleaning -------------
 
 def raw2dff_clean(raw_loaded, dff_flag = 'dff', dt = 0.5, t_width = 1.5, saveraw = False):
@@ -129,9 +124,21 @@ class pipeline(object):
         n_cut = np.searchsorted(sum_var, var_cut)
         self._trim_data_(crank[:n_cut])
 
+    def zscore_sorting(self, zs = 0.05):
+        '''
+        calculate Z-score of each neuron and remove ones with Z-score below zs.
+        '''
+        NT, NC = self.get_size()
+        hist_sorted = np.zeros([NT, NC])
+        for nf in range(NC):
+            dff_hist(self.signal[:,nf], rect = False, noise_norm = True)
+
+
 
     def edge_truncate(self, edge_width = 10.0, verbose = True):
-        # cut the edges of the dataset, edge_width unit: microns
+        '''
+        Warning: this is for unlabeled raw-fluorescence dataset, in which the coordinates are ordered z-y-x instead of x-y-z.
+        '''
         coord = self.coord
         px_max = np.max(coord, axis = 0)
         print(px_max)
@@ -171,26 +178,18 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main():
-<<<<<<< HEAD
     data_folder = 'FB_resting_15min/'
     raw_list = glob.glob(global_datapath+data_folder+'Jun*merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
-=======
     #data_folder = 'FMR1/'
     raw_list = glob.glob(global_datapath+'Jun*merged.npz')
->>>>>>> 72e055c9354571428d3d2c9346e55f958f11909d
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
         ppl = pipeline(raw_data)
         ppl.edge_truncate(edge_width = 7.0)
         ppl.dff_calc(ft_width = 6, filt = True)
-        #ppl.svar_sorting(var_cut = 0.99) #after the edge cut, do the simple var sorting to remove very inactive cells.
-<<<<<<< HEAD
         ppl.save_cleaned_dff(global_datapath  +data_folder+ acquisition_date + '_dff')
-=======
-        ppl.save_cleaned(global_datapath + '/'+ acquisition_date + '_merged_dff.h5')
->>>>>>> 72e055c9354571428d3d2c9346e55f958f11909d
         print("Finished processing:", acquisition_date)
 
 
