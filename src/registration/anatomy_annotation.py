@@ -56,6 +56,9 @@ def anatomical_labeling(coord_file):
     #next, label each cell 
     mask_dup = np.sum(mask_labels, axis = 1) # for each cell, sum up the masks to count how many brain regions are annotated
     for ii in range(n_cells):
+        '''
+        Encode each cell's mask labels into one number
+        '''
         if mask_dup[ii]>1:
             '''
             this cell is labeled by more than one
@@ -75,6 +78,7 @@ def anatomical_labeling(coord_file):
 
         else:
             annotation_labels[ii] = -1
+    # end for. However, there might be fake neurons which have -1 labels
 
 
     labeled_dataset = dict()
