@@ -237,7 +237,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_rootpath ='D:/Data/2018-06-07/\\'
+    data_rootpath ='D:/Data/2018-07-19/\\'
     folder_list = glob.glob(data_rootpath+"/TS_registration\\")
     for data_path in folder_list:
         print(data_path)
