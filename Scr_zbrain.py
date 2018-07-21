@@ -23,7 +23,7 @@ def scr_padding():
     '''
     pad all the ZD stacks with zeros and resave
     '''
-    ZD_list = glob.glob(portable_datapath+'Jul19*/A*ZD*.tif') # This is for ubuntu
+    ZD_list = glob.glob(global_datapath_win+'Jul19*/*ZD*.tif') # This is for ubuntu
     #ZD_list = glob.glob(global_datapath+'Jun*/*ZD*.tif') # This is for windows 
     print(ZD_list)
     for ZD_file in ZD_list:
@@ -35,7 +35,7 @@ def scr_padding():
         zz, zy, zx = np.where(ZD_stack==0)
         ZD_stack[zz,zy,zx] = np.abs(np.random.randn(len(zz))*15)
         #TH_stack = stack_operations.stack_global_thresholding(ZD_stack, nsig = th_sig)
-        tf.write_tiff(ZD_stack, global_datapath+base_dir+'.tif')
+        tf.write_tiff(ZD_stack, global_datapath_win+base_dir+'.tif')
 
 
 def scr_fromref():
