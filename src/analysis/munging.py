@@ -8,9 +8,9 @@ import numpy as np
 import pyfftw
 import scipy.fftpack as fftpack
 from scipy import signal
-import src.networks.clustering as clustering
+import src.analysis.clustering as clustering
 
-def _flag_decode_(n_flag, n_mask = 294):
+def flag_decode(n_flag, n_mask = 294):
     if n_flag < 294:
         return n_flag
     else:
@@ -108,4 +108,9 @@ def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0., mode = 'q'):
 
     return sig_sti
 
+def anatomy_cleaning(raw_path):
+    '''
+    remove data sets that have -1 anatomical labels.
+    '''
+    raw_set = np.load(raw_path)
 

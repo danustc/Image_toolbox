@@ -9,7 +9,7 @@ import glob
 import numpy as np
 import h5py
 from df_f import *
-from filtering import coord_edgeclean
+from munging import coord_edgeclean
 import simple_variance as simple_variance
 
 global_datapath_ubn  = '/home/sillycat/Programming/Python/data_test/'
@@ -19,23 +19,6 @@ sys.path.append(package_path)
 #global_datapath_win = r"D:\/Data/2018-06-07\\"
 
 # ---------------------Below are small functions for data cleaning -------------
-
-def raw2dff_clean(raw_loaded, dff_flag = 'dff', dt = 0.5, t_width = 1.5, saveraw = False):
-    '''
-    convert a raw fluorescence file into DF/F values.
-    '''
-    f_dic = dict(raw_loaded) # convert the Npz file into dictionary
-    data_raw = f_dic.pop('data')
-    dffr = dff_raw(data_raw, ft_width = 6, ntruncate = 0)
-    if saveraw:
-        f_dic['dff_raw'] = dffr
-    f_dic['signal'] = dff_expfilt_group(dffr, dt, t_width)
-    f_dic['t_features'] = np.array([dt, t_width]) # save the temporal information
-    folder_path = os.path.dirname(raw_fname) +'/'
-    dff_fname = os.path.basename(raw_fname).split('.')[0]+ '_' + dff_flag
-    np.savez(folder_path + dff_fname, **f_dic)
-
-# ---------------------Below is the main pipeline class
 
 class pipeline(object):
     '''
@@ -179,10 +162,9 @@ class pipeline(object):
 
 def main():
     data_folder = 'FB_resting_15min/'
-    raw_list = glob.glob(global_datapath+data_folder+'Jun*merged.npz')
+    raw_list = glob.glob(global_datapath_ubn+data_folder+'Jun*merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     #data_folder = 'FMR1/'
-    raw_list = glob.glob(global_datapath+'Jun*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
