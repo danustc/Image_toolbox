@@ -196,7 +196,7 @@ class pipeline_tstacks(object):
                 sf = self.stack_cut[n_step+1]
                 substack = self.tif_handle.asarray()[np.arange(si, sf).astype('uint16')] # this is a pretty risky approach, hopefully it can work! @_@
                 self.CE_dpt.stack_reload(substack, refill = True)
-                sub_time_series = self.CE_dpt.stack_signal_propagate(cblobs) # return
+                sub_time_series = stack_signal_propagate(substack, cblobs) # return
                 signal_series.append(sub_time_series)
                 si = sf
                 if verbose:
@@ -207,7 +207,7 @@ class pipeline_tstacks(object):
         else: # one-time load
             raw_stack = self.tif_handle.asarray()
             self.CE_dpt.stack_reload(raw_stack)
-            ts_signal = self.CE_dpt.stack_signal_propagate(cblobs)
+            ts_signal = stack_signal_propagate(raw_stack, cblobs)
 
         self.ts_dataset = position_signal_compile(cblobs, ts_signal)
         np.savez(fname_stem, **self.ts_dataset)
