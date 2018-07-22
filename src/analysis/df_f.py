@@ -55,7 +55,7 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     # done with dff_raw
 
 
-def dff_hist(dff_r, nbin = 100, rect= False, noise_norm = False):
+def dff_hist(dff_r, nbin = 100):
     '''
     assumption: dff is already calculated.
     This is for 1-D array dff only.
@@ -66,17 +66,15 @@ def dff_hist(dff_r, nbin = 100, rect= False, noise_norm = False):
     A0 = hist[mu_ind] # the initial guess of the coefficient
 
     xx = (be[:-1]+be[1:])*0.50
-    popt, pcov  = gaussian1d_fit(xx,hist,x0 = 0.0,sig_x = 0.10, A = A0/2, offset = 0.)
-    s = np.sqrt(0.5/popt[1])
-    print("noise level:", s)
+    try:
+        popt, pcov  = gaussian1d_fit(xx,hist,x0 = 0.0,sig_x = 0.10, A = A0/2, offset = 0.)
+        s = np.sqrt(0.5/popt[1])
+        print("noise level:", s)
 
-    dff_n = dff_r
-    if rect:
-        dff_n[dff_r<0] = 0. #rectify so that there are no negative dff values.
-    if noise_norm: # normalize to the noise level
-        dff_n/=s # this is actually signal-to-noise level
-
-    return dff_n,  popt # dff_zscore = dff_r/s
+        return hist, s # dff_zscore = dff_r/s
+    except RuntimeError:
+        print("Fitting failed.")
+        return hist, -1
 
 def dff_AB(dff_r, gam = 0.05):
     '''

@@ -53,9 +53,14 @@ class pipeline(object):
         print("raw data loaded.")
         return True
 
-    def load_dff(self, dff_data):
-        keys = dff_data.keys()
-
+    def load_dff(self, dff_name):
+        '''
+        load df/f, do more processing if necessary
+        '''
+        dff_data = np.load(dff_name)
+        self.coord = dff_data['coord']
+        self.signal = dff_data['signal']
+        self.rawf = None
 
     # ----------------------Below are the property members ----------------------
     @property
@@ -114,15 +119,20 @@ class pipeline(object):
         n_cut = np.searchsorted(sum_var, var_cut)
         self._trim_data_(crank[:n_cut])
 
-    def zscore_sorting(self, zs = 0.05):
+    def hist_sorting(self, nbin = 100, zs = 0.05):
         '''
         calculate Z-score of each neuron and remove ones with Z-score below zs.
         '''
         NT, NC = self.get_size()
-        hist_sorted = np.zeros([NT, NC])
+        hist_cells = np.zeros([NC, nbin]) # a record of histogram
+        noise_level = np.zeros(NC)
         for nf in range(NC):
-            dff_hist(self.signal[:,nf], rect = False, noise_norm = True)
+            hist, s = dff_hist(self.signal[:,nf], nbin)
+            hist_cells[nf] = hist
+            noise_level[nf] = s
 
+        self.hist = hist_cells
+        self.noise = noise_level
 
 
     def edge_truncate(self, edge_width = 10.0, verbose = True):
@@ -164,14 +174,17 @@ class pipeline(object):
         compile a dictinary and save it
         '''
         data = {'signal':self.signal, 'coord':self.coord}
+        if self.hist is not None:
+            data['hist'] = self.hist
+        if self.noise is not None:
+            data['noise'] = self.noise
         np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
 
-def main():
+def main_rawf():
     data_folder = 'FB_resting_15min/'
     raw_list = glob.glob(global_datapath_ubn+data_folder+'Jul2017/*merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
-    #data_folder = 'FMR1/'
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
@@ -181,6 +194,18 @@ def main():
         ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
+def main_dff():
+    data_folder = 'FB_resting_15min/'
+    dff_list = glob.glob(global_datapath_ubn+data_folder+'Jun07_2018/*dff.npz')
+    ppl = pipeline()
+    for dff_file in dff_list:
+        acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
+        ppl.load_dff(dff_file)
+        ppl.hist_sorting(nbin = 100)
+        ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_hist')
+
+
+
 
 if __name__ == '__main__':
-    main()
+    main_dff()
