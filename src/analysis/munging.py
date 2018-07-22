@@ -108,9 +108,3 @@ def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0., mode = 'q'):
 
     return sig_sti
 
-def anatomy_cleaning(raw_path):
-    '''
-    remove data sets that have -1 anatomical labels.
-    '''
-    raw_set = np.load(raw_path)
-

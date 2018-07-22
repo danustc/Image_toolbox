@@ -21,10 +21,11 @@ origin_shift = [240, 310, 80]
 ref_range = np.array([138, 621, 1406])
 sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
 
-def anatomical_labeling(coord_file):
+def anatomical_labeling(coord_file, arti_clear = True):
     '''
     transform the coordinate into those in the reference frame, then annotate each cell
     coord_file: the file (reformatted) to be labeledannatomically.
+    arti_clear: remove cells that have anatomical label -1
     '''
     if coord_file[-4] == '.':
         dest_path = coord_file.split('.')[0]+'_lb'
@@ -40,8 +41,8 @@ def anatomical_labeling(coord_file):
     coord = data['coord']
     lab_coord = coord_trans.sample_to_refstack_list(coord, sample_range, pxl_img, pxl_lab, rm_yaxis,origin_shift )
 
-    if_outlier = lab_coord[:,2] < 137
-    lab_coord = lab_coord[if_outlier]
+    if_outlier = lab_coord[:,2] < 137 # check if the z coordinate is out of range
+    lab_coord = lab_coord[if_outlier] # coord has been cleand of outliers
     n_cells = lab_coord.shape[0]
     mask_labels = np.zeros([n_cells, 294])
     annotation_labels = np.zeros(n_cells)
@@ -68,7 +69,7 @@ def anatomical_labeling(coord_file):
             m_labeled = np.where(mask_labels[ii] > 0)[0]
             MM = 0
             for jj in range(mdup):
-                MM+=294**(mdup-1-jj)*m_labeled[jj]
+                MM+=294**(jj)*m_labeled[jj] # This is risky because it may drop the label 0
 
             annotation_labels[ii] = MM
 
@@ -85,8 +86,15 @@ def anatomical_labeling(coord_file):
     labeled_coord = np.zeros([n_cells, 4])
     labeled_coord[:,:3] = coord[if_outlier]
     labeled_coord[:,3] = annotation_labels
+    labeled_signal = data['signal'][:,if_outlier]
+
+    if arti_clear:
+        valid_labels = labeled_coord[:,3]>=0
+        labeled_coord = labeled_coord[valid_labels]
+        labeled_signal = labeled_signal[:, valid_labels]
+
     labeled_dataset['coord'] = labeled_coord
-    labeled_dataset['signal'] = data['signal'][:,if_outlier]
+    labeled_dataset['signal'] = labeled_signal
 
     np.savez(dest_path, **labeled_dataset)
 
@@ -123,7 +131,7 @@ def registered_coord_convert(rg_path, coord_source, coord_dest, inv = True):
     subprocess.Popen(command%(rg_path, coord_source, coord_dest), shell = True)
 
 
-def coord_convert_preprocess(fpath, reg_list, origin_x = 975, order = 'r'):
+def coord_convert_preprocess(fpath, reg_list, origin_x,  order = 'r'):
     '''
     Convert the unregistered coordinates into registered coordinates
     origin_x: the original x length. I need to have a database for this.
@@ -193,7 +201,7 @@ def main():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_path+'FB_resting_15min/*_dff.npz')
+    response_list = glob.glob(data_path+'FB_resting_15min/Jun07_2018/*_dff.npz')
     print(response_list)
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
