@@ -44,12 +44,12 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     f_base = min_window(s_filt, 6*ft_width) + 2.0e-08
     dff_r = (shit_data[ntruncate:]-f_base)/f_base
 
-    hist, be =np.histogram(dff_r, bins = 100) # histogram
-    hind = np.argmax(hist)
-    mu = (be[hind]+be[hind+1])*0.5 # the average of mu
-    if mu>0:
-        fb_new = f_base*(1.+mu)
-        dff_r = (shit_data[ntruncate:]-fb_new)/fb_new
+  #  hist, be =np.histogram(dff_r, bins = 100) # histogram
+  #  hind = np.argmax(hist)
+  #  mu = (be[hind]+be[hind+1])*0.5 # the average of mu
+  #  if mu>0:
+  #      fb_new = f_base*(1.+mu)
+  #      dff_r = (shit_data[ntruncate:]-fb_new)/fb_new
 
     return dff_r
     # done with dff_raw

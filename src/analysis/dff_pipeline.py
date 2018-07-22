@@ -24,12 +24,14 @@ class pipeline(object):
     '''
     pipeline of calculating df/f, smoothing and sorting the activity of the cells by variance
     '''
-    def __init__(self, raw_data, dt = 0.5):
+    def __init__(self, raw_data = None, dt = 0.5):
         self._coord = None
         self._rawf = None
         self._signal = None
         self.dt = dt
-        if self.parse_data(raw_data):
+        if raw_data is None:
+            pass
+        elif self.parse_data(raw_data):
             self.dff_calc()
 
 
@@ -50,6 +52,11 @@ class pipeline(object):
 
         print("raw data loaded.")
         return True
+
+    def load_dff(self, dff_data):
+        keys = dff_data.keys()
+
+
     # ----------------------Below are the property members ----------------------
     @property
     def rawf(self):
@@ -162,7 +169,7 @@ class pipeline(object):
 
 def main():
     data_folder = 'FB_resting_15min/'
-    raw_list = glob.glob(global_datapath_ubn+data_folder+'Jun*merged.npz')
+    raw_list = glob.glob(global_datapath_ubn+data_folder+'Jul2017/*merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     #data_folder = 'FMR1/'
     for raw_file in raw_list:
@@ -171,7 +178,7 @@ def main():
         ppl = pipeline(raw_data)
         ppl.edge_truncate(edge_width = 7.0)
         ppl.dff_calc(ft_width = 6, filt = True)
-        ppl.save_cleaned_dff(global_datapath  +data_folder+ acquisition_date + '_dff')
+        ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
 
