@@ -9,11 +9,11 @@ import os
 import glob
 import numpy as np
 from src.visualization import stat_present, signal_plot
-import src.networks.filtering as filtering
-import src.networks.pca_sorting as pca_sorting
-import src.networks.ica_sorting as ica_sorting
-import src.networks.simple_variance as simple_variance
-import src.networks.clustering as clustering
+import src.analysis.munging as munging
+import src.analysis.pca_sorting as pca_sorting
+import src.analysis.ica_sorting as ica_sorting
+import src.analysis.simple_variance as simple_variance
+import src.analysis.clustering as clustering
 import matplotlib.pyplot as plt
 import h5py
 
@@ -313,7 +313,7 @@ def main():
     The test function of the pipeline.
     '''
     sti_fmr1 = np.array([50, 100, 150, 200, 250, 300, 600, 650, 700, 750, 800, 850])
-    ld_signal = filtering.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = sti_fmr1, d_sti =  30.0, t_shift = 7.0 )
+    ld_signal = munging.stimuli_trigger_arbitrary(dt = 0.5, NT = 1795,t_sti = sti_fmr1, d_sti =  30.0, t_shift = 7.0 )
 
 
     n_ica = 4

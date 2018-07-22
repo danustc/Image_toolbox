@@ -9,8 +9,9 @@ from network_pipeline import pipeline as nw_pipeline
 from dff_pipeline import pipeline as dff_pipeline
 from src.visualization import stat_present, signal_plot
 import network_design
-from filtering import Regressor_dialog
+from regressor_ui import Regressor_dialog
 
+global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
 class UI(object):
     def __init__(self):
@@ -30,6 +31,8 @@ class UI(object):
 
 
         # setup the connection between the buttons and texts
+        self._ui.pushButton_dff.clicked.connect(self.display_signal)
+        self._ui.pushButton_dff.clicked.connect(self.noise_level)
         self._ui.pushButton_ica.clicked.connect(self.ica)
         self._ui.pushButton_pcas.clicked.connect(self.pcas)
         self._ui.pushButton_kmeans.clicked.connect(self.kmeans)
@@ -37,14 +40,22 @@ class UI(object):
         self._ui.pushButton_loaddata.clicked.connect(self.load_data)
         self._ui.pushButton_expsig.clicked.connect(self.figure_export)
         self._ui.pushButton_regdes.clicked.connect(self.set_regressor)
-        self._ui.pushButton_display.clicked.connect(self.display_signal)
+        self._ui.pushButton_deln.clicked.connect(self.del_neurons)
         self._ui.lineEdit_numneurons.returnPressed.connect(self.set_numNeurons)
+
+
+        # Initialize by running a couple of functios
+        self.set_numNeurons()
 
         self._window.show()
         self._app.exec_()
 
     def load_data(self):
-        fname, _ =QtWidgets.QFileDialog.getOpenFileName(None,'data file to load:')
+        '''
+        load data with self.network_pipeline.parse_data.
+        Data must be read from the network_pipeline.
+        '''
+        fname, _ =QtWidgets.QFileDialog.getOpenFileName(None, directory = global_datapath, caption = 'data file to load:')
         self._ui.lineEdit_data.setText(fname)
         self.network_pipeline.parse_data(data_file = fname)
         self.work_folder = os.path.dirname(fname)
@@ -64,13 +75,15 @@ class UI(object):
         else:
             print("Please load data first.")
 
+
     def pcas(self):
         '''
         perform layered PCA-sorting on the DF/D data.
         '''
         if self.data_loaded:
             vcut = float(self._ui.lineEdit_vcut.text())
-            self._pipeline.pca_layered_sorting(var_cut = 0.95, verbose = True)
+            self.network_pipeline.pca_layered_sorting(var_cut = 0.95, verbose = True)
+
 
 
     def kmeans(self):
@@ -82,7 +95,19 @@ class UI(object):
         '''
 
     def set_numNeurons(self):
-        pass
+        disp_range = list(map(int, self._ui.lineEdit_numneurons.text().split(',')))
+        print(disp_range)
+        if len(disp_range)==1:
+            self.nu_start = 0
+            self.nu_end = int(disp_range[0])
+            self.nu_step = 1
+        else:
+            self.nu_start = int(disp_range[0])
+            self.nu_end = int(disp_range[1])
+            self.nu_step = 1
+
+        if len(disp_range) ==3:
+            self.nu_step = int(disp_range[2]) # step_size
 
 
     def set_regressor(self):
@@ -98,17 +123,12 @@ class UI(object):
         '''
         display signals
         '''
-        disp_range = list(map(int, self._ui.lineEdit_numneurons.text().split(',')))
-        print(disp_range)
-        if len(disp_range)==1:
-            sind = np.arange(disp_range[0])
-        else:
-            sind = np.arange(int(disp_range[0]), int(disp_range[1]))
+        sind = np.arange(self.nu_start, self.nu_end, self.nu_step)
         signal_show = self.network_pipeline.get_cells_index(sind)[0]
 
-        self._ui.mpl_analysis.figure.clf()
-        signal_plot.dff_rasterplot(signal_show, fig = self._ui.mpl_analysis.figure)
-        self._ui.mpl_analysis.draw()
+        self._ui.mpl_signal.figure.clf()
+        signal_plot.dff_rasterplot(signal_show, fig = self._ui.mpl_signal.figure)
+        self._ui.mpl_signal.draw()
 
     def display_ICs(self):
         '''
@@ -123,6 +143,9 @@ class UI(object):
             ax.set_xticklabels([])
         self._ui.mpl_analysis.draw()
         self.fig_empty = False
+
+
+    def display_hist(self):
 
     def figure_export(self):
         '''

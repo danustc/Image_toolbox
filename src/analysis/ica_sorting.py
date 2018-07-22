@@ -9,7 +9,7 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import matplotlib.pyplot as plt
 import src.visualization.stat_present as stat_present
-import src.networks.clustering as clustering
+import src.analysis.clustering as clustering
 from sklearn.decomposition import FastICA
 from sklearn import linear_model
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
