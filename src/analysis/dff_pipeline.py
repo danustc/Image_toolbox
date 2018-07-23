@@ -119,7 +119,7 @@ class pipeline(object):
         n_cut = np.searchsorted(sum_var, var_cut)
         self._trim_data_(crank[:n_cut])
 
-    def hist_sorting(self, nbin = 100, zs = 0.05):
+    def hist_sorting(self, nbin = 200, zs = 0.05):
         '''
         calculate Z-score of each neuron and remove ones with Z-score below zs.
         '''
@@ -195,15 +195,15 @@ def main_rawf():
         print("Finished processing:", acquisition_date)
 
 def main_dff():
-    data_folder = 'FB_resting_15min/'
-    dff_list = glob.glob(global_datapath_ubn+data_folder+'Jun07_2018/*dff.npz')
+    data_folder = 'FB_resting_15min/Jun07_2018/'
+    dff_list = glob.glob(global_datapath_ubn+data_folder+'*dff.npz')
     ppl = pipeline()
     for dff_file in dff_list:
         acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
         ppl.load_dff(dff_file)
-        ppl.hist_sorting(nbin = 100)
+        ppl.hist_sorting(nbin = 200)
         ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_hist')
-
+        print("Finished processing:", acquisition_date)
 
 
 
