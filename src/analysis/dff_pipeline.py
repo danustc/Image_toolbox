@@ -120,20 +120,22 @@ class pipeline(object):
         n_cut = np.searchsorted(sum_var, var_cut)
         self._trim_data_(crank[:n_cut])
 
-    def hist_sorting(self, nbin = 200, zs = 0.05):
+    def noise_sorting(self, nbin = 50, hrange = (-1.0, 4.0)):
         '''
         calculate Z-score of each neuron and remove ones with Z-score below zs.
         '''
         NT, NC = self.get_size()
         hist_cells = np.zeros([NC, nbin]) # a record of histogram
-        noise_level = np.zeros(NC)
+        ms = np.zeros([NC,2])
         for nf in range(NC):
-            hist, s = dff_hist(self.signal[:,nf], nbin)
-            hist_cells[nf] = hist
-            noise_level[nf] = s
+            cell_signal = self.signal[:,nf]
+            base_ind, m, s = hillcrop_base_finding(cell_signal)
+            ms[nf] = np.array([m,s]) # mean and std
+            zs = (cell_signal-m)/s
+            hist_cells[nf],_ = np.histogram(zs, nbin, range = hrange)
 
+        self.stat = ms
         self.hist = hist_cells
-        self.noise = noise_level
 
 
     def edge_truncate(self, edge_width = 10.0, verbose = True):
@@ -185,9 +187,10 @@ class pipeline(object):
         '''
         data = {'signal':self.signal, 'coord':self.coord}
         if self.hist is not None:
+            print(self.hist.shape)
             data['hist'] = self.hist
-        if self.noise is not None:
-            data['noise'] = self.noise
+        if self.stat is not None:
+            data['stat'] = self.stat
         np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
 
@@ -211,7 +214,7 @@ def main_dff():
     for dff_file in dff_list:
         acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
         ppl.load_dff(dff_file)
-        ppl.hist_sorting(nbin = 200)
+        ppl.noise_sorting(nbin = 100)
         ppl.save_cleaned_dff(global_datapath_ubn+data_folder+ acquisition_date + '_hist')
         print("Finished processing:", acquisition_date)
 
