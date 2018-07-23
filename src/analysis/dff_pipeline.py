@@ -91,7 +91,8 @@ class pipeline(object):
     def _trim_data_(self, ind_trim ):
         self.signal = self.signal[:,ind_trim]
         self.coord = self.coord[ind_trim,:]
-        self.rawf = self.rawf[:,ind_trim]
+        if self.rawf is not None:
+            self.rawf = self.rawf[:,ind_trim]
 
     def time_truncate(self, t_trunc = 10):
         '''
@@ -159,6 +160,15 @@ class pipeline(object):
             print("Final data dimension:", self.get_size())
 
 
+    def signal_max_truncate(self, max_thresh = 5.0, verbose = True):
+        '''
+        remove fake neurons with dff exceeding threshold.
+        '''
+        dff_max = np.max(self.signal, axis = 0)
+        fake_ind = np.where(dff_max>max_thresh)[0]
+
+
+
     def save_cleaned_h5(self, save_path):
         '''
         compile a dictinary and save it
@@ -202,7 +212,7 @@ def main_dff():
         acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
         ppl.load_dff(dff_file)
         ppl.hist_sorting(nbin = 200)
-        ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_hist')
+        ppl.save_cleaned_dff(global_datapath_ubn+data_folder+ acquisition_date + '_hist')
         print("Finished processing:", acquisition_date)
 
 

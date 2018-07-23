@@ -15,6 +15,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import pyfftw
 
+
 def min_window(shit_data, wd_width):
     """
     Calculate the baseline
@@ -55,22 +56,30 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     # done with dff_raw
 
 
-def dff_hist(dff_r, nbin = 200, hrange = (-0.20, 1.00)):
+def dff_hist(dff_r, nbin = 200, hrange = (-0.20, 1.00), recalc = True):
     '''
     assumption: dff is already calculated.
     This is for 1-D array dff only.
     '''
     #m,s = stats.norm.fit(dff_r) does not work. More constraints should be added to the fit.
-    hist, be = np.histogram(dff_r, nbin, range = hrange) # fit with histogram
-    mu_ind = np.argmax(hist) # find the maximum
-    A0 = hist[mu_ind] # the initial guess of the coefficient
-    hist_base = hist[:2*mu_ind]
-    hist_base[mu_ind:] = hist[:mu_ind][::-1]
-    xx = (be[:2*mu_ind]+be[1:2*mu_ind+1])*0.50
-    mu = xx[mu_ind]
+    hist0, be = np.histogram(dff_r, nbin) # Initial histogram 
+    db = be[1]-be[0]
+    mu_ind = np.argmax(hist0) # find the maximum index 
+    hist, be = np.histogram(dff_r, nbin, range = (be[0]-db, 2*be[mu_ind]-be[0] +db))
 
+    db = be[1]-be[0]
+    mu_ind = np.argmax(hist) # find the maximum index 
+    A0 = hist[mu_ind] # the initial guess of the coefficient
+    hist_base = np.zeros(2*mu_ind)
+    hist_base[:mu_ind] = hist[:mu_ind]
+    hist_base[mu_ind:] = hist[:mu_ind][::-1]
+    xx = np.arange(2*mu_ind)*db + be[0]+0.5*db
+
+    mu = (be[mu_ind] + be[mu_ind+1])*0.50
+    if recalc:
+        hist, be = np.histogram(dff_r, nbin, range = hrange ) # recalculate the histogram 
     try:
-        popt, pcov  = gaussian1d_fit(xx,hist_base,x0 = mu,sig_x = 0.08, A = A0, offset = 0.)
+        popt, pcov  = gaussian1d_fit(xx,hist_base,x0 = mu,sig_x = 0.05, A = A0, offset = 0.)
         s = np.sqrt(0.5/popt[1])
         #print("noise level:", s)
 
@@ -136,6 +145,11 @@ def dff_expfilt_group(dff_r, dt, t_width = 2.0):
     print(dff_expf.shape)
 
     return dff_expf
+
+def hillcrop_pulse_finding(dff_r, niter = 3, conf_level = 2):
+    
+
+
 
 #-------------------------Frequency domain----------------------------
 def dff_frequency(dff_r, dt):
