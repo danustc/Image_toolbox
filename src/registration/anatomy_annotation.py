@@ -21,6 +21,23 @@ origin_shift = [240, 310, 80]
 ref_range = np.array([138, 621, 1406])
 sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
 
+def edge_cropping(coord_file, edge = 2.0):
+    rawd = np.load(coord_file)
+    coord = rawd['coord']
+    signal = rawd['signal']
+    mx, my, mz = np.max(coord, axis = 0)
+    xr = np.logical_and(coord[:,0]> edge, coord[:,0]< (mx-edge))
+    yr = np.logical_and(coord[:,1]> edge, coord[:,1]< (my-edge))
+    zr = np.logical_and(coord[:,2]> edge, coord[:,2]< (mz-edge))
+    core_xy = np.logical_and(xr, yr)
+    core_xyz = np.logical_and(core_xy, zr)
+    edge_coord = coord[~core_xyz]
+    edge_signal = signal[:, ~core_xyz]
+
+    edge_data = {'coord': edge_coord, 'signal': edge_signal}
+    np.savez(coord_file[:-4]+'_ed', **edge_data)
+
+
 def anatomical_labeling(coord_file, arti_clear = True):
     '''
     transform the coordinate into those in the reference frame, then annotate each cell
@@ -100,7 +117,7 @@ def anatomical_labeling(coord_file, arti_clear = True):
 
 
 
-def dimension_check(key_date, meta_dim, nyear = '18'):
+def dimension_check(key_date, meta_dim, nyear = '17'):
     # parse the key_data first 
     if key_date[0].isalpha():
         month = key_date[:3]#
@@ -160,14 +177,18 @@ def coord_convert_preprocess(fpath, reg_list, origin_x,  order = 'r'):
     if os.path.isdir(reg_list):
         np.savetxt(source_name, coord, fmt = '%12.5f')# save the coordinate in the x,y,z order.  
         registered_coord_convert(reg_list, source_name, dest_name, inv = True)
-        time.sleep(5) # wait until the file is saved
+        time.sleep(6) # wait until the file is saved
         f = open(dest_name, 'r')
+        time.sleep(4)
         raw_coord = f.readlines()
+        time.sleep(5)
+        nline = len(raw_coord)
         f.close()
         fine_coord = []
         fine_data = []
         nf = 0
         # here I add some correction for FAILED coordinates.
+        print(NC, nline)
         for nc in range(NC):
             s = raw_coord[nc]
             d = signal[nc]
@@ -201,7 +222,7 @@ def main():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_path+'FB_resting_15min/Jun07_2018/*_dff.npz')
+    response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_dff.npz')
     print(response_list)
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
@@ -212,10 +233,15 @@ def main():
         temp_list = basename.split('_')
         reglist  = ''.join([temp_list[0], temp_list[-1]])
 
-        reg_list = data_path + 'Good_registrations/Jun2018_rest/' + reglist +  '.list'
+        reg_list = data_path + 'Good_registrations/Jul2017_rest/' + reglist +  '.list'
         fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
         anatomical_labeling(fine_dest_name)
 
 
+def edge():
+
+    response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_ref.npz')
+    for fname in response_list:
+        edge_cropping(fname)
 if __name__ == '__main__':
     main()
