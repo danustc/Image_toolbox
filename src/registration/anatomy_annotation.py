@@ -21,7 +21,7 @@ origin_shift = [240, 310, 80]
 ref_range = np.array([138, 621, 1406])
 sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
 
-def edge_cropping(coord_file, edge = 2.0):
+def edge_cropping(coord_file, edge = 5.0):
     rawd = np.load(coord_file)
     coord = rawd['coord']
     signal = rawd['signal']
@@ -117,7 +117,7 @@ def anatomical_labeling(coord_file, arti_clear = True):
 
 
 
-def dimension_check(key_date, meta_dim, nyear = '17'):
+def dimension_check(key_date, meta_dim, nyear = '18'):
     # parse the key_data first 
     if key_date[0].isalpha():
         month = key_date[:3]#
@@ -222,7 +222,7 @@ def main():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_dff.npz')
+    response_list = glob.glob(data_path+'FB_resting_15min/Jun07_2018/*_dff.npz')
     print(response_list)
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
@@ -233,7 +233,7 @@ def main():
         temp_list = basename.split('_')
         reglist  = ''.join([temp_list[0], temp_list[-1]])
 
-        reg_list = data_path + 'Good_registrations/Jul2017_rest/' + reglist +  '.list'
+        reg_list = data_path + 'Good_registrations/Jun2018_rest/' + reglist +  '.list'
         fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
         anatomical_labeling(fine_dest_name)
 
@@ -243,5 +243,6 @@ def edge():
     response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_ref.npz')
     for fname in response_list:
         edge_cropping(fname)
+
 if __name__ == '__main__':
     main()
