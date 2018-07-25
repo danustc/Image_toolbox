@@ -82,61 +82,42 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     update on 07/24/2018: reset the prior.
     basecut: set the bottom fraction of datasets as baseline.
     '''
-
+    ND = len(dff_r)
     Zn = dff_r[:-1]
     Zp = dff_r[1:]
-    Z_diff = (Zp-Zn)/2.
-    Z_sum  = (Zp+Zn)/2.
+    Z_diff = (Zp-Zn)/np.sqrt(2.)
+    Z_sum  = (Zp+Zn)/np.sqrt(2.)
 
-    h_diff, b_diff = np.histogram(Z_diff, bins = nbins)
-    h_sum, b_sum = np.histogram(Z_sum, bins = nbins)
+    sum_range, m_sum, s_sum = df_f.hillcrop_base_finding(Z_sum , niter = 4, conf_level = 1.)
+    m_diff = np.mean(Z_diff)
+    s_diff = np.std(Z_diff)
 
-    xx_diff = (b_diff[:-1]+b_diff[1:])*0.5
-    xx_sum = (b_sum[:-1]+b_sum[1:])*0.5
-    i_diff = np.argmax(h_diff)
-    i_sum = np.argmax(h_sum)
-    mu_diff = xx_diff[i_diff]
-    mu_sum= xx_sum[i_sum]
+    diff_range = np.logical_and((Z_diff - m_diff) < 1.5*s_diff, (Z_diff - m_diff) > -s_diff)
+    B_indices = np.logical_and(diff_range, sum_range)
+    B_diff = Z_diff[B_indices]
+    B_sum = Z_sum[B_indices]
+    md,sd = stats.norm.fit(B_diff) #:does not work. More constraints should be added to the fit.
+    ms,ss = stats.norm.fit(B_sum) # ms is the recognized noise level
 
-    A_diff, A_sum = h_diff[i_diff], h_sum[i_sum]
+    dmin, dmax, smin, smax = Z_diff.min(), Z_diff.max(), Z_sum.min(), Z_sum.max()
+    del_diff, del_sum = (dmax-dmin)/(nbins-1), (smax-smin)/(nbins-1)
+    h2, ne, pe = np.histogram2d(Z_diff, Z_sum, bins = nbins, range = [[dmin-del_diff*0.5, dmax+del_diff*0.5],[smin-del_sum*0.5, smax+del_sum*0.5]]) #2d histogram distribution of (Zn_k, Zn_k+1)
+    rv = stats.multivariate_normal(mean = [md, ms], cov = [[sd**2, 0.], [0., ss**2]]) # normal distribution for zero-correlation
+    PZB = rv.pdf(np.dstack((Z_diff,Z_sum))) # the distribution of B: dual-variate Gaussian
 
-    popt, pcov  = gaussian1d_fit(xx_diff,h_diff,x0 = mu_diff,sig_x = 0.05, A = A0, offset = 0.)
-    popt, pcov  = gaussian1d_fit(xx_sum,h_sum,x0 = mu_sum,sig_x = 0.05, A = A0, offset = 0.)
-  #  h2, ne, pe = np.histogram2d(Z_diff, Z_sum, bins = nbins) #2d histogram distribution of (Zn_k, Zn_k+1)
-  #  hne = (ne[:-1]+ne[1:])/2. # ranges
-  #  hpe = (pe[:-1]+pe[1:])/2.
-  #  [NE, PE] = np.meshgrid(hne, hpe)
-  #  ## how can we redefine the prior?
-
-  #  popt, pcov = gaussian2d_fit(x = NE, y = PE, data = h2.ravel(), x0=0., y0=0., sig_x = 0.5, sig_y = 0.5, rho = 0.60, A = 10, offset = 0.10)
-  #  mdiff, msum, a,b,c, A, ofst = popt # the fitted parameters
-  #  print("means:", mdiff, msum)
-  #  sxq = 2*b/(4*a*b-c*c)
-  #  syq = 2*a/(4*a*b-c*c)
-  #  sxy = np.sqrt(sxq*syq) # This would be ignored
-  #  rho = c/(2.*np.sqrt(a*b))
-  #  print("sigmas:", sxq, syq, sxy)
-  #  print("rho:", rho)
-
-  #  diff_range = np.logical_and(Z_diff > (mdiff-2*sxq), Z_diff < (mdiff+2*sxq)) # boolean 
-    sum_range = Z_sum < (msum+2*syq) # boolean
-    ind_renew = np.logical_and(diff_range, sum_range) # datapoints with these indices would be used for recalculation of background distributions.
-
-    df_mean = np.mean(Z_diff[ind_renew])
-    df_std = np.std(Z_diff[ind_renew])
-    print()
-    rv = stats.multivariate_normal(mean = [mdiff, msum], cov = [[sxq, rho*sxy], [rho*sxy, syq]])
-
-
-    PZB = rv.pdf(np.dstack((Zn,Zp))) # the distribution of B: dual-variate Gaussian
     Z_dist = h2/h2.sum() # normalized distribution
-    ind_zn = np.searchsorted(ne, Zn)-1 #indices of %Zn in the histogram 
-    ind_zp = np.searchsorted(pe, Zp)-1 #indices of Zn+1 in the histogram
+    ind_zn = np.searchsorted(ne, Z_diff)-1 #indices of %Zn in the histogram 
+    ind_zp = np.searchsorted(pe, Z_sum)-1 #indices of Zn+1 in the histogram
     PZ = Z_dist[ind_zn, ind_zp] # the probability of data transitions
-    PBZ = PZB/(PZ+0.0001) # Bayesian theory, the activity posterior probability 
+    PBZ = PZB/(PZ+0.001) # Bayesian theory, the activity posterior probability 
     beta = gam/(1.+gam)
     id_A = np.where(PBZ<beta)[0]
-    return id_A
+    id_peak = np.union1d(id_A, id_A+1)
+    peak_mask = np.ones(ND, dtype=bool)
+    peak_mask[id_peak] = False
+    noise_level = np.std(dff_r[peak_mask])
+
+    return id_peak, noise_level
 
 
 def dff_expfilt(dff_r, dt, t_width = 2.0, savefilter = False):
