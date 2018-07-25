@@ -87,30 +87,46 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     Zp = dff_r[1:]
     Z_diff = (Zp-Zn)/2.
     Z_sum  = (Zp+Zn)/2.
-    h2, ne, pe = np.histogram2d(Z_diff, Z_sum, bins = nbins) #2d histogram distribution of (Zn_k, Zn_k+1)
-    hne = (ne[:-1]+ne[1:])/2. # ranges
-    hpe = (pe[:-1]+pe[1:])/2.
-    [NE, PE] = np.meshgrid(hne, hpe)
-    ## how can we redefine the prior?
 
-    popt, pcov = gaussian2d_fit(x = NE, y = PE, data = h2.ravel(), x0=0., y0=0., sig_x = 0.5, sig_y = 0.5, rho = 0.60, A = 10, offset = 0.10)
-    mdiff, msum, a,b,c, A, ofst = popt # the fitted parameters
-    print("means:", mdiff, msum)
-    sxq = 2*b/(4*a*b-c*c)
-    syq = 2*a/(4*a*b-c*c)
-    sxy = np.sqrt(sxq*syq) # This would be ignored
-    rho = c/(2.*np.sqrt(a*b))
-    print("sigmas:", sxq, syq, sxy)
-    print("rho:", rho)
+    h_diff, b_diff = np.histogram(Z_diff, bins = nbins)
+    h_sum, b_sum = np.histogram(Z_sum, bins = nbins)
 
-    diff_range = np.logical_and(Z_diff > (mdiff-2*sxq), Z_diff < (mdiff+2*sxq)) # boolean 
+    xx_diff = (b_diff[:-1]+b_diff[1:])*0.5
+    xx_sum = (b_sum[:-1]+b_sum[1:])*0.5
+    i_diff = np.argmax(h_diff)
+    i_sum = np.argmax(h_sum)
+    mu_diff = xx_diff[i_diff]
+    mu_sum= xx_sum[i_sum]
+
+    A_diff, A_sum = h_diff[i_diff], h_sum[i_sum]
+
+    popt, pcov  = gaussian1d_fit(xx_diff,h_diff,x0 = mu_diff,sig_x = 0.05, A = A0, offset = 0.)
+    popt, pcov  = gaussian1d_fit(xx_sum,h_sum,x0 = mu_sum,sig_x = 0.05, A = A0, offset = 0.)
+  #  h2, ne, pe = np.histogram2d(Z_diff, Z_sum, bins = nbins) #2d histogram distribution of (Zn_k, Zn_k+1)
+  #  hne = (ne[:-1]+ne[1:])/2. # ranges
+  #  hpe = (pe[:-1]+pe[1:])/2.
+  #  [NE, PE] = np.meshgrid(hne, hpe)
+  #  ## how can we redefine the prior?
+
+  #  popt, pcov = gaussian2d_fit(x = NE, y = PE, data = h2.ravel(), x0=0., y0=0., sig_x = 0.5, sig_y = 0.5, rho = 0.60, A = 10, offset = 0.10)
+  #  mdiff, msum, a,b,c, A, ofst = popt # the fitted parameters
+  #  print("means:", mdiff, msum)
+  #  sxq = 2*b/(4*a*b-c*c)
+  #  syq = 2*a/(4*a*b-c*c)
+  #  sxy = np.sqrt(sxq*syq) # This would be ignored
+  #  rho = c/(2.*np.sqrt(a*b))
+  #  print("sigmas:", sxq, syq, sxy)
+  #  print("rho:", rho)
+
+  #  diff_range = np.logical_and(Z_diff > (mdiff-2*sxq), Z_diff < (mdiff+2*sxq)) # boolean 
     sum_range = Z_sum < (msum+2*syq) # boolean
     ind_renew = np.logical_and(diff_range, sum_range) # datapoints with these indices would be used for recalculation of background distributions.
 
-
+    df_mean = np.mean(Z_diff[ind_renew])
+    df_std = np.std(Z_diff[ind_renew])
+    print()
     rv = stats.multivariate_normal(mean = [mdiff, msum], cov = [[sxq, rho*sxy], [rho*sxy, syq]])
 
-    
 
     PZB = rv.pdf(np.dstack((Zn,Zp))) # the distribution of B: dual-variate Gaussian
     Z_dist = h2/h2.sum() # normalized distribution
