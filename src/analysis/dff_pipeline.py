@@ -34,6 +34,8 @@ class pipeline(object):
         elif self.parse_data(raw_data):
             self.dff_calc()
 
+        self.hist = None
+        self.stat = None
 
     def parse_data(self, raw_data):
         try:
@@ -120,22 +122,36 @@ class pipeline(object):
         n_cut = np.searchsorted(sum_var, var_cut)
         self._trim_data_(crank[:n_cut])
 
-    def noise_sorting(self, nbin = 50, hrange = (-1.0, 4.0)):
+    def noise_sorting(self, nbin = 50, hrange = (-1.0, 4.0), c_level = 2.5, init_crop = 20):
         '''
         calculate Z-score of each neuron and remove ones with Z-score below zs.
         '''
+        nact = []
         NT, NC = self.get_size()
         hist_cells = np.zeros([NC, nbin]) # a record of histogram
         ms = np.zeros([NC,2])
         for nf in range(NC):
-            cell_signal = self.signal[:,nf]
-            base_ind, m, s = hillcrop_base_finding(cell_signal)
+            cell_signal = self.signal[init_crop:,nf]
+            base_ind, m, s = hillcrop_base_finding(cell_signal, conf_level = c_level)
+            if np.all(base_ind):
+                print("non active neuron:", nf)
+                nact.append(nf)
             ms[nf] = np.array([m,s]) # mean and std
             zs = (cell_signal-m)/s
             hist_cells[nf],_ = np.histogram(zs, nbin, range = hrange)
 
         self.stat = ms
         self.hist = hist_cells
+        self.nact = nact
+
+    def valid_check(self, df_th = 7.):
+        '''
+        remove cells that have dffs larger than df_th.
+        '''
+        invalid = np.any(self.signal > df_th, axis = 0)
+        print("# of invalid cells:", invalid.sum())
+        self.signal = self.signal[:, ~invalid]
+        self.coord = self.coord[~invalid]
 
 
     def edge_truncate(self, edge_width = 10.0, verbose = True):
@@ -183,7 +199,7 @@ class pipeline(object):
 
     def save_cleaned_dff(self, save_path):
         '''
-        compile a dictinary and save it
+        copile a dictinary and save it
         '''
         data = {'signal':self.signal, 'coord':self.coord}
         if self.hist is not None:
@@ -191,19 +207,22 @@ class pipeline(object):
             data['hist'] = self.hist
         if self.stat is not None:
             data['stat'] = self.stat
+        if self.nact is not None:
+            data['nact'] = self.nact
         np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
 
 def main_rawf():
     data_folder = 'FB_resting_15min/'
-    raw_list = glob.glob(global_datapath_ubn+data_folder+'Jul2017/*merged.npz')
+    raw_list = glob.glob(global_datapath_ubn+data_folder+'Jun07_2018/*merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
         ppl = pipeline(raw_data)
-        ppl.edge_truncate(edge_width = 7.0)
+        #ppl.edge_truncate(edge_width = 7.0)
         ppl.dff_calc(ft_width = 6, filt = True)
+        ppl.valid_check()
         ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
@@ -215,10 +234,11 @@ def main_dff():
         acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
         ppl.load_dff(dff_file)
         ppl.noise_sorting(nbin = 100)
-        ppl.save_cleaned_dff(global_datapath_ubn+data_folder+ acquisition_date + '_hist')
+        ppl.save_cleaned_dff(dff_file)
         print("Finished processing:", acquisition_date)
 
 
 
 if __name__ == '__main__':
+    #main_rawf()
     main_dff()

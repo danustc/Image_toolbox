@@ -76,33 +76,51 @@ def dff_hist(dff_r, nbin = 200, range = None):
         print("Fitting failed.")
         return hist, -1
 
-def dff_AB(dff_r, gam = 0.05):
+def dff_AB(dff_r, gam = 0.05, nbins = 40):
     '''
     Using Bayesian theory to infer the identity of the data points (signal or noise)
+    update on 07/24/2018: reset the prior.
+    basecut: set the bottom fraction of datasets as baseline.
     '''
+
     Zn = dff_r[:-1]
     Zp = dff_r[1:]
-    h2, ne, pe = np.histogram2d(Zn, Zp, bins = 50) #2d histogram distribution of (Zn_k, Zn_k+1)
-    hne = (ne[:-1]+ne[1:])/2.
+    Z_diff = (Zp-Zn)/2.
+    Z_sum  = (Zp+Zn)/2.
+    h2, ne, pe = np.histogram2d(Z_diff, Z_sum, bins = nbins) #2d histogram distribution of (Zn_k, Zn_k+1)
+    hne = (ne[:-1]+ne[1:])/2. # ranges
     hpe = (pe[:-1]+pe[1:])/2.
     [NE, PE] = np.meshgrid(hne, hpe)
+    ## how can we redefine the prior?
+
     popt, pcov = gaussian2d_fit(x = NE, y = PE, data = h2.ravel(), x0=0., y0=0., sig_x = 0.5, sig_y = 0.5, rho = 0.60, A = 10, offset = 0.10)
-    mx, my, a,b,c, A, ofst = popt # the fitted parameters
+    mdiff, msum, a,b,c, A, ofst = popt # the fitted parameters
+    print("means:", mdiff, msum)
     sxq = 2*b/(4*a*b-c*c)
     syq = 2*a/(4*a*b-c*c)
-    sxy = np.sqrt(sxq*syq)
+    sxy = np.sqrt(sxq*syq) # This would be ignored
     rho = c/(2.*np.sqrt(a*b))
-    rv = stats.multivariate_normal(mean = [mx, my], cov = [[sxq, rho*sxy], [rho*sxy, syq]])
+    print("sigmas:", sxq, syq, sxy)
+    print("rho:", rho)
+
+    diff_range = np.logical_and(Z_diff > (mdiff-2*sxq), Z_diff < (mdiff+2*sxq)) # boolean 
+    sum_range = Z_sum < (msum+2*syq) # boolean
+    ind_renew = np.logical_and(diff_range, sum_range) # datapoints with these indices would be used for recalculation of background distributions.
+
+
+    rv = stats.multivariate_normal(mean = [mdiff, msum], cov = [[sxq, rho*sxy], [rho*sxy, syq]])
+
+    
+
     PZB = rv.pdf(np.dstack((Zn,Zp))) # the distribution of B: dual-variate Gaussian
     Z_dist = h2/h2.sum() # normalized distribution
     ind_zn = np.searchsorted(ne, Zn)-1 #indices of %Zn in the histogram 
     ind_zp = np.searchsorted(pe, Zp)-1 #indices of Zn+1 in the histogram
     PZ = Z_dist[ind_zn, ind_zp] # the probability of data transitions
-    PBZ = PZB/(PZ+0.001) # Bayesian theory, the activity posterior probability 
+    PBZ = PZB/(PZ+0.0001) # Bayesian theory, the activity posterior probability 
     beta = gam/(1.+gam)
     id_A = np.where(PBZ<beta)[0]
     return id_A
-
 
 
 def dff_expfilt(dff_r, dt, t_width = 2.0, savefilter = False):
