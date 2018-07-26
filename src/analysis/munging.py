@@ -52,7 +52,7 @@ def coord_edgeclean(coord_3d, edge_pos, dim = 'x', direct = 1):
     compiled_data should have the coord key and the 'data' key.
     '''
     if dim == 'x':
-        c_list = coord_3d[:,-1] # take out the last column
+        c_list = coord_3d[:,2] # take out the last column
     elif dim == 'y':
         c_list = coord_3d[:,1] # take out the second column
 
@@ -61,6 +61,7 @@ def coord_edgeclean(coord_3d, edge_pos, dim = 'x', direct = 1):
     else:
         ind_discard = np.where(c_list < edge_pos)[0]
     return ind_discard
+
 
 
 def stimuli_trigger_period(T, dt, NT, hl_ratio, t_off):

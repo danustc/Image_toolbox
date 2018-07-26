@@ -32,7 +32,7 @@ class UI(object):
 
         # setup the connection between the buttons and texts
         self._ui.pushButton_dff.clicked.connect(self.display_signal)
-        self._ui.pushButton_dff.clicked.connect(self.noise_level)
+#        self._ui.pushButton_dff.clicked.connect(self.activity_sort)
         self._ui.pushButton_ica.clicked.connect(self.ica)
         self._ui.pushButton_pcas.clicked.connect(self.pcas)
         self._ui.pushButton_kmeans.clicked.connect(self.kmeans)
@@ -40,7 +40,7 @@ class UI(object):
         self._ui.pushButton_loaddata.clicked.connect(self.load_data)
         self._ui.pushButton_expsig.clicked.connect(self.figure_export)
         self._ui.pushButton_regdes.clicked.connect(self.set_regressor)
-        self._ui.pushButton_deln.clicked.connect(self.del_neurons)
+#        self._ui.pushButton_deln.clicked.connect(self.del_neurons)
         self._ui.lineEdit_numneurons.returnPressed.connect(self.set_numNeurons)
 
 
@@ -56,7 +56,7 @@ class UI(object):
         Data must be read from the network_pipeline.
         '''
         fname, _ =QtWidgets.QFileDialog.getOpenFileName(None, directory = global_datapath, caption = 'data file to load:')
-        self._ui.lineEdit_data.setText(fname)
+        self._ui.lineEdit_impdata.setText(fname)
         self.network_pipeline.parse_data(data_file = fname)
         self.work_folder = os.path.dirname(fname)
         self.basename = os.path.basename(fname).split('.')[0]
@@ -145,7 +145,6 @@ class UI(object):
         self.fig_empty = False
 
 
-    def display_hist(self):
 
     def figure_export(self):
         '''

@@ -23,6 +23,7 @@ sys.path.append(package_path)
 class pipeline(object):
     '''
     pipeline of calculating df/f, smoothing and sorting the activity of the cells by variance
+    Note: the coordinate arrangement in this class is always z-y-x instead of x-y-z. Conversion only occurs in downstream processings.
     '''
     def __init__(self, raw_data = None, dt = 0.5):
         self._coord = None
@@ -106,6 +107,9 @@ class pipeline(object):
 
 
     def dff_calc(self, ft_width = 6, filt = True):
+        '''
+        I have to add one more step to validate the baseline.
+        '''
         dffr = dff_raw(self.rawf, ft_width, ntruncate = 25)
         if filt:
             self.signal = dff_expfilt_group(dffr, self.dt, 1.8)
@@ -122,27 +126,44 @@ class pipeline(object):
         n_cut = np.searchsorted(sum_var, var_cut)
         self._trim_data_(crank[:n_cut])
 
-    def noise_sorting(self, nbin = 50, hrange = (-1.0, 4.0), c_level = 2.5, init_crop = 20):
-        '''
-        calculate Z-score of each neuron and remove ones with Z-score below zs.
-        '''
-        nact = []
-        NT, NC = self.get_size()
-        hist_cells = np.zeros([NC, nbin]) # a record of histogram
-        ms = np.zeros([NC,2])
-        for nf in range(NC):
-            cell_signal = self.signal[init_crop:,nf]
-            base_ind, m, s = hillcrop_base_finding(cell_signal, conf_level = c_level)
-            if np.all(base_ind):
-                print("non active neuron:", nf)
-                nact.append(nf)
-            ms[nf] = np.array([m,s]) # mean and std
-            zs = (cell_signal-m)/s
-            hist_cells[nf],_ = np.histogram(zs, nbin, range = hrange)
+    def baseline_cleaning(self, bcut = 100.0, nbins = 100):
+        min_raw = self.rawf.min(axis = 0)
+        invalid_ind = min_raw < bcut
+        print("Fake cells:", invalid_ind.sum())
+        self._trim_data_(~invalid_ind)
 
-        self.stat = ms
-        self.hist = hist_cells
-        self.nact = nact
+
+    def location_cleaning(self, nbins = 30):
+        '''
+        group cell distributions
+        '''
+        yy, xx = self.coord[:,1], self.coord[:,2]
+
+        plt.hist(xx,bins = nbins, range = (-10, 30))
+        plt.show()
+        plt.hist(xx,bins = nbins, range = (250, xx.max()+1))
+        plt.show()
+
+
+
+    def activity_sorting(self, nbin = 40):
+        '''
+        Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
+        '''
+        NT, NC = self.get_size()
+        ms = np.zeros([NC,3]) # baseline mean, noise, integral
+        sig_integ = np.zeros(NC) # signal integral
+        for nf in range(NC):
+            cell_signal = self.signal[:,nf]
+            sig_ind, background, noi = dff_AB(cell_signal, gam = 0.05, nbins = nbin)
+            sig_integ = (cell_signal-background).sum()
+            ms[nf] = np.array([background, noi, sig_integ]) # mean and std
+
+
+        integ_ind = np.argsort(ms[:,2])[::-1] # descending order
+        self._trim_data_(integ_ind)
+        self.stat = ms[integ_ind]
+
 
     def valid_check(self, df_th = 7.):
         '''
@@ -202,13 +223,8 @@ class pipeline(object):
         copile a dictinary and save it
         '''
         data = {'signal':self.signal, 'coord':self.coord}
-        if self.hist is not None:
-            print(self.hist.shape)
-            data['hist'] = self.hist
         if self.stat is not None:
             data['stat'] = self.stat
-        if self.nact is not None:
-            data['nact'] = self.nact
         np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
 
@@ -220,9 +236,11 @@ def main_rawf():
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
         ppl = pipeline(raw_data)
-        #ppl.edge_truncate(edge_width = 7.0)
+        ppl.location_cleaning()
+        ppl.edge_truncate(edge_width = 2.0)
+        hist = ppl.baseline_cleaning(nbins=150)
         ppl.dff_calc(ft_width = 6, filt = True)
-        ppl.valid_check()
+        ppl.valid_check(df_th = 4.)
         ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
@@ -233,12 +251,12 @@ def main_dff():
     for dff_file in dff_list:
         acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
         ppl.load_dff(dff_file)
-        ppl.noise_sorting(nbin = 100)
+        ppl.activity_sorting(nbin = 40)
         ppl.save_cleaned_dff(dff_file)
         print("Finished processing:", acquisition_date)
 
 
 
 if __name__ == '__main__':
-    #main_rawf()
-    main_dff()
+    main_rawf()
+    #main_dff()

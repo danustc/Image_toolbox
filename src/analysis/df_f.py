@@ -45,15 +45,8 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     f_base = min_window(s_filt, 6*ft_width) + 2.0e-08
     dff_r = (shit_data[ntruncate:]-f_base)/f_base
 
-  #  hist, be =np.histogram(dff_r, bins = 100) # histogram
-  #  hind = np.argmax(hist)
-  #  mu = (be[hind]+be[hind+1])*0.5 # the average of mu
-  #  if mu>0:
-  #      fb_new = f_base*(1.+mu)
-  #      dff_r = (shit_data[ntruncate:]-fb_new)/fb_new
 
     return dff_r
-    # done with dff_raw
 
 
 def dff_hist(dff_r, nbin = 200, range = None):
@@ -88,7 +81,7 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     Z_diff = (Zp-Zn)/np.sqrt(2.)
     Z_sum  = (Zp+Zn)/np.sqrt(2.)
 
-    sum_range, m_sum, s_sum = df_f.hillcrop_base_finding(Z_sum , niter = 4, conf_level = 1.)
+    sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 4, conf_level = 1.)
     m_diff = np.mean(Z_diff)
     s_diff = np.std(Z_diff)
 
@@ -111,13 +104,15 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     PZ = Z_dist[ind_zn, ind_zp] # the probability of data transitions
     PBZ = PZB/(PZ+0.001) # Bayesian theory, the activity posterior probability 
     beta = gam/(1.+gam)
-    id_A = np.where(PBZ<beta)[0]
+    id_A = np.where(np.logical_and(PBZ<beta, (Z_sum-ms)>-ss))[0] # add more constraint: the sum must be larger than -1 std
     id_peak = np.union1d(id_A, id_A+1)
     peak_mask = np.ones(ND, dtype=bool)
     peak_mask[id_peak] = False
-    noise_level = np.std(dff_r[peak_mask])
+    bg_points = dff_r[peak_mask]
+    background = np.mean(bg_points)
+    noise_level = np.std(bg_points)
 
-    return id_peak, noise_level
+    return id_peak, background, noise_level
 
 
 def dff_expfilt(dff_r, dt, t_width = 2.0, savefilter = False):
