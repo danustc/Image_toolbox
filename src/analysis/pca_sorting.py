@@ -62,7 +62,9 @@ def pca_raw(data, var_cut = 0.95):
 def hierachical_pc_clustering(raw_data, n_groups = None, N_iter = 5):
     '''
     cluster the data based on PCA.
+    The last coef_pool in the coef_freezer must have one element only.
     '''
+
 
     NT, NC = raw_data.shape
     if n_groups is None:
@@ -72,25 +74,72 @@ def hierachical_pc_clustering(raw_data, n_groups = None, N_iter = 5):
 
     gi = 0
     gf = n_cut
-    N_iter = 0
 
+    # Initialization 
     N_effc = 0
-    coef_pool = deque()
-    ts_pool = []
+    coef_freezer = deque()
     TN_series = raw_data
 
-    for ng in range(n_groups):
-        data_sub = TN_series[:,gf]
-        pc_trans, pc_vecs, eig_vals = pca_dff(data_sub, n_comp = None, norm = True, cl_select =True)
-        N_effc += eig_vals.size # number of effective cells
-        ts_pool.append(pc_trans)
-        coef_pool.append(pc_vecs)
+    for nit in N_iter:
+        '''
+        go through iterations
+        '''
+        coef_pool = deque()
+        ts_pool = []
+        for ng in range(n_groups):
+            data_sub = TN_series[:,gi:gf]
+            pc_trans, pc_vecs, eig_vals = pca_dff(data_sub, n_comp = None, norm = True, cl_select =True)
+            N_effc += eig_vals.size # number of effective cells
+            ts_pool.append(pc_trans)
+            coef_pool.append(pc_vecs)
+            gi = gf
+            gf +=n_cut
 
-    # finish one round 
-    TN_series = np.column_stack(ts_pool)
-    n_groups = int(N_effc //n_cut) + 1 # new number of groups
+        # finish one round 
+        TN_series = np.column_stack(ts_pool)
+        n_groups = int(N_effc //n_cut) + 1 # new number of groups
+        N_effc = 0
+        coef_freezer.append(coef_pool)
+        # end for nit
 
+    pc_trans, pc_vecs, eig_vals = pca_dff(TN_series, n_comp = None, norm = True, cl_select = True)
+    coef_freezer.append(pc_vecs)
 
+    # now, finished the whole series. let's do the unpack
+
+    return pc_trans, coef_freezer
+
+def layer_retrieve(coef_int, coef_split):
+    '''
+    retrieve coefficients of the assembled neurons one layer above.
+    coef_int: matrix, SxP
+    coef_split: deque with K matrices, each has dimensions p_k*m_k, p_0 + p_1 + .... p_{k-1} = P.
+    return: matrix, S*(m_0+m_1+m_2...+m_{k-1}).
+    '''
+    n_sub = len(coef_split)
+    S, P = coef_int.shape
+    pm_arr = np.zeros([n_sub, 2])
+    m_coef = []
+    pi = 0
+    for ss in range(n_sub):
+        pk, mk = coef_split[ss].shape
+        pm_arr[ss, 0], pm_arr[ss, 1] = pk, mk
+
+        coef_subint = coef_int[:,pi:pi+pk]
+        m_coef.append(coef_subint*coef_split[ss])
+        pi = pk # move to the next block
+
+    return np.column_stack(m_coef) # integrated coefficients
+
+def hierachical_pc_unpack(coef_freezer):
+
+    coef_final = coef_freezer.pop() # This must be a matrix
+    while coef_freezer:
+        cbag = coef_freezer.pop() # pop a bag of coefficients
+        m_coef = layer_retrieve(coef_final, cbag)
+        coef_final = m_coef
+
+    return coef_final
 
 
 
