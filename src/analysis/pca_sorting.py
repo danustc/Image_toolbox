@@ -14,6 +14,23 @@ from collections import deque
 import matplotlib.pyplot as plt
 global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
+def _group_division_(NC, n_cut, n_tail = None):
+    '''
+    divide an array into several subgroups.
+    '''
+    if n_tail is None:
+        n_tail = int(n_cut//2)
+
+    n_res = np.mod(NC, n_cut) # residue
+    n_slice = np.arange(0, NC, n_cut) + n_cut
+    if n_res > n_tail or n_res ==0:
+        return n_slice
+    else:
+        n_slice = n_slice[:-1] # crop the last element
+        n_slice[-1] = NC
+        return n_slice
+
+
 def pca_dff(dff_data, n_comp = None, norm = True, cl_select = True):
     '''
     0. load dff_data. Each column represents the df_f of a neuron.
@@ -63,24 +80,20 @@ def pca_raw(data, var_cut = 0.95):
     V_signif = V[:n_comp]
     return CT, V_signif, s
 
-def hierachical_pc_clustering(raw_data, n_groups = None, N_iter = 5):
+def hierachical_pc_clustering(raw_data, n_cut = None, N_iter = 5):
     '''
     cluster the data based on PCA.
     The last coef_pool in the coef_freezer must have one element only.
+    n_cut: how many cells does each group have.
     '''
-
-
     NT, NC = raw_data.shape
-    if n_groups is None:
-        n_groups = int(NC*10//NT) # Number of groups to be divided into
-    n_cut = int(NC//n_groups) + 1
-    n_slice = np.arange(0, NC, n_cut)
+    if n_cut is None:
+        n_cut = int(NT/10) # Number of groups to be divided into
 
-    gi = 0
-    gf = n_cut
+    n_slice = _group_division_(NC, n_cut)
+    n_groups = n_slice.size # the real n_groups, might increase by 1
 
     # Initialization 
-    N_effc = 0
     coef_freezer = deque()
     TN_series = raw_data
 
@@ -89,25 +102,28 @@ def hierachical_pc_clustering(raw_data, n_groups = None, N_iter = 5):
         go through iterations
         '''
         print("Iteration:", nit)
+        N_effc = 0
         coef_pool = deque()
         ts_pool = []
         gi = 0
-        gf = n_cut
         for ng in range(n_groups):
+            gf = n_slice[ng]
             data_sub = TN_series[:,gi:gf]
-            print(data_sub.shape)
             pc_trans, pc_vecs, eig_vals = pca_dff(data_sub, norm = True, cl_select =True)
             N_effc += eig_vals.size # number of effective cells
             ts_pool.append(pc_trans)
             coef_pool.append(pc_vecs)
             gi = gf
-            gf +=n_cut
 
         # finish one round 
         TN_series = np.column_stack(ts_pool)
-        n_groups = int(N_effc //n_cut) + 1 # new number of groups
-        N_effc = 0
-        coef_freezer.append(coef_pool)
+        if N_effc <= n_cut:
+            print("terminated.")
+            break
+        else:
+            n_slice = _group_division_(N_effc, n_cut)
+            n_groups = n_slice.size # new groups
+            coef_freezer.append(coef_pool)
         # end for nit
 
     pc_trans, pc_vecs, eig_vals = pca_dff(TN_series, n_comp = None, norm = True, cl_select = True)
