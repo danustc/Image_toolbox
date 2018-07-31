@@ -12,7 +12,6 @@ import numpy as np
 from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit, gaussian1d_fit
 from scipy.signal import exponential, fftconvolve
 from scipy import stats
-import matplotlib.pyplot as plt
 import pyfftw
 
 

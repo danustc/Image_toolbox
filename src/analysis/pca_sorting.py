@@ -11,20 +11,35 @@ import src.visualization.stat_present as stat_present
 import src.visualization.brain_navigation as brain_navigation
 from src.shared_funcs import tifffunc as tf
 import matplotlib.pyplot as plt
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
+global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
-def pca_dff(dff_data, n_comp = 3):
+def pca_dff(dff_data, n_comp = None, norm = True, cl_select = True):
     '''
     0. load dff_data. Each column represents the df_f of a neuron.
     1. perform PCA on n_comp.
     2. visualization.
     This has consistent results with pca_raw. However, var_cut is not available.
     '''
+    NT, NC = dff_data.shape
+    if n_comp is None:
+        n_comp = NC
     pc_dff = PCA(n_components = n_comp)
-    pc_dff.fit(dff_data)
-    pc_trans = pc_dff.transform(dff_data)
+    dff_mean = dff_data - dff_data.mean(axis = 0)
+    if norm:
+        stds = np.std(dff_mean, axis = 0) #
+        dff_mean/= stds
+    pc_dff.fit(dff_mean)
+    pc_trans = pc_dff.transform(dff_mean)
     pc_vecs = pc_dff.components_
-    return pc_trans, pc_vecs
+    eig_vals = pc_dff.explained_variance_
+    if cl_select:
+        q = NT/NC
+        isq = 1./np.sqrt(q)
+        l_ubound = (1.+isq)**2
+        n_clu = (eig_vals > l_ubound).sum() # take out all the 
+        return pc_trans[:,:n_clu], pc_vecs[:n_clu], eig_vals[:n_clu]
+    else:
+        return pc_trans, pc_vecs, eig_vals
 
 
 # to understand PCA better, let's write a PCA from scratch (Yay! )
@@ -42,7 +57,41 @@ def pca_raw(data, var_cut = 0.95):
     n_comp = np.searchsorted(var_tot, var_cut)+1 # the number of principal components that covers var_cut fraction of variance
     CT = U[:,:n_comp]*s[:n_comp] # the coefficients on the chosen PCs  
     V_signif = V[:n_comp]
-    return CT, V_signif
+    return CT, V_signif, s
+
+def hierachical_pc_clustering(raw_data, n_groups = None, N_iter = 5):
+    '''
+    cluster the data based on PCA.
+    '''
+
+    NT, NC = raw_data.shape
+    if n_groups is None:
+        n_groups = int(NC*10//NT) # Number of groups to be divided into
+    n_cut = int(NC//n_groups) + 1
+    n_slice = np.arange(0, NC, n_cut)
+
+    gi = 0
+    gf = n_cut
+    N_iter = 0
+
+    N_effc = 0
+    coef_pool = deque()
+    ts_pool = []
+    TN_series = raw_data
+
+    for ng in range(n_groups):
+        data_sub = TN_series[:,gf]
+        pc_trans, pc_vecs, eig_vals = pca_dff(data_sub, n_comp = None, norm = True, cl_select =True)
+        N_effc += eig_vals.size # number of effective cells
+        ts_pool.append(pc_trans)
+        coef_pool.append(pc_vecs)
+
+    # finish one round 
+    TN_series = np.column_stack(ts_pool)
+    n_groups = int(N_effc //n_cut) + 1 # new number of groups
+
+
+
 
 
 # Next, try to remove the noisy cells which are not firin
