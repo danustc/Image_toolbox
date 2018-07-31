@@ -10,6 +10,7 @@ from sklearn.decomposition import PCA
 import src.visualization.stat_present as stat_present
 import src.visualization.brain_navigation as brain_navigation
 from src.shared_funcs import tifffunc as tf
+from collections import deque
 import matplotlib.pyplot as plt
 global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
@@ -37,7 +38,10 @@ def pca_dff(dff_data, n_comp = None, norm = True, cl_select = True):
         isq = 1./np.sqrt(q)
         l_ubound = (1.+isq)**2
         n_clu = (eig_vals > l_ubound).sum() # take out all the 
-        return pc_trans[:,:n_clu], pc_vecs[:n_clu], eig_vals[:n_clu]
+        if n_clu > 0:
+            return pc_trans[:,:n_clu], pc_vecs[:n_clu], eig_vals[:n_clu]
+        else:
+            print("No correlations founded.")
     else:
         return pc_trans, pc_vecs, eig_vals
 
@@ -80,15 +84,19 @@ def hierachical_pc_clustering(raw_data, n_groups = None, N_iter = 5):
     coef_freezer = deque()
     TN_series = raw_data
 
-    for nit in N_iter:
+    for nit in range(N_iter):
         '''
         go through iterations
         '''
+        print("Iteration:", nit)
         coef_pool = deque()
         ts_pool = []
+        gi = 0
+        gf = n_cut
         for ng in range(n_groups):
             data_sub = TN_series[:,gi:gf]
-            pc_trans, pc_vecs, eig_vals = pca_dff(data_sub, n_comp = None, norm = True, cl_select =True)
+            print(data_sub.shape)
+            pc_trans, pc_vecs, eig_vals = pca_dff(data_sub, norm = True, cl_select =True)
             N_effc += eig_vals.size # number of effective cells
             ts_pool.append(pc_trans)
             coef_pool.append(pc_vecs)
