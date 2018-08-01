@@ -9,6 +9,7 @@ import glob
 import numpy as np
 import h5py
 from df_f import *
+import spectral as spec
 from munging import coord_edgeclean
 import simple_variance as simple_variance
 
@@ -30,6 +31,7 @@ class pipeline(object):
         self._rawf = None
         self._signal = None
         self.dt = dt
+        self.activity = None
         if raw_data is None:
             pass
         elif self.parse_data(raw_data):
@@ -133,25 +135,18 @@ class pipeline(object):
         self._trim_data_(~invalid_ind)
 
 
-    def location_cleaning(self, nbins = 30):
-        '''
-        group cell distributions
-        '''
-        yy, xx = self.coord[:,1], self.coord[:,2]
-
-
-
-
     def activity_sorting(self, nbin = 40):
         '''
         Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
         '''
         NT, NC = self.get_size()
-        ms = np.zeros([NC,3]) # baseline mean, noise, integral
+        activity_map = np.zeros([NT, NC])
+        ms = np.zeros([NC,3], dtype = 'bool') # baseline mean, noise, integral
         sig_integ = np.zeros(NC) # signal integral
         for nf in range(NC):
             cell_signal = self.signal[:,nf]
             sig_ind, background, noi = dff_AB(cell_signal, gam = 0.05, nbins = nbin)
+            activity_map[sig_ind, nf] = True # set the activity map to True
             sig_integ = (cell_signal-background).sum()
             ms[nf] = np.array([background, noi, sig_integ]) # mean and std
 
@@ -159,7 +154,7 @@ class pipeline(object):
         integ_ind = np.argsort(ms[:,2])[::-1] # descending order
         self._trim_data_(integ_ind)
         self.stat = ms[integ_ind]
-
+        self.activity = activity_map[:, integ_ind] # sort the activity map as well
 
     def valid_check(self, df_th = 7.):
         '''
@@ -195,26 +190,33 @@ class pipeline(object):
             print("Final data dimension:", self.get_size())
 
 
-    def frequency_representation(self):
+    def frequency_representation(self, N_cut = 2000, tw = 300, kt = 10, kf = 0.3):
         '''
-        calculate frequency domain representation
+        calculate frequency domain representation: spectrogram
         '''
         if self.stat is None:
             signal = self.signal
         else:
             signal = (self.signal-self.stat[:,0])/self.stat[:,1]
 
-        dfk, _ = dff_frequency(signal, self.dt)
-        self.k_pres = dfk
+        if np.isscalar(N_cut):
+            fq_ind = np.arange(N_cut)
+        elif len(N_cut) ==2:
+            fq_ind = np.arange(N_cut[0], N_cut[1])
+        else:
+            fq_ind = N_cut
+        n_freq = len(fq_ind)
+        sg_temp = []
+        sg_aver = []
+        for nf in fq_ind:
+            cell_signal = signal[:, nf] # takeout single spectrums
+            spgram, k_max = spec.spectrogram(cell_signal,self.dt, tw, kt, kf)
+            sg_temp.append(spgram)
+            sg_aver.append(spgram**2.sum(axis = 1))
 
-
-    def signal_max_truncate(self, max_thresh = 5.0, verbose = True):
-        '''
-        remove fake neurons with dff exceeding threshold.
-        '''
-        dff_max = np.max(self.signal, axis = 0)
-        fake_ind = np.where(dff_max>max_thresh)[0]
-
+        sg_temp = np.stack(sg_temp)
+        sg_aver = np.stack(sg_aver)
+        return sg_temp, sg_aver
 
 
     def save_cleaned_h5(self, save_path):
@@ -235,8 +237,6 @@ class pipeline(object):
         if self.stat is not None:
             data['stat'] = self.stat
 
-        if self.k_pres is not None:
-            data['kp'] = self.k_pres
         np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
 
@@ -250,7 +250,7 @@ def main_rawf():
         ppl = pipeline(raw_data)
         #ppl.location_cleaning()
         ppl.edge_truncate(edge_width = 0.0)
-        hist = ppl.baseline_cleaning(bcut = 120.0)
+        hist = ppl.baseline_cleaning(bcut = 130.0)
         ppl.dff_calc(ft_width = 6, filt = True)
         ppl.valid_check(df_th = 4.)
         ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_dff')
@@ -264,12 +264,11 @@ def main_dff():
         acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
         ppl.load_dff(dff_file)
         ppl.activity_sorting(nbin = 40)
-        ppl.frequency_representation()
         ppl.save_cleaned_dff(dff_file)
         print("Finished processing:", acquisition_date)
 
 
 
 if __name__ == '__main__':
-    #main_rawf()
+    main_rawf()
     main_dff()

@@ -70,6 +70,8 @@ def spectral_power(sg_gram, k_max, kr, ex_zero = True):
     spower = np.sum(sg_gram[k_down:k_up]**2, axis = 0)
     return spower
 
+
+
 def main():
     pass
 
