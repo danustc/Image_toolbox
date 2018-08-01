@@ -12,7 +12,23 @@ import numpy as np
 from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit, gaussian1d_fit
 from scipy.signal import exponential, fftconvolve
 from scipy import stats
-import pyfftw
+
+def background_suppress(signal, ind_A, ext = 2):
+    '''
+    set background points to 0.
+    ext: number of pixels extended from the root of each peak
+    '''
+    signal_bgsup = np.copy(signal)
+    nsig = signal.size
+    u1 = np.union1d(ind_A, ind_A+1)
+    u2 = np.union1d(u1, ind_A+2)
+    d1 = np.union1d(u2, ind_A-1)
+    d2 = np.union1d(d1, ind_A-2)
+    peak_ind = np.where(d2 >=0)[0] # do not take negative indices
+    mask = np.ones(nsig, dtype = bool)
+    mask[peak_ind] = False # mask out the peak indices
+    signal_bgsup[mask] = 0.
+    return signal_bgsup
 
 
 def min_window(shit_data, wd_width):
@@ -156,23 +172,4 @@ def hillcrop_base_finding(dff_r, niter = 4, conf_level = 3):
 
     return base_ind, m_dff, s_dff
 
-
-
-#-------------------------Frequency domain----------------------------
-def dff_frequency(dff_r, dt):
-    '''
-    Calculate the frequency representation of the dff.
-    '''
-    NT, NC = dff_r.shape
-    dk = 1./(NT*dt)
-    a = pyfftw.empty_aligned(NT, dtype = 'complex128')
-    b = pyfftw.empty_aligned(NT, dtype = 'complex128')
-    NK = int(NT/2)
-    dff_k = np.empty((NK,NC))
-    container = pyfftw.FFTW(a,b)
-    for ic in range(NC):
-        container(dff_r[:,ic])
-        freq_cps = container.get_output_array()
-        dff_k[:,ic] = np.abs(freq_cps[:NK])
-    return dff_k, dk
 

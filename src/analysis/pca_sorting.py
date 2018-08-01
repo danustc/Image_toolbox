@@ -50,17 +50,21 @@ def pca_dff(dff_data, n_comp = None, norm = True, cl_select = True):
     pc_trans = pc_dff.transform(dff_mean)
     pc_vecs = pc_dff.components_
     eig_vals = pc_dff.explained_variance_
-    if cl_select:
+    if cl_select == 0:
+        return pc_trans, pc_vecs, eig_vals
+    else:
         q = NT/NC
         isq = 1./np.sqrt(q)
-        l_ubound = (1.+isq)**2
-        n_clu = (eig_vals > l_ubound).sum() # take out all the 
+        if cl_select == 1: # select the components larger than the upper bound
+            l_ubound = (1.+isq)**2
+            n_clu = (eig_vals > l_ubound).sum() # take out all the 
+        elif cl_select == -1:
+            l_lbound = (1.-isq)**2
+            n_clu = (eig_vals > l_lbound).sum()
         if n_clu > 0:
             return pc_trans[:,:n_clu], pc_vecs[:n_clu], eig_vals[:n_clu]
         else:
             print("No correlations founded.")
-    else:
-        return pc_trans, pc_vecs, eig_vals
 
 
 # to understand PCA better, let's write a PCA from scratch (Yay! )
@@ -80,7 +84,7 @@ def pca_raw(data, var_cut = 0.95):
     V_signif = V[:n_comp]
     return CT, V_signif, s
 
-def hierachical_pc_clustering(raw_data, n_cut = None, N_iter = 5):
+def hierachical_pc_clustering(raw_data, n_cut = None, N_iter = 5, mode = -1):
     '''
     cluster the data based on PCA.
     The last coef_pool in the coef_freezer must have one element only.
@@ -109,7 +113,7 @@ def hierachical_pc_clustering(raw_data, n_cut = None, N_iter = 5):
         for ng in range(n_groups):
             gf = n_slice[ng]
             data_sub = TN_series[:,gi:gf]
-            pc_trans, pc_vecs, eig_vals = pca_dff(data_sub, norm = True, cl_select =True)
+            pc_trans, pc_vecs, eig_vals = pca_dff(data_sub, norm = True, cl_select = mode)
             N_effc += eig_vals.size # number of effective cells
             ts_pool.append(pc_trans)
             coef_pool.append(pc_vecs)
@@ -126,7 +130,7 @@ def hierachical_pc_clustering(raw_data, n_cut = None, N_iter = 5):
             coef_freezer.append(coef_pool)
         # end for nit
 
-    pc_trans, pc_vecs, eig_vals = pca_dff(TN_series, n_comp = None, norm = True, cl_select = True)
+    pc_trans, pc_vecs, eig_vals = pca_dff(TN_series, n_comp = None, norm = True, cl_select = 1)
     coef_freezer.append(pc_vecs)
 
     # now, finished the whole series. let's do the unpack
@@ -150,7 +154,7 @@ def layer_retrieve(coef_int, coef_split):
         pm_arr[ss, 0], pm_arr[ss, 1] = pk, mk
 
         coef_subint = coef_int[:,pi:pi+pk]
-        m_coef.append(coef_subint*coef_split[ss])
+        m_coef.append(np.matmul(coef_subint,coef_split[ss])) # must use matrix multiplication
         pi = pk # move to the next block
 
     return np.column_stack(m_coef) # integrated coefficients
