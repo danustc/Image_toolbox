@@ -317,9 +317,9 @@ def main():
     n_ica = 4
     n_clu = 4
     cf = 0.60
-    local_datafolder = 'Jun07_2018/labeled/'
+    local_datafolder = 'Jun07_2018/'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + '*A4*lb.npz')
+    data_list = glob.glob(full_path + '*dff.npz')
     clean_list = []
     clean_fname = full_path+'clean_list.txt'
 

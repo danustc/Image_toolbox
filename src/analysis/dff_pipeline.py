@@ -12,6 +12,7 @@ from df_f import *
 import spectral as spec
 from munging import coord_edgeclean
 import simple_variance as simple_variance
+import matplotlib.pyplot as plt
 
 global_datapath_ubn  = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/'
@@ -37,7 +38,6 @@ class pipeline(object):
         elif self.parse_data(raw_data):
             self.dff_calc()
 
-        self.hist = None
         self.stat = None
 
     def parse_data(self, raw_data):
@@ -67,6 +67,12 @@ class pipeline(object):
         self.signal = dff_data['signal']
         self.rawf = None
 
+
+    def _list_properties_(self):
+        '''
+        List all the properties (that can be saved)
+        '''
+        pass
     # ----------------------Below are the property members ----------------------
     @property
     def rawf(self):
@@ -140,8 +146,8 @@ class pipeline(object):
         Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
         '''
         NT, NC = self.get_size()
-        activity_map = np.zeros([NT, NC])
-        ms = np.zeros([NC,3], dtype = 'bool') # baseline mean, noise, integral
+        activity_map = np.zeros([NT, NC], dtype = 'bool')
+        ms = np.zeros([NC,3]) # baseline mean, noise, integral
         sig_integ = np.zeros(NC) # signal integral
         for nf in range(NC):
             cell_signal = self.signal[:,nf]
@@ -190,14 +196,14 @@ class pipeline(object):
             print("Final data dimension:", self.get_size())
 
 
-    def frequency_representation(self, N_cut = 2000, tw = 300, kt = 10, kf = 0.3):
+    def frequency_representation(self, N_cut = 2000, tw = 300, kt = 10, kf = 0.3, cstd = False, save_file = None):
         '''
         calculate frequency domain representation: spectrogram
         '''
-        if self.stat is None:
-            signal = self.signal
-        else:
+        if cstd:
             signal = (self.signal-self.stat[:,0])/self.stat[:,1]
+        else:
+            signal = self.signal
 
         if np.isscalar(N_cut):
             fq_ind = np.arange(N_cut)
@@ -212,10 +218,13 @@ class pipeline(object):
             cell_signal = signal[:, nf] # takeout single spectrums
             spgram, k_max = spec.spectrogram(cell_signal,self.dt, tw, kt, kf)
             sg_temp.append(spgram)
-            sg_aver.append(spgram**2.sum(axis = 1))
+            sg_aver.append((spgram**2).sum(axis = 1))
 
         sg_temp = np.stack(sg_temp)
         sg_aver = np.stack(sg_aver)
+        if save_file is not None:
+            spec_gram = {'temp': sg_temp, 'aver': sg_aver}
+            np.savez(save_file, **spec_gram)
         return sg_temp, sg_aver
 
 
@@ -236,11 +245,14 @@ class pipeline(object):
         data = {'signal':self.signal, 'coord':self.coord}
         if self.stat is not None:
             data['stat'] = self.stat
+        if self.activity is not None:
+            data['activity'] = self.activity
 
         np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
 
 def main_rawf():
+    #data_folder = 'FB_resting_15min/Jul2017/'
     data_folder = 'FB_resting_15min/Jun07_2018/'
     raw_list = glob.glob(global_datapath_ubn+data_folder+'*merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
@@ -249,11 +261,11 @@ def main_rawf():
         raw_data = np.load(raw_file)
         ppl = pipeline(raw_data)
         #ppl.location_cleaning()
-        ppl.edge_truncate(edge_width = 0.0)
-        hist = ppl.baseline_cleaning(bcut = 130.0)
+        ppl.edge_truncate(edge_width = 2.0)
+        ppl.baseline_cleaning(bcut = 160.0)
         ppl.dff_calc(ft_width = 6, filt = True)
         ppl.valid_check(df_th = 4.)
-        ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_dff')
+        ppl.save_cleaned_dff(global_datapath_ubn +data_folder+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
 def main_dff():
@@ -265,10 +277,12 @@ def main_dff():
         ppl.load_dff(dff_file)
         ppl.activity_sorting(nbin = 40)
         ppl.save_cleaned_dff(dff_file)
+        sg_file = global_datapath_ubn + data_folder + acquisition_date + '_sg'
+        sg_temp, sg_aver = ppl.frequency_representation(N_cut = 5000, tw = 300, kt = 10, kf = 0.25, save_file = sg_file)
         print("Finished processing:", acquisition_date)
 
 
 
 if __name__ == '__main__':
-    main_rawf()
+    #main_rawf()
     main_dff()
