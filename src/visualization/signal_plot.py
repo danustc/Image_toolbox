@@ -113,6 +113,8 @@ def spectrogram(sg_gram, trange, krange, k_int = None):
         gs.update(wspace = 0)
         ax_temp = fig.add_subplot(gs[0])
         ax_sg = fig.add_subplot(gs[1]) # The imshow of spectrogram
+        ax_sg.imshow(sg_gram[1:], origin = 'lower', aspect = 'auto', extent = [0, trange, dk, krange]) # show the non-zero frequency components
+        sg_int = None
     else:
         ki_, kf_ = int(k_int[0]/dk), int(np.ceil(k_int[1]/dk))
         sg_int = (sg_gram[ki_:kf_]**2).sum(axis = 0)
@@ -124,14 +126,17 @@ def spectrogram(sg_gram, trange, krange, k_int = None):
         ax_sg = fig.add_subplot(gs[1,1]) # The imshow of spectrogram
         ax_int.plot(sg_int, '-k')
         ax_int.set_xticklabels([])
+        ax_sg.imshow(sg_gram[1:], origin = 'lower', aspect = 'auto', extent = [0, trange, dk, krange]) # show the non-zero frequency components
+        ax_sg.plot(np.linspace(0, trange, NW), k_int[0]*np.ones(NW), '--r')
+        ax_sg.plot(np.linspace(0, trange, NW), k_int[1]*np.ones(NW), '--r')
 
-    ax_sg.imshow(sg_gram[1:], origin = 'lower', aspect = 'auto', extent = [0, trange, dk, krange]) # show the non-zero frequency components
     ax_sg.set_yticklabels([])
     ax_sg.set_xlabel('Time (s)', fontsize = 12)
     ax_temp.plot(sg_temp[1:], np.arange(1,NK)*dk, 'k')
+    ax_temp.set_ylim([dk, krange])
     ax_temp.invert_xaxis()
     ax_temp.set_xticklabels([])
     ax_temp.set_ylabel('Hz', fontsize = 12)
 
     plt.tight_layout()
-    return fig
+    return fig, sg_temp, sg_int
