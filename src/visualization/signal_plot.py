@@ -105,26 +105,33 @@ def spectrogram(sg_gram, trange, krange, k_int = None):
     fig_width = 7.
     NK, NW = sg_gram.shape
     dk = krange/NK # the k_steps
-    fig = plt.figure(fig_size = (fig_width, fig_width*NK/NW))
+    fig = plt.figure(figsize = (fig_width, fig_width*0.62))
     sg_temp = (sg_gram**2).sum(axis = 1) # sum across time
 
     if k_int is None:
         gs = gridspec.GridSpec(1,2, width_ratios = [1,5])
-        ax_temp = fig_width.add_subplot(gs[0])
-        ax_sg = fig_width.add_subplot(gs[1]) # The imshow of spectrogram
+        gs.update(wspace = 0)
+        ax_temp = fig.add_subplot(gs[0])
+        ax_sg = fig.add_subplot(gs[1]) # The imshow of spectrogram
     else:
         ki_, kf_ = int(k_int[0]/dk), int(np.ceil(k_int[1]/dk))
         sg_int = (sg_gram[ki_:kf_]**2).sum(axis = 0)
-        gs = gridspec.GridSpec(2,2, width_ratios = [1,5], height_ratios = [1,4])
-        ax_int = fig_width.add_subplot(gs[0,1]) # The k_int plot
-        ax_temp = fig_width.add_subplot(gs[1,0]) # The k-space sum up
-        ax_sg = fig_width.add_subplot(gs[1,1]) # The imshow of spectrogram
+        gs = gridspec.GridSpec(2,2, width_ratios = [1,6], height_ratios = [1,4])
+        gs.update(wspace = 0, hspace = 0)
+        ax_int = fig.add_subplot(gs[0,1]) # The k_int plot
+        ax_int.set_yticklabels([])
+        ax_temp = fig.add_subplot(gs[1,0]) # The k-space sum up
+        ax_sg = fig.add_subplot(gs[1,1]) # The imshow of spectrogram
         ax_int.plot(sg_int, '-k')
         ax_int.set_xticklabels([])
 
     ax_sg.imshow(sg_gram[1:], origin = 'lower', aspect = 'auto', extent = [0, trange, dk, krange]) # show the non-zero frequency components
+    ax_sg.set_yticklabels([])
+    ax_sg.set_xlabel('Time (s)', fontsize = 12)
     ax_temp.plot(sg_temp[1:], np.arange(1,NK)*dk, 'k')
+    ax_temp.invert_xaxis()
     ax_temp.set_xticklabels([])
+    ax_temp.set_ylabel('Hz', fontsize = 12)
 
     plt.tight_layout()
     return fig
