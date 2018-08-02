@@ -253,7 +253,7 @@ class pipeline(object):
 
 def main_rawf():
     #data_folder = 'FB_resting_15min/Jul2017/'
-    data_folder = 'FB_resting_15min/Jun07_2018/'
+    data_folder = 'FB_resting_15min/Jul19_2018/'
     raw_list = glob.glob(global_datapath_ubn+data_folder+'*merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     for raw_file in raw_list:
@@ -284,5 +284,5 @@ def main_dff():
 
 
 if __name__ == '__main__':
-    #main_rawf()
-    main_dff()
+    main_rawf()
+    #main_dff()
