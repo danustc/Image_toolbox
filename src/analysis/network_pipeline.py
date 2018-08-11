@@ -312,12 +312,10 @@ def main():
     '''
     The test function of the pipeline.
     '''
-
-
-    n_ica = 5
-    n_clu = 5
-    cf = 0.60
-    local_datafolder = 'Jul19_2018/'
+    n_ica = 4
+    n_clu = 4
+    cf = 0.70
+    local_datafolder = 'Jun07_2018/'
     full_path = global_datapath + local_datafolder
     data_list = glob.glob(full_path + '*dff.npz')
     clean_list = []

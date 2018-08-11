@@ -109,3 +109,20 @@ def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0., mode = 'q'):
 
     return sig_sti
 
+
+def spatial_gridding(coord, ng = (2, 2, 2), rev_coord = True):
+    '''
+    classify cells into different small categories using spatial classification
+    rev_coord: if true, the coordinates are arranged in z-y-x; otherwise, x-y-z.
+    '''
+    NC = coord.shape[1] # number of cells
+    if ref_coord:
+        mz, my, mx = coord.max(axis = 0)
+        NZ, NY, NX = ng
+        cz, cy, cx = coord[:,0], coord[:,1], coord[:,2]
+    else:
+        mx, my, mz = coord.max(axis = 0)
+        NX, NY, NZ = ng
+
+
+
