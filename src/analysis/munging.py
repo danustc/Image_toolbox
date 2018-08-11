@@ -114,15 +114,28 @@ def spatial_gridding(coord, ng = (2, 2, 2), rev_coord = True):
     '''
     classify cells into different small categories using spatial classification
     rev_coord: if true, the coordinates are arranged in z-y-x; otherwise, x-y-z.
+    Warning: the order of coord and ng must be consistent, i.e., both z-y-x or both x-y-z.
+    output: an array of raveled indices in the order of z-y-x.
     '''
-    NC = coord.shape[1] # number of cells
+    H, edges = np.histogramdd(coord, bins = ng) # 3D histogram
+    print("Number of bins:", H.shape)
+
     if ref_coord:
-        mz, my, mx = coord.max(axis = 0)
-        NZ, NY, NX = ng
         cz, cy, cx = coord[:,0], coord[:,1], coord[:,2]
+        egz, egy, egx = edges
     else:
         mx, my, mz = coord.max(axis = 0)
-        NX, NY, NZ = ng
+        cx, cy, cz = coord[:,0], coord[:,1], coord[:,2]
+        egx, egy, egz = edges
+
+    # find the indices of edges for each neuron
+    ind_x = np.searchsorted(egx, cx) - 1
+    ind_y = np.searchsorted(egy, cy) - 1
+    ind_z = np.searchsorted(egz, cz) - 1
+
+    rav_label = np.ravel_multi_index((ind_z, ind_y, ind_x), (cz, cy, cx))
+    return rev_label
+
 
 
 
