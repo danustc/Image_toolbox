@@ -120,21 +120,28 @@ def spatial_gridding(coord, ng = (2, 2, 2), rev_coord = True):
     H, edges = np.histogramdd(coord, bins = ng) # 3D histogram
     print("Number of bins:", H.shape)
 
-    if ref_coord:
+    if rev_coord:
         cz, cy, cx = coord[:,0], coord[:,1], coord[:,2]
         egz, egy, egx = edges
+        bz, by, bx = ng
     else:
         mx, my, mz = coord.max(axis = 0)
         cx, cy, cz = coord[:,0], coord[:,1], coord[:,2]
         egx, egy, egz = edges
+        bx, by, bz = ng
+
+    egx[0] -=1.0e-06
+    egy[0] -=1.0e-06
+    egz[0] -=1.0e-06
 
     # find the indices of edges for each neuron
     ind_x = np.searchsorted(egx, cx) - 1
     ind_y = np.searchsorted(egy, cy) - 1
     ind_z = np.searchsorted(egz, cz) - 1
+    print(ind_x.min(), ind_y.min(), ind_z.min())
 
-    rav_label = np.ravel_multi_index((ind_z, ind_y, ind_x), (cz, cy, cx))
-    return rev_label
+    rav_label = np.ravel_multi_index((ind_z, ind_y, ind_x), (bz, by, bx))
+    return rav_label
 
 
 

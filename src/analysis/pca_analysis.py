@@ -5,7 +5,8 @@ Based on scikit-learn
 import numpy as np
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
-import Analysis
+
+from Analysis import grinder
 from collections import deque
 from pca_funcs import *
 import matplotlib.pyplot as plt
@@ -20,7 +21,8 @@ def hierachical_pc_clustering_label(raw_data, glabels, N_iter = 5, mode = -1):
     unique_labels = np.unique(glabels)
     group_list = []
     for label in unique_labels:
-        pass
+        ind_group = np.where(glabels == label)[0]
+        group_list.append(ind_group)
 
 
 class analysis(object):
