@@ -26,18 +26,29 @@ def hist_group(img, nbins = 100, power_cut = 0.95, lower_cut = 50):
     local_valleys = argrelextrema(hat, np.less)[0] # local maxima
     peaks = (be_fine[local_peaks]+be_fine[local_peaks+1])*0.50
     valleys = (be_fine[local_valleys]+be_fine[local_valleys+1])*0.50
-    return peaks, valleys
+    return peaks, valleys # the positions of peaks and valleys
 
 
 def local_thresholding(img, patchsize, stride = 100):
     '''
     img: raw image
     patchsize: the patch size (R, C), must be smaller than that of image size.
+    return: a matrix (ny_stride, nx_stride) storing local threshhold values.
     '''
     NY, NX = img.shape
     SY, SX = patchsize
     ny_stride = int((NY-SY) // stride)
     nx_stride = int((NX-SX) // stride)
+    local_thresh = np.zeros((ny_stride, nx_stride))
+
     for ii in range(ny_stride):
+        y_range = np.arange(SY)+ii*stride
         for jj in range(nx_stride):
-            pass
+            x_range = np.arange(SX) + jj*stride
+            patch = img[y_range, x_range]
+            lb = np.max([patch.min(), 50])
+            peaks, valleys = hist_group(patch,  nbins = 100, power_cut = 0.95, param_lower_cut = lb)
+            ind_val = np.searchsorted(peaks, valleys)
+            local_thresh[ii,jj] = valleys[ind_val ==1][0] # take out only one element.
+
+    return local_thresh
