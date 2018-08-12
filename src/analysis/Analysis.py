@@ -20,6 +20,9 @@ class grinder(object):
         self._get_size_()
         self.group_mark = -1*np.ones(self.NC) #all the cells are uncategorized
 
+        self.stat = None
+        self.activity = None
+
     def _trim_data_(self, ind_trim):
         self.signal = self.signal[:,ind_trim]
         self.coord = self.coord[ind_trim,:]
@@ -128,6 +131,21 @@ class grinder(object):
         self.stat = ms[integ_ind]
         self.activity = activity_map[:, integ_ind] # sort the activity map as well
 
+    def background_suppress(self, sup_coef = 0.50):
+        '''
+        suppress background. Information needed: activity map
+        '''
+        NC = self.NC
+        activity, signal = self.activity, self.signal
+        for nf in range(NC):
+            act = activity[:, nf]
+            cell_signal = signal[:,nf]
+            sig_A = cell_signal[act] # the signal data points
+            sig_B = cell_signal[~act] # the background data points
+            SNR = sig_A.mean()/sig_B.std() # the definition of SNR in images
+            sfac = 1.-np.exp(-sup_coef*SNR)
+            self.signal[~act, nf] *= sfac # suppress the background
+
 
     def shutDown(self):
         pass
@@ -138,7 +156,8 @@ def coregen():
     grinder_core = grinder()
     data_path = global_datapath+ date_folder+'Jun07_2018_B5_dff.npz'
     grinder_core.parse_data(data_path)
-    #grinder_core.activity_sorting()
+    grinder_core.activity_sorting()
+    grinder_core.background_suppress()
     return grinder_core
 
 

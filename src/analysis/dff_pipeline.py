@@ -32,7 +32,6 @@ class pipeline(object):
         self._rawf = None
         self._signal = None
         self.dt = dt
-        self.activity = None
         if raw_data is None:
             pass
         elif self.parse_data(raw_data):
@@ -130,28 +129,6 @@ class pipeline(object):
         print("Fake cells:", invalid_ind.sum())
         self._trim_data_(~invalid_ind)
 
-
-    def activity_sorting(self, nbin = 40):
-        '''
-        Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
-        '''
-        NT, NC = self.get_size()
-        activity_map = np.zeros([NT, NC], dtype = 'bool')
-        ms = np.zeros([NC,3]) # baseline mean, noise, integral
-        sig_integ = np.zeros(NC) # signal integral
-        for nf in range(NC):
-            cell_signal = self.signal[:,nf]
-            sig_ind, background, noi = dff_AB(cell_signal, gam = 0.05, nbins = nbin)
-            activity_map[sig_ind, nf] = True # set the activity map to True
-            sig_integ = (cell_signal-background).sum()
-            ms[nf] = np.array([background, noi, sig_integ]) # mean and std
-
-
-        integ_ind = np.argsort(ms[:,2])[::-1] # descending order
-        self._trim_data_(integ_ind)
-        self.stat = ms[integ_ind]
-        self.activity = activity_map[:, integ_ind] # sort the activity map as well
-
     def valid_check(self, df_th = 7.):
         '''
         remove cells that have dffs larger than df_th.
@@ -233,10 +210,6 @@ class pipeline(object):
         copile a dictinary and save it
         '''
         data = {'signal':self.signal, 'coord':self.coord}
-        if self.stat is not None:
-            data['stat'] = self.stat
-        if self.activity is not None:
-            data['activity'] = self.activity
 
         np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
@@ -265,7 +238,6 @@ def main_dff():
     for dff_file in dff_list:
         acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
         ppl.load_dff(dff_file)
-        ppl.activity_sorting(nbin = 40)
         ppl.save_cleaned_dff(dff_file)
         sg_file = global_datapath_ubn + data_folder + acquisition_date + '_sg'
         sg_temp, sg_aver = ppl.frequency_representation(N_cut = 5000, tw = 300, kt = 10, kf = 0.25, save_file = sg_file)
