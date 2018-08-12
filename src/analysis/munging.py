@@ -138,4 +138,3 @@ def spatial_gridding(coord, ng = (2, 2, 2), rev_coord = True):
 
 
 
-
