@@ -6,9 +6,10 @@ import numpy as np
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 
-from Analysis import grinder
+from Analysis import grinder, coregen
 from collections import deque
 from pca_funcs import *
+from src.visualization.stat_present import direct_dimplot
 import matplotlib.pyplot as plt
 global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
@@ -30,20 +31,30 @@ class analysis(object):
     Perform PCA on a group of data with more columns on rows
     Divide groups: direct divide, label divide
     '''
-    def __init__(self, coord = None, signal = None):
+    def __init__(self, grinder_core = None):
         '''
         Load data. Specify the variance cut-off.
         '''
-        print("The class is initiated.")
-        if signal is not None:
-            print(signal.shape)
+        if grinder_core is None:
+            grinder_core = grinder()
+        self._grinder = grinder_core
 
+    def hierachical_pc_clustering_label(self):
+        pass
 #----------------------------------------------Test the function-------------------------------------------
 
-def main():
-    signal = np.random.randn(1785, 10)
-    a = analysis(coord = None, signal = signal)
 if __name__ == '__main__':
-    main()
+    '''
+    The main function is imported from Analysis
+    '''
+    grinder_core = coregen()
+    glabel = grinder_core.spatial_gridding((3,4,5))
+    print(glabel)
+    Anna = analysis(grinder_core)
+    pc_trans, coeffreezer = hierachical_pc_clustering(Anna._grinder.signal[:, :1000], n_cut = 10,N_iter = 3, mode = 1 )
+    print("Number of clusters:", pc_trans.shape)
+    c_final = hierachical_pc_unpack(coeffreezer)
+    fig = direct_dimplot(c_final[:7].T)
+    fig.savefig(global_datapath+'test_pca')
 
 

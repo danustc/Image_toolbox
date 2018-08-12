@@ -26,7 +26,7 @@ def _group_division_(NC, n_cut, n_tail = None):
         return n_slice
 
 
-def pca_dff(dff_data, n_comp = None, norm = True, cl_select = True):
+def pca_dff(dff_data, n_comp = None, norm = True, cl_select = 1):
     '''
     0. load dff_data. Each column represents the df_f of a neuron.
     1. perform PCA on n_comp.
@@ -80,6 +80,7 @@ def pca_raw(data, var_cut = 0.95):
     V_signif = V[:n_comp]
     return CT, V_signif, s
 
+#-------------------------PC clustering method-----------------
 def hierachical_pc_clustering(raw_data, n_cut = None, N_iter = 5, mode = -1):
     '''
     cluster the data based on PCA.

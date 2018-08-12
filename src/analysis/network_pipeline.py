@@ -117,12 +117,6 @@ class pipeline(object):
     def get_cells_index(self, nc_groups):
         return self.signal[:,nc_groups], self.coord[nc_groups, :]
 
-    def get_cells_space(self, pos_center, radius):
-        '''
-        get a list of cells within the desired region.
-        '''
-        pass # to be filled later
-
     def _trim_data_(self, idx , mode = 0):
         '''
         trim the data and keep the cells with indices idx only.
