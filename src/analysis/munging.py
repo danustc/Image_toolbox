@@ -1,5 +1,6 @@
 '''
 Additional signal munging
+peak finding, flag_decode
 '''
 
 import sys
@@ -108,40 +109,6 @@ def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0., mode = 'q'):
             sig_sti[nt:nt+3*t_duration]=a*np.exp(-np.arange(3*t_duration)*dt)+b
 
     return sig_sti
-
-
-def spatial_gridding(coord, ng = (2, 2, 2), rev_coord = True):
-    '''
-    classify cells into different small categories using spatial classification
-    rev_coord: if true, the coordinates are arranged in z-y-x; otherwise, x-y-z.
-    Warning: the order of coord and ng must be consistent, i.e., both z-y-x or both x-y-z.
-    output: an array of raveled indices in the order of z-y-x.
-    '''
-    H, edges = np.histogramdd(coord, bins = ng) # 3D histogram
-    print("Number of bins:", H.shape)
-
-    if rev_coord:
-        cz, cy, cx = coord[:,0], coord[:,1], coord[:,2]
-        egz, egy, egx = edges
-        bz, by, bx = ng
-    else:
-        mx, my, mz = coord.max(axis = 0)
-        cx, cy, cz = coord[:,0], coord[:,1], coord[:,2]
-        egx, egy, egz = edges
-        bx, by, bz = ng
-
-    egx[0] -=1.0e-06
-    egy[0] -=1.0e-06
-    egz[0] -=1.0e-06
-
-    # find the indices of edges for each neuron
-    ind_x = np.searchsorted(egx, cx) - 1
-    ind_y = np.searchsorted(egy, cy) - 1
-    ind_z = np.searchsorted(egz, cz) - 1
-    print(ind_x.min(), ind_y.min(), ind_z.min())
-
-    rav_label = np.ravel_multi_index((ind_z, ind_y, ind_x), (bz, by, bx))
-    return rav_label
 
 
 

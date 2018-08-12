@@ -1,7 +1,7 @@
 '''
 Created by Dan on 07/11/2017.
 Pipeline for batch calculation of raw_f into Delta F/F.
-Last update: 11/04/2017, replacing npz with hdf5.
+Last update: 08/12/2018, removed simple var sorting.
 '''
 import sys
 import os
@@ -123,16 +123,6 @@ class pipeline(object):
             self.signal = dff_expfilt_group(dffr, self.dt, 1.8)
         else:
             self.signal = dffr
-
-    def svar_sorting(self, var_cut = 0.95):
-        '''
-        simple variance-based sorting
-        '''
-        crank, dvar = simple_variance.simvar_global_sort(self.signal)
-        sum_var = np.cumsum(dvar)
-        sum_var /= sum_var[-1]
-        n_cut = np.searchsorted(sum_var, var_cut)
-        self._trim_data_(crank[:n_cut])
 
     def baseline_cleaning(self, bcut = 100.0):
         min_raw = self.rawf.min(axis = 0)
