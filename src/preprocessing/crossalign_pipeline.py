@@ -199,7 +199,7 @@ def main():
         print(folder_date)
         afc_merge, fluo_merge = cross_align_folder(folder)
         compiled_data = data_integrate(afc_merge, fluo_merge)
-        np.savez(global_datapath + folder_date+'_merged', **compiled_data)
+        np.savez(global_datapath_win + folder_date+'_merged', **compiled_data)
 
 if __name__ == '__main__':
     main()
