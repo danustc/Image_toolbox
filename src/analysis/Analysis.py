@@ -131,7 +131,7 @@ class grinder(object):
         self.stat = ms[integ_ind]
         self.activity = activity_map[:, integ_ind] # sort the activity map as well
 
-    def background_suppress(self, sup_coef = 0.50):
+    def background_suppress(self, sup_coef = 0.010, shuffle = True):
         '''
         suppress background. Information needed: activity map
         '''
@@ -143,9 +143,17 @@ class grinder(object):
             sig_A = cell_signal[act] # the signal data points
             sig_B = cell_signal[~act] # the background data points
             SNR = sig_A.mean()/sig_B.std() # the definition of SNR in images
-            sfac = 1.-np.exp(-sup_coef*SNR)
+            sfac = 1.-np.exp(-sup_coef*SNR**2)
+            print("SNR:", SNR, "suppress fraction:", sfac)
             self.signal[~act, nf] *= sfac # suppress the background
-
+            if shuffle:
+                '''
+                shuffle the background points
+                '''
+                NB = sig_B.size
+                shuff_order = np.random.permutation(np.arange(NB))
+                b_ind = np.where(~act)[0]
+                self.signal[b_ind, nf] = self.signal[b_ind[shuff_order], nf]
 
     def shutDown(self):
         pass
@@ -154,7 +162,7 @@ class grinder(object):
 def coregen():
     date_folder = 'Jun07_2018/'
     grinder_core = grinder()
-    data_path = global_datapath+ date_folder+'Jun07_2018_B5_dff.npz'
+    data_path = global_datapath+ date_folder+'Jun07_2018_B4_dff.npz'
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
     grinder_core.background_suppress()
