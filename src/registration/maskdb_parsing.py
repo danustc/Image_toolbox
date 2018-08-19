@@ -40,6 +40,9 @@ class mask_db(object):
     def mask_multi_direct_search(self,n_mask, raw_coord):
         '''
         direct search instead of histogram over the 4pi solid angle.
+        raw_coord: the coordinates to be labeled
+        n_mask: # of mask
+        return: a boolean array
         '''
         ncoord = raw_coord.shape[0]
         mask_status = []
@@ -57,11 +60,11 @@ class mask_db(object):
         c_010 = np.ravel_multi_index([floor_pxls[:,0], ceil_pxls[:,1], floor_pxls[:,2]], zb_shape)
         c_110 = np.ravel_multi_index([ceil_pxls[:,0], ceil_pxls[:,1], floor_pxls[:,2]], zb_shape)
         nearest_vortices = np.c_[c_000, c_100, c_010, c_001, c_110, c_101, c_011, c_111]
-        for v in nearest_vortices:
+        for v in nearest_vortices: # iterate through all the cells
             masked.append(set(v).issubset(set_mask))
 
 
-        return masked
+        return masked, np.array(masked).sum()
 
     def shutdown(self):
         self.db.close()
