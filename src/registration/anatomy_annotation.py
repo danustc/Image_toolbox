@@ -69,7 +69,7 @@ def anatomical_labeling(coord_file, arti_clear = True):
 
     for n_mask in range(294):
         mask_labels[:,n_mask], covered  = MD.mask_multi_direct_search(n_mask, np.fliplr(lab_coord))
-        if covered:
+        if covered and n_mask not in [0, 93, 274]:
             #mask_idx, outline_idx = MD.get_mask(n_mask)
             name_idx = MD.get_name(n_mask)
             print(name_idx)
@@ -219,7 +219,7 @@ def coord_convert_preprocess(fpath, reg_list, origin_x,  order = 'r'):
         return 'x'
 
 # ------------------------Main functions for test ----------------------
-def main():
+def reg_annotate():
     '''
     register and annotate
     '''
@@ -252,5 +252,6 @@ def edge():
     for fname in response_list:
         edge_cropping(fname)
 
+
 if __name__ == '__main__':
-    main()
+    reg_annotate()
