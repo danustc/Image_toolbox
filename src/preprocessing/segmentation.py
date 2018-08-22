@@ -1,8 +1,7 @@
 """
 Created by Dan in July-2016
 Cell extraction based on the blobs_log in skimage package
-Last update: 06/09/2017
-Now it really feels lousy. :( Try to use as few for loops as you can!
+Last update: 08/11/2018
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 """
 import sys
@@ -59,10 +58,18 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 3, bsteps =7, verbose = Tr
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
     '''
     # now, let's calculate threshold
+    NY, NX = filled_frame.shape
     th = (np.mean(filled_frame) - np.std(filled_frame))/7.
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
+    # clean blobs that is at the edge
+    by, bx = cblobs[:,0], cblobs[:,1]
+    valid_indY = np.logic_and(by > bsize, by< (NY-bsize))
+    valid_indX = np.logic_and(bx > bsize, bx< (NX-bsize))
+    valid_ind = np.logic_and(valid_indY, valid_indX)
+    cblobs = cblobs[valid_ind] # remove those edge blobs --- added by Dan on 08/11/2018.
+
     if verbose:
         print("threshold:", th)
         print("# of blobs:", cblobs.shape[0])

@@ -13,6 +13,18 @@ from scipy import optimize
 from scipy.ndimage import gaussian_filter1d
 
 
+def marcenko_pastur(q,sig = 1.,nl = 100):
+    '''
+    Marcenko-pastur distribution
+    '''
+    sig2 = sig*sig
+    isq = 1./np.sqrt(q)
+    l_min, l_max = sig2*(1-isq)**2, sig2*(1+isq)**2
+    lamb = np.linspace(l_min, l_max, nl)
+    p_lam = q/(2*np.pi*sig2)*np.sqrt((l_max-lamb)*(lamb-l_min))/lamb
+    return p_lam, lamb
+
+
 
 def smooth_lpf(shit_data, ft_width = 3):
     """

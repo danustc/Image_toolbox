@@ -6,78 +6,11 @@ Based on scikit-learn
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-from sklearn.decomposition import PCA
-import src.visualization.stat_present as stat_present
-import src.visualization.brain_navigation as brain_navigation
 from src.shared_funcs import tifffunc as tf
+from collections import deque
+from pca_funcs import *
 import matplotlib.pyplot as plt
-global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/'
-
-def pca_dff(dff_data, n_comp = 3):
-    '''
-    0. load dff_data. Each column represents the df_f of a neuron.
-    1. perform PCA on n_comp.
-    2. visualization.
-    This has consistent results with pca_raw. However, var_cut is not available.
-    '''
-    pc_dff = PCA(n_components = n_comp)
-    pc_dff.fit(dff_data)
-    pc_trans = pc_dff.transform(dff_data)
-    pc_vecs = pc_dff.components_
-    return pc_trans, pc_vecs
-
-
-# to understand PCA better, let's write a PCA from scratch (Yay! )
-def pca_raw(data, var_cut = 0.95):
-    '''
-    data: uncentralized, unstandardlized data
-    n_comp: the number of components to be extracted.
-    var_cut: variance cut, ignore the contributions from minor principal components.
-    '''
-    N, P = data.shape # the number of measurements and the number of 'sensors'
-    c_data = data-data.mean(axis = 0) # centralization
-    U,s,V = np.linalg.svd(c_data) # svd 
-    lam = s**2/(N-1)
-    var_tot = lam.cumsum()/lam.sum() # 
-    n_comp = np.searchsorted(var_tot, var_cut)+1 # the number of principal components that covers var_cut fraction of variance
-    CT = U[:,:n_comp]*s[:n_comp] # the coefficients on the chosen PCs  
-    V_signif = V[:n_comp]
-    return CT, V_signif
-
-
-# Next, try to remove the noisy cells which are not firin
-def cell_sorting(V):
-    '''
-    classifying the cells into active and non-active groups according to their V coefficients. V contains the principal vectors sorted by the eigen values.
-    returns the most and least active nselect neurons.
-    '''
-    NV, NP = V.shape
-    sv = np.sum(-V**2, axis = 0)
-    arg_sv = np.argsort(sv)
-    return arg_sv
-
-
-
-def group_varsplit(dff_data, arg_sv, var_contrast = 0.95):
-    '''
-    dff_data: the DF/F data of all the cells
-    arg_sv: the indices of cells ranked by importance
-    var_contrast: the variance of the first group should cover how much percentage of the overall variance?
-    This is a test algorithm, function is not guaranteed.
-    '''
-    NT, NP = dff_data.shape
-
-    cov_diag = np.var(dff_data[:,arg_sv], axis = 0)
-    #cov_diag = np.diag(cov_sum) # the diagonal elements of the covariance matrix 
-    cov_accumu = np.cumsum(cov_diag)  # the accumulated covariance.
-    cut_ind = np.searchsorted(cov_accumu/cov_accumu[-1], var_contrast)
-
-    arg_head = arg_sv[:cut_ind]
-    arg_rear = arg_sv[cut_ind:]
-    return arg_head, arg_rear
-
-
-# --------------------------------# The class of group split 
+global_datapath = '/home/sillycat/Programming/Python/data_test/'
 
 class group_pca(object):
     '''

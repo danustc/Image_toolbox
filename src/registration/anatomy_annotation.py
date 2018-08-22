@@ -9,6 +9,8 @@ import pandas as pd
 import calendar
 import src.preprocessing.coord_transform as coord_trans
 import maskdb_parsing as maskdb
+import matplotlib.pyplot as plt
+
 #-------------------Global variables-----------------
 exu = "cmtk streamxform"
 data_path="/home/sillycat/Programming/Python/data_test/"
@@ -21,7 +23,7 @@ origin_shift = [240, 310, 80]
 ref_range = np.array([138, 621, 1406])
 sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
 
-def edge_cropping(coord_file, edge = 2.0):
+def edge_cropping(coord_file, edge = 5.0):
     rawd = np.load(coord_file)
     coord = rawd['coord']
     signal = rawd['signal']
@@ -55,20 +57,24 @@ def anatomical_labeling(coord_file, arti_clear = True):
     rm_yaxis = coord_trans.rotmat_yaxis(40.0) # rotational matrix
     print(coord_file)
         #coord = np.loadtxt(coord_file)
-    coord = data['coord']
+    coord = data['coord'] # the freshly registered coordinates
     lab_coord = coord_trans.sample_to_refstack_list(coord, sample_range, pxl_img, pxl_lab, rm_yaxis,origin_shift )
 
     if_outlier = lab_coord[:,2] < 137 # check if the z coordinate is out of range
     lab_coord = lab_coord[if_outlier] # coord has been cleand of outliers
     n_cells = lab_coord.shape[0]
     mask_labels = np.zeros([n_cells, 294])
-    annotation_labels = np.zeros(n_cells)
+    annotation_labels = np.zeros(n_cells) # the outliers have been removed.
+    labels_covered = []
 
     for n_mask in range(294):
-        mask_labels[:,n_mask] = MD.mask_multi_direct_search(n_mask, np.fliplr(lab_coord))
-        mask_idx, outline_idx = MD.get_mask(n_mask)
-        name_idx = MD.get_name(n_mask)
-        print(name_idx)
+        mask_labels[:,n_mask], covered  = MD.mask_multi_direct_search(n_mask, np.fliplr(lab_coord))
+        if covered and n_mask not in [0, 93, 274]:
+            #mask_idx, outline_idx = MD.get_mask(n_mask)
+            name_idx = MD.get_name(n_mask)
+            print(name_idx)
+            labels_covered.append([n_mask, covered])
+
     print("Finished anatomical identification.")
 
     #next, label each cell 
@@ -98,7 +104,6 @@ def anatomical_labeling(coord_file, arti_clear = True):
             annotation_labels[ii] = -1
     # end for. However, there might be fake neurons which have -1 labels
 
-
     labeled_dataset = dict()
     labeled_coord = np.zeros([n_cells, 4])
     labeled_coord[:,:3] = coord[if_outlier]
@@ -114,10 +119,11 @@ def anatomical_labeling(coord_file, arti_clear = True):
     labeled_dataset['signal'] = labeled_signal
 
     np.savez(dest_path, **labeled_dataset)
+    return np.array(labels_covered)
 
 
 
-def dimension_check(key_date, meta_dim, nyear = '17'):
+def dimension_check(key_date, meta_dim, nyear = '18'):
     # parse the key_data first 
     if key_date[0].isalpha():
         month = key_date[:3]#
@@ -212,18 +218,17 @@ def coord_convert_preprocess(fpath, reg_list, origin_x,  order = 'r'):
         print('The registration parameter does not exist.')
         return 'x'
 
-
-
-
-def main():
+# ------------------------Main functions for test ----------------------
+def reg_annotate():
     '''
     register and annotate
     '''
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_dff.npz')
+    response_list = glob.glob(data_path+'FB_resting_15min/Jun07_2018/*_dff.npz')
     print(response_list)
+    label_summary = dict()
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
 
@@ -233,9 +238,12 @@ def main():
         temp_list = basename.split('_')
         reglist  = ''.join([temp_list[0], temp_list[-1]])
 
-        reg_list = data_path + 'Good_registrations/Jul2017_rest/' + reglist +  '.list'
+        reg_list = data_path + 'Good_registrations/Jun2018_rest/' + reglist +  '.list'
         fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
-        anatomical_labeling(fine_dest_name)
+        label_covered = anatomical_labeling(fine_dest_name)
+        label_summary[basename] = label_covered
+
+    np.savez(data_path + 'FB_resting_15min/Jun07_2018.npz', **label_summary)
 
 
 def edge():
@@ -243,5 +251,7 @@ def edge():
     response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_ref.npz')
     for fname in response_list:
         edge_cropping(fname)
+
+
 if __name__ == '__main__':
-    main()
+    reg_annotate()

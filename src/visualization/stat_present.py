@@ -10,19 +10,61 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 default_ccode = ['coral', 'teal', 'darkviolet', 'sienna', 'mediumblue', 'dimgrey']
 
+def direct_dimplot(coef_data, ccode = default_ccode[0], lb_name = 'PC'):
+    '''
+    coef_data: NC*NP matrix
+    '''
+    NC, NP = coef_data.shape
+    fig_dim, axes = plt.subplots(nrows = NP, ncols = NP, figsize = (2.1*NP, 2*NP))
+    fig_dim.subplots_adjust(hspace = 0.05, wspace = 0.05)
+    for nr in range(NP):
+        tx = axes[nr,nr]
+        tx.xaxis.set_visible(False)
+        tx.yaxis.set_visible(False)
+        tx.annotate(lb_name + ' '+ str(nr+1), (0.5, 0.5),xycoords = 'axes fraction', ha = 'center', va = 'center', fontsize = 14)
+        pc_row = coef_data[:,nr]
+        for nc in range(nr):
+            pc_col = coef_data[:,nc]
+            # iterate over columns
+            ax = axes[nr,nc]
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            ax.scatter(pc_col,pc_row, c = ccode, s = 10)
+            # done with color-coded group plot
+            if ax.is_first_col():
+                ax.yaxis.set_visible(True)
+                ax.yaxis.set_ticks_position('left')
+            if ax.is_last_row():
+                ax.xaxis.set_visible(True)
+                ax.xaxis.set_ticks_position('bottom')
 
+
+            # plot the transposed half
+            ax = axes[nc,nr]
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            ax.scatter(pc_row,pc_col, c = ccode, s = 10)
+
+            if ax.is_last_col():
+                ax.yaxis.set_visible(True)
+                ax.yaxis.set_ticks_position('right')
+            if ax.is_first_row():
+                ax.xaxis.set_visible(True)
+                ax.xaxis.set_ticks_position('top')
+    plt.tight_layout()
+    return fig_dim
 
 
 def cluster_dimplot(cp_data, cluster_indices, ccode = default_ccode, lb_name = 'IC'):
     '''
-    cp_data: NT*NP matrix, the column represent different dimensions of features
+    cp_data: NT*NP matrix, the column represent different dimensions of features and the row represent different cells
     cluster_indices: list of lists, specifying different groups
     ccodes: colorcoding of clusters in the cluster_indices
     '''
     NT, NP = cp_data.shape
     n_cluster = len(cluster_indices)
     fig_pc, axes = plt.subplots(nrows = NP , ncols = NP, figsize = (2.1*NP, 2*NP))
-    fig_pc.subplots_adjust(hspace = 0.05, wspace = 0.05)
+    fig_pc.subplots_adjust(hspace = 0.03, wspace = 0.03)
     for nr in range(NP):
         #iterate over rows
         tx = axes[nr,nr]
@@ -182,4 +224,5 @@ def ic_plot(ic_components, dt = 0.5, ccode = None, title = None):
     plt.subplots_adjust(hspace = 0)
 
     return fig
+
 

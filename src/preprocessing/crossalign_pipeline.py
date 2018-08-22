@@ -25,7 +25,7 @@ def Coord_read_transform(fn_trans, fn_data):
     then, resave the data.
     '''
     raw_data = np.load(fn_data)
-    coord, fluo = raw_data['xy'][:,:2], raw_data['data']
+    coord, fluo = raw_data['xy'][:,:2], raw_data['data'] # coordinates are arranged in y-x order instead of x-y
     afm, afv = Affine.aff_read(fn_trans, average = True)
     rfm, rfv= Affine.reverse_trans(afm, afv)
     afc= np.fliplr(Affine.pixel_transform(np.fliplr(coord), rfm, rfv))

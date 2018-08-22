@@ -1,7 +1,7 @@
 '''
 Created by Dan on 07/11/2017.
 Pipeline for batch calculation of raw_f into Delta F/F.
-Last update: 11/04/2017, replacing npz with hdf5.
+Last update: 08/12/2018, removed simple var sorting.
 '''
 import sys
 import os
@@ -9,8 +9,10 @@ import glob
 import numpy as np
 import h5py
 from df_f import *
+import spectral as spec
 from munging import coord_edgeclean
 import simple_variance as simple_variance
+import matplotlib.pyplot as plt
 
 global_datapath_ubn  = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/'
@@ -23,6 +25,7 @@ sys.path.append(package_path)
 class pipeline(object):
     '''
     pipeline of calculating df/f, smoothing and sorting the activity of the cells by variance
+    Note: the coordinate arrangement in this class is always z-y-x instead of x-y-z. Conversion only occurs in downstream processings.
     '''
     def __init__(self, raw_data = None, dt = 0.5):
         self._coord = None
@@ -34,6 +37,7 @@ class pipeline(object):
         elif self.parse_data(raw_data):
             self.dff_calc()
 
+        self.stat = None
 
     def parse_data(self, raw_data):
         try:
@@ -62,6 +66,12 @@ class pipeline(object):
         self.signal = dff_data['signal']
         self.rawf = None
 
+
+    def _list_properties_(self):
+        '''
+        List all the properties (that can be saved)
+        '''
+        pass
     # ----------------------Below are the property members ----------------------
     @property
     def rawf(self):
@@ -104,38 +114,29 @@ class pipeline(object):
 
 
     def dff_calc(self, ft_width = 6, filt = True):
+        '''
+        I have to add one more step to validate the baseline.
+        '''
         dffr = dff_raw(self.rawf, ft_width, ntruncate = 25)
         if filt:
             self.signal = dff_expfilt_group(dffr, self.dt, 1.8)
         else:
             self.signal = dffr
 
-    def svar_sorting(self, var_cut = 0.95):
-        '''
-        simple variance-based sorting
-        '''
-        crank, dvar = simple_variance.simvar_global_sort(self.signal)
-        sum_var = np.cumsum(dvar)
-        sum_var /= sum_var[-1]
-        n_cut = np.searchsorted(sum_var, var_cut)
-        self._trim_data_(crank[:n_cut])
+    def baseline_cleaning(self, bcut = 100.0):
+        min_raw = self.rawf.min(axis = 0)
+        invalid_ind = min_raw < bcut
+        print("Fake cells:", invalid_ind.sum())
+        self._trim_data_(~invalid_ind)
 
-    def noise_sorting(self, nbin = 50, hrange = (-1.0, 4.0)):
+    def valid_check(self, df_th = 7.):
         '''
-        calculate Z-score of each neuron and remove ones with Z-score below zs.
+        remove cells that have dffs larger than df_th.
         '''
-        NT, NC = self.get_size()
-        hist_cells = np.zeros([NC, nbin]) # a record of histogram
-        ms = np.zeros([NC,2])
-        for nf in range(NC):
-            cell_signal = self.signal[:,nf]
-            base_ind, m, s = hillcrop_base_finding(cell_signal)
-            ms[nf] = np.array([m,s]) # mean and std
-            zs = (cell_signal-m)/s
-            hist_cells[nf],_ = np.histogram(zs, nbin, range = hrange)
-
-        self.stat = ms
-        self.hist = hist_cells
+        invalid = np.any(self.signal > df_th, axis = 0)
+        print("# of invalid cells:", invalid.sum())
+        self.signal = self.signal[:, ~invalid]
+        self.coord = self.coord[~invalid]
 
 
     def edge_truncate(self, edge_width = 10.0, verbose = True):
@@ -162,13 +163,36 @@ class pipeline(object):
             print("Final data dimension:", self.get_size())
 
 
-    def signal_max_truncate(self, max_thresh = 5.0, verbose = True):
+    def frequency_representation(self, N_cut = 2000, tw = 300, kt = 10, kf = 0.3, cstd = False, save_file = None):
         '''
-        remove fake neurons with dff exceeding threshold.
+        calculate frequency domain representation: spectrogram
         '''
-        dff_max = np.max(self.signal, axis = 0)
-        fake_ind = np.where(dff_max>max_thresh)[0]
+        if cstd:
+            signal = (self.signal-self.stat[:,0])/self.stat[:,1]
+        else:
+            signal = self.signal
 
+        if np.isscalar(N_cut):
+            fq_ind = np.arange(N_cut)
+        elif len(N_cut) ==2:
+            fq_ind = np.arange(N_cut[0], N_cut[1])
+        else:
+            fq_ind = N_cut
+        n_freq = len(fq_ind)
+        sg_temp = []
+        sg_aver = []
+        for nf in fq_ind:
+            cell_signal = signal[:, nf] # takeout single spectrums
+            spgram, k_max = spec.spectrogram(cell_signal,self.dt, tw, kt, kf)
+            sg_temp.append(spgram)
+            sg_aver.append((spgram**2).sum(axis = 1))
+
+        sg_temp = np.stack(sg_temp)
+        sg_aver = np.stack(sg_aver)
+        if save_file is not None:
+            spec_gram = {'temp': sg_temp, 'aver': sg_aver}
+            np.savez(save_file, **spec_gram)
+        return sg_temp, sg_aver
 
 
     def save_cleaned_h5(self, save_path):
@@ -183,28 +207,28 @@ class pipeline(object):
 
     def save_cleaned_dff(self, save_path):
         '''
-        compile a dictinary and save it
+        copile a dictinary and save it
         '''
         data = {'signal':self.signal, 'coord':self.coord}
-        if self.hist is not None:
-            print(self.hist.shape)
-            data['hist'] = self.hist
-        if self.stat is not None:
-            data['stat'] = self.stat
+
         np.savez(save_path, **data)
 #------------------------------The main test function ---------------------
 
 def main_rawf():
-    data_folder = 'FB_resting_15min/'
-    raw_list = glob.glob(global_datapath_ubn+data_folder+'Jul2017/*merged.npz')
+    #data_folder = 'FB_resting_15min/Jul2017/'
+    data_folder = 'FB_resting_15min/Jul19_2018/'
+    raw_list = glob.glob(global_datapath_ubn+data_folder+'*merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
         raw_data = np.load(raw_file)
         ppl = pipeline(raw_data)
-        ppl.edge_truncate(edge_width = 7.0)
+        #ppl.location_cleaning()
+        ppl.edge_truncate(edge_width = 2.0)
+        ppl.baseline_cleaning(bcut = 160.0)
         ppl.dff_calc(ft_width = 6, filt = True)
-        ppl.save_cleaned_dff(global_datapath_ubn  +data_folder+ acquisition_date + '_dff')
+        ppl.valid_check(df_th = 4.)
+        ppl.save_cleaned_dff(global_datapath_ubn +data_folder+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
 def main_dff():
@@ -214,11 +238,13 @@ def main_dff():
     for dff_file in dff_list:
         acquisition_date = '_'.join(os.path.basename(dff_file).split('.')[0].split('_')[:-1])
         ppl.load_dff(dff_file)
-        ppl.noise_sorting(nbin = 100)
-        ppl.save_cleaned_dff(global_datapath_ubn+data_folder+ acquisition_date + '_hist')
+        ppl.save_cleaned_dff(dff_file)
+        sg_file = global_datapath_ubn + data_folder + acquisition_date + '_sg'
+        sg_temp, sg_aver = ppl.frequency_representation(N_cut = 5000, tw = 300, kt = 10, kf = 0.25, save_file = sg_file)
         print("Finished processing:", acquisition_date)
 
 
 
 if __name__ == '__main__':
+    #main_rawf()
     main_dff()

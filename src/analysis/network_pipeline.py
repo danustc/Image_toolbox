@@ -117,12 +117,6 @@ class pipeline(object):
     def get_cells_index(self, nc_groups):
         return self.signal[:,nc_groups], self.coord[nc_groups, :]
 
-    def get_cells_space(self, pos_center, radius):
-        '''
-        get a list of cells within the desired region.
-        '''
-        pass # to be filled later
-
     def _trim_data_(self, idx , mode = 0):
         '''
         trim the data and keep the cells with indices idx only.
@@ -312,11 +306,9 @@ def main():
     '''
     The test function of the pipeline.
     '''
-
-
     n_ica = 4
     n_clu = 4
-    cf = 0.60
+    cf = 0.70
     local_datafolder = 'Jun07_2018/'
     full_path = global_datapath + local_datafolder
     data_list = glob.glob(full_path + '*dff.npz')

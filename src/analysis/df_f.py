@@ -12,8 +12,23 @@ import numpy as np
 from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit, gaussian1d_fit
 from scipy.signal import exponential, fftconvolve
 from scipy import stats
-import matplotlib.pyplot as plt
-import pyfftw
+
+def background_suppress(signal, ind_A, ext = 2):
+    '''
+    set background points to 0.
+    ext: number of pixels extended from the root of each peak
+    '''
+    signal_bgsup = np.copy(signal)
+    nsig = signal.size
+    u1 = np.union1d(ind_A, ind_A+1)
+    u2 = np.union1d(u1, ind_A+2)
+    d1 = np.union1d(u2, ind_A-1)
+    d2 = np.union1d(d1, ind_A-2)
+    peak_ind = np.where(d2 >=0)[0] # do not take negative indices
+    mask = np.ones(nsig, dtype = bool)
+    mask[peak_ind] = False # mask out the peak indices
+    signal_bgsup[mask] = 0.
+    return signal_bgsup
 
 
 def min_window(shit_data, wd_width):
@@ -45,15 +60,8 @@ def dff_raw(shit_data, ft_width, ntruncate = 20):
     f_base = min_window(s_filt, 6*ft_width) + 2.0e-08
     dff_r = (shit_data[ntruncate:]-f_base)/f_base
 
-  #  hist, be =np.histogram(dff_r, bins = 100) # histogram
-  #  hind = np.argmax(hist)
-  #  mu = (be[hind]+be[hind+1])*0.5 # the average of mu
-  #  if mu>0:
-  #      fb_new = f_base*(1.+mu)
-  #      dff_r = (shit_data[ntruncate:]-fb_new)/fb_new
 
     return dff_r
-    # done with dff_raw
 
 
 def dff_hist(dff_r, nbin = 200, range = None):
@@ -76,33 +84,50 @@ def dff_hist(dff_r, nbin = 200, range = None):
         print("Fitting failed.")
         return hist, -1
 
-def dff_AB(dff_r, gam = 0.05):
+def dff_AB(dff_r, gam = 0.05, nbins = 40):
     '''
     Using Bayesian theory to infer the identity of the data points (signal or noise)
+    update on 07/24/2018: reset the prior.
+    basecut: set the bottom fraction of datasets as baseline.
     '''
+    ND = len(dff_r)
     Zn = dff_r[:-1]
     Zp = dff_r[1:]
-    h2, ne, pe = np.histogram2d(Zn, Zp, bins = 50) #2d histogram distribution of (Zn_k, Zn_k+1)
-    hne = (ne[:-1]+ne[1:])/2.
-    hpe = (pe[:-1]+pe[1:])/2.
-    [NE, PE] = np.meshgrid(hne, hpe)
-    popt, pcov = gaussian2d_fit(x = NE, y = PE, data = h2.ravel(), x0=0., y0=0., sig_x = 0.5, sig_y = 0.5, rho = 0.60, A = 10, offset = 0.10)
-    mx, my, a,b,c, A, ofst = popt # the fitted parameters
-    sxq = 2*b/(4*a*b-c*c)
-    syq = 2*a/(4*a*b-c*c)
-    sxy = np.sqrt(sxq*syq)
-    rho = c/(2.*np.sqrt(a*b))
-    rv = stats.multivariate_normal(mean = [mx, my], cov = [[sxq, rho*sxy], [rho*sxy, syq]])
-    PZB = rv.pdf(np.dstack((Zn,Zp))) # the distribution of B: dual-variate Gaussian
+    Z_diff = (Zp-Zn)/np.sqrt(2.)
+    Z_sum  = (Zp+Zn)/np.sqrt(2.)
+
+    sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 4, conf_level = 0.8)
+    m_diff = np.mean(Z_diff)
+    s_diff = np.std(Z_diff)
+
+    diff_range = np.logical_and((Z_diff - m_diff) < 1.2*s_diff, (Z_diff - m_diff) > -0.8*s_diff)
+    B_indices = np.logical_and(diff_range, sum_range)
+    B_diff = Z_diff[B_indices]
+    B_sum = Z_sum[B_indices]
+    md,sd = stats.norm.fit(B_diff) #:does not work. More constraints should be added to the fit.
+    ms,ss = stats.norm.fit(B_sum) # ms is the recognized noise level
+
+    dmin, dmax, smin, smax = Z_diff.min(), Z_diff.max(), Z_sum.min(), Z_sum.max()
+    del_diff, del_sum = (dmax-dmin)/(nbins-1), (smax-smin)/(nbins-1)
+    h2, ne, pe = np.histogram2d(Z_diff, Z_sum, bins = nbins, range = [[dmin-del_diff*0.5, dmax+del_diff*0.5],[smin-del_sum*0.5, smax+del_sum*0.5]]) #2d histogram distribution of (Zn_k, Zn_k+1)
+    rv = stats.multivariate_normal(mean = [md, ms], cov = [[sd**2, 0.], [0., ss**2]]) # normal distribution for zero-correlation
+    PZB = rv.pdf(np.dstack((Z_diff,Z_sum))) # the distribution of B: dual-variate Gaussian
+
     Z_dist = h2/h2.sum() # normalized distribution
-    ind_zn = np.searchsorted(ne, Zn)-1 #indices of %Zn in the histogram 
-    ind_zp = np.searchsorted(pe, Zp)-1 #indices of Zn+1 in the histogram
+    ind_zn = np.searchsorted(ne, Z_diff)-1 #indices of %Zn in the histogram 
+    ind_zp = np.searchsorted(pe, Z_sum)-1 #indices of Zn+1 in the histogram
     PZ = Z_dist[ind_zn, ind_zp] # the probability of data transitions
     PBZ = PZB/(PZ+0.001) # Bayesian theory, the activity posterior probability 
     beta = gam/(1.+gam)
-    id_A = np.where(PBZ<beta)[0]
-    return id_A
+    id_A = np.where(np.logical_and(PBZ<beta, (Z_sum-ms)>-ss))[0] # add more constraint: the sum must be larger than -1 std
+    id_peak = np.union1d(id_A, id_A+1)
+    peak_mask = np.ones(ND, dtype=bool)
+    peak_mask[id_peak] = False
+    bg_points = dff_r[peak_mask]
+    background = np.mean(bg_points)
+    noise_level = np.std(bg_points)
 
+    return id_peak, background, noise_level
 
 
 def dff_expfilt(dff_r, dt, t_width = 2.0, savefilter = False):
@@ -147,23 +172,4 @@ def hillcrop_base_finding(dff_r, niter = 4, conf_level = 3):
 
     return base_ind, m_dff, s_dff
 
-
-
-#-------------------------Frequency domain----------------------------
-def dff_frequency(dff_r, dt):
-    '''
-    Calculate the frequency representation of the dff.
-    '''
-    NT, NC = dff_r.shape
-    dk = 1./(NT*dt)
-    a = pyfftw.empty_aligned(NT, dtype = 'complex128')
-    b = pyfftw.empty_aligned(NT, dtype = 'complex128')
-    NK = int(NT/2)
-    dff_k = np.empty((NK,NC))
-    container = pyfftw.FFTW(a,b)
-    for ic in range(NC):
-        container(dff_r[:,ic])
-        freq_cps = container.get_output_array()
-        dff_k[:,ic] = np.abs(freq_cps[:NK])
-    return dff_k, dk
 
