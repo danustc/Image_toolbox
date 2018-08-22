@@ -59,15 +59,15 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 3, bsteps =7, verbose = Tr
     '''
     # now, let's calculate threshold
     NY, NX = filled_frame.shape
-    th = (np.mean(filled_frame) - np.std(filled_frame))/7.
+    th = (np.mean(filled_frame) - np.std(filled_frame))/8.
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
     # clean blobs that is at the edge
     by, bx = cblobs[:,0], cblobs[:,1]
-    valid_indY = np.logic_and(by > bsize, by< (NY-bsize))
-    valid_indX = np.logic_and(bx > bsize, bx< (NX-bsize))
-    valid_ind = np.logic_and(valid_indY, valid_indX)
+    valid_indY = np.logical_and(by > bsize, by< (NY-bsize))
+    valid_indX = np.logical_and(bx > bsize, bx< (NX-bsize))
+    valid_ind = np.logical_and(valid_indY, valid_indX)
     cblobs = cblobs[valid_ind] # remove those edge blobs --- added by Dan on 08/11/2018.
 
     if verbose:
