@@ -7,6 +7,7 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
 global_datapath = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/'
 from df_f import dff_AB
+import inspect
 
 class grinder(object):
     '''
@@ -155,6 +156,34 @@ class grinder(object):
                 b_ind = np.where(~act)[0]
                 self.signal[b_ind, nf] = self.signal[b_ind[shuff_order], nf]
 
+
+    def digitization(self):
+        '''
+        set all the active points to 1 and inactive points to 0.
+        '''
+        NC = self.NC
+        activity = self.activity
+        dig_signal = np.zeros_like(self.signal)
+        for nf in range(NC):
+            act = activity[:,nf]
+            dig_signal[act,nf] = 1
+
+        return dig_signal
+
+    def normalization(self):
+        '''
+        normalize the amplitude of all the neurons with mean.
+        '''
+        NC = self.NC
+        activity = self.activity
+        norm_signal = np.zeros_like(self.signal)
+        for nf in range(NC):
+            act = activity[:, nf]
+            mean_sig = self.signal[act, nf].mean()
+            norm_signal[:, nf] = self.signal[:,nf]/mean_sig
+
+        return norm_signal
+
     def shutDown(self):
         pass
 
@@ -162,10 +191,11 @@ class grinder(object):
 def coregen():
     date_folder = 'Jun07_2018/'
     grinder_core = grinder()
+    inspect.getmembers(grinder_core,predicate = inspect.ismethod)
     data_path = global_datapath+ date_folder+'Jun07_2018_B4_dff.npz'
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
-    grinder_core.background_suppress()
+    grinder_core.background_suppress(sup_coef = 0)
     return grinder_core
 
 
