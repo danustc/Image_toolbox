@@ -68,7 +68,7 @@ def anatomical_labeling(coord_file, arti_clear = True):
     labels_covered = []
 
     for n_mask in range(294):
-        mask_labels[:,n_mask], covered  = MD.mask_multi_direct_search(n_mask, np.fliplr(lab_coord))
+        mask_labels[:,n_mask], covered  = MD.mask_multi_direct_search(n_mask, np.fliplr(lab_coord)) # from x,y,z back to z,y,x again
         if covered and n_mask not in [0, 93, 274]:
             #mask_idx, outline_idx = MD.get_mask(n_mask)
             name_idx = MD.get_name(n_mask)
@@ -79,6 +79,8 @@ def anatomical_labeling(coord_file, arti_clear = True):
 
     #next, label each cell 
     mask_dup = np.sum(mask_labels, axis = 1) # for each cell, sum up the masks to count how many brain regions are annotated
+    ind_unmasked = np.where(mask_dup==0)[0] # cells that are not tagged by any labels
+
     for ii in range(n_cells):
         '''
         Encode each cell's mask labels into one number
@@ -243,7 +245,7 @@ def reg_annotate():
         label_covered = anatomical_labeling(fine_dest_name)
         label_summary[basename] = label_covered
 
-    np.savez(data_path + 'FB_resting_15min/Jun07_2018.npz', **label_summary)
+    np.savez(data_path + 'FB_resting_15min/Jun07_2018_labels.npz', **label_summary)
 
 
 def edge():

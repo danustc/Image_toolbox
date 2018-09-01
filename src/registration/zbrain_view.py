@@ -77,8 +77,12 @@ class Zbrain(object):
 
 
 def main():
+    '''
+    Summarize the # of neurons in each brain region
+    Columns: Mask label (0-294)
+    '''
     ZB = Zbrain()
-    mask_summ = np.load(data_path + 'FB_resting_15min/Jun07_2018.npz')
+    mask_summ = np.load(data_path + 'FB_resting_15min/Jun07_2018/*ref.npz')
     mask_keys = mask_summ.keys()
     print(mask_keys)
     for key, mask_info in mask_summ.items():
