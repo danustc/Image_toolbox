@@ -6,10 +6,40 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import numpy as np
 
-def compact_dffplot(dff_data, dt = 0.5, ts_bar = 200, sc_bar = 0.25):
+def compact_dffplot(dff_data, dt = 0.5 , sc_bar = 0.25, tbar = 3, fsize = (6,2.5)):
     '''
-    compact df/f plot.
+    compact df/f plot. To be filled later.
+    the unit of tbar: minutes
+    rank: number small -large, low to high
     '''
+    NT, NC = dff_data.shape
+    tt = np.arange(NT)*dt # time series 
+    fig_comp = plt.figure(figsize = fsize)
+    ax = fig_comp.add_subplot(111)
+    dff_max = dff_data.max(axis = 0)
+    d_pad = dff_max.max() #  the padding space
+    tmark = -dt*NT/30
+    smark = tbar*60
+    tbar_start = tt[-1] - smark - 60
+    # first, plot those \Delta F/F traces
+    for ii in range(NC):
+        ax.plot(dff_data[:,ii]+(NC-ii)*d_pad, '-r')
+
+    ax.text(tmark, NC*d_pad, str(1), fontsize =10 )
+    ax.text(tmark, d_pad, str(NC), fontsize = 10)
+    ax.set_xlim([tmark, (NT+20)*dt])
+    ax.set_ylim([0, (NC+0.5)*d_pad])
+    ax.plot([tmark,tmark], [0, sc_bar], color = 'k', linewidth = 3)
+    ax.text(tmark+15, 0, r'$\Delta F/F = $'+str(sc_bar), fontsize = 10)
+    ax.plot([tbar_start, tbar_start + smark], [0, 0], color = 'k', linewidth = 3)
+    ax.text(tbar_start+smark+15, 0, str(tbar)+' min', fontsize = 10)
+    ax.set_axis_off() # do not display the axis
+
+    # second, set the scale bar of DFF and time.
+
+    plt.tight_layout()
+    return fig_comp
+
 
 
 def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
