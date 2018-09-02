@@ -198,12 +198,12 @@ def coord_convert_preprocess(fpath, reg_list, origin_x,  order = 'r'):
         print('The registration parameter does not exist.')
         return 'x'
 
-def label_summary(group_labels, n_range = (20, 100), bar_plot = True):
+def label_summary(group_labels, n_range = (20, 100), bar_plot = True, bar_color = 'coral'):
     '''
     summarize the anatomical labels of a fish, export a figure.
     '''
     label_file = np.load(group_labels)
-    nkeys = len(label_file)
+    nkeys = len(label_file.keys())
     label_count = np.zeros([294, nkeys+1])
     ii = 1
     for key, sum_info in label_file.items():
@@ -222,7 +222,7 @@ def label_summary(group_labels, n_range = (20, 100), bar_plot = True):
 
     if bar_plot:
         c_min, c_max = n_range
-        in_range = np.logical_and(label_mean < c_max, label_mean > cmin)
+        in_range = np.logical_and(label_mean < c_max, label_mean > c_min)
         label_plot = label_covered[in_range] # plot the labels inside the selected count range
         mean_plot = label_mean[in_range]
         std_plot = label_std[in_range]
@@ -230,14 +230,21 @@ def label_summary(group_labels, n_range = (20, 100), bar_plot = True):
         ind = np.arange(len(label_plot))
         MD = maskdb.mask_db()
         for lab in label_plot:
-            name_list.append(MD.get_name(lab)[:15])
+            raw_name = MD.get_name(lab)
+            raw_parts = raw_name.split('-')
+            if len(raw_parts) > 1:
+                short_name = '-'.join([raw_parts[0][:4], raw_parts[1][1:6]])
+            else:
+                short_name = raw_parts[0][:10]
+            name_list.append(short_name)
 
-        fig_sum = plt.figure(figsize = (10,6))
-        ax.add_subplot(111)
-        ax.bar(ind, mean_plot, width = 0.8, yerr = std_plot, color = 'coral')
+        fig_sum = plt.figure(figsize = (8, 4.5))
+        ax = fig_sum.add_subplot(111)
+        ax.bar(ind, mean_plot, width = 0.8, yerr = std_plot, color = bar_color)
         ax.set_xticks(ind)
-        ax.set_xticklabels(name_list, rotation = 35)
-
+        ax.set_xticklabels(name_list, rotation = 35, ha = 'right', fontsize = 12)
+        ax.set_ylabel('Counts', fontsize = 12)
+        fig_sum.tight_layout()
         return fig_sum
 
     else:
@@ -270,7 +277,15 @@ def reg_annotate():
         label_sum [basename] = label_covered
     label_path = data_path + 'FB_resting_15min/Jun07_2018_labels.npz'
     np.savez(label_path, **label_sum)
-    fig_sum = label_summary(label_path)
+
+    fig_sum = label_summary(label_path, n_range = (0,20), bar_color = 'coral')
+    fig_sum.savefig('label_summary_0_20')
+    fig_sum = label_summary(label_path, n_range = (20,100), bar_color = 'turquoise')
+    fig_sum.savefig('label_summary_20_100')
+    fig_sum = label_summary(label_path, n_range = (100,500), bar_color = 'violet')
+    fig_sum.savefig('label_summary_100_500')
+    fig_sum = label_summary(label_path, n_range = (500,5000), bar_color = 'sienna')
+    fig_sum.savefig('label_summary_500_5000')
     # next 
 
 
