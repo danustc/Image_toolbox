@@ -214,15 +214,22 @@ class pipeline(object):
         clustering the neurons based on their IC coefficients
         '''
         NT, NC = self.get_size()
-        n_select = int(NC*c_fraction)  # number of neurons that are used for ica calculation
-        selected_signal = self.signal[:,:n_select]
+        if c_fraction is None:
+            selected_signal = self.signal
+        else:
+            n_select = int(NC*c_fraction)  # number of neurons that are used for ica calculation
+            selected_signal = self.signal[:,:n_select]
+
+        print(selected_signal.shape)
         dff_ica, a_mix, s_mean = ica_sorting.ica_dff(selected_signal, n_comp = n_components)
+        print(a_mix.shape)
 
         lr = linear_model.LinearRegression()
         lr.fit(dff_ica, self.signal[:, n_select:])
         ico_total = np.r_[a_mix, lr.coef_] # the ic coefficients of all the extracted neurons 
         cls_pred = KMeans(n_clusters, random_state = None).fit(ico_total)
         labels = cls_pred.labels_
+        print(labels.shape)
         km_centers = cls_pred.cluster_centers_
         #------- Next, let's divide the data into the groups based on the clustering labels.
         signal_clustered = deque()
@@ -307,11 +314,11 @@ def main():
     The test function of the pipeline.
     '''
     n_ica = 4
-    n_clu = 4
-    cf = 0.70
-    local_datafolder = 'Jun07_2018/'
+    n_clu = 5
+    cf = 0.90
+    local_datafolder = 'Aug02_2018/'
     full_path = global_datapath + local_datafolder
-    data_list = glob.glob(full_path + '*dff.npz')
+    data_list = glob.glob(full_path + '*B2*dff.npz')
     clean_list = []
     clean_fname = full_path+'clean_list.txt'
 
@@ -323,7 +330,8 @@ def main():
         # -------- PCA and ICA clustering ------------------
 
         # commented by Dan on 03/07
-        #PL.reorder_data(ind_shuffle = np.arange(ntr))
+        PL.reorder_data(ind_shuffle = np.arange(1500))
+        PL.signal = PL.signal[10:]
         #crank,_ = simple_variance.simvar_global_sort(PL.signal)
         #PL.reorder_data(ind_shuffle = crank)
         #fig_sti = signal_plot.dff_rasterplot(PL.signal, n_truncate = ntr)
@@ -351,17 +359,13 @@ def main():
             sub_dset['signal'] = cl_signal
             np.savez(full_path + '/' + basename + '_cl_' + str(nc), **sub_dset)
             NC = cl_coord.shape[0]
-            if NC>150:
-                n_trunc = 150
-            else:
-                n_trunc = None
-            fig_r = signal_plot.dff_rasterplot(cl_signal, fw = 7.0, n_truncate = n_trunc)
+            fig_r = signal_plot.dff_rasterplot(cl_signal, fw = (10.0, 8.0) )
             fig_r.savefig(full_path + '/' + basename + '_' + str(nc) )
             plt.close(fig_r)
 
         mk = PL.ica_interactive_cleaning()
         #PL.save_cleaned(full_path+ '/'+ basename +'_cleaned',rev_zyx = False)
-        PL.save_cleaned(df_name,rev_zyx = False)
+        #PL.save_cleaned(df_name,rev_zyx = False)
         #fig_r = signal_plot.dff_rasterplot(PL.signal, fw = 7.0, title = basename )
         #fig_r.savefig(full_path + '/' + basename + '_sti' )
 
