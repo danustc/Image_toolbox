@@ -1,7 +1,7 @@
 '''
 Created on 07/27/2017 by Dan. Clustering of the data.
 Visualization is inherently included here.
-Last modification: 11/05/2017
+Last modification: 09/03/2018
 '''
 import numpy as np
 from scipy.cluster.hierarchy import dendrogram, linkage, cophenet
