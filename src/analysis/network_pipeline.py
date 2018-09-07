@@ -348,7 +348,7 @@ def main():
 
         cluster_size = [len(cluster) for cluster in PL.clu_label]
         print("cluster sizes:", cluster_size)
-
+        cluster_mean = []
         for nc in range(n_clu):
             cl_coord = coord_clustered[nc]
             cl_signal = signal_clustered[nc]
@@ -359,11 +359,15 @@ def main():
             sub_dset['signal'] = cl_signal
             np.savez(full_path + '/' + basename + '_cl_' + str(nc), **sub_dset)
             NC = cl_coord.shape[0]
-            fig_r = signal_plot.dff_rasterplot(cl_signal, fw = (10.0, 8.0) )
+            fig_r = signal_plot.dff_rasterplot(cl_signal, fw = (7.0, 5.0) )
             fig_r.savefig(full_path + '/' + basename + '_' + str(nc) )
             plt.close(fig_r)
+            cluster_mean.append(cl_signal.mean(axis = 1))
 
-        mk = PL.ica_interactive_cleaning()
+
+        cluster_mean = np.array(cluster_mean).T
+        fig_mean = signal_plot.compact_dffplot(cluster_mean, sc_bar = 0.2, tbar = 2 )
+        fig_mean.savefig('ica_cluster_mean')
         #PL.save_cleaned(full_path+ '/'+ basename +'_cleaned',rev_zyx = False)
         #PL.save_cleaned(df_name,rev_zyx = False)
         #fig_r = signal_plot.dff_rasterplot(PL.signal, fw = 7.0, title = basename )

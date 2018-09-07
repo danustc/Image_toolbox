@@ -198,35 +198,15 @@ def coregen():
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
     grinder_core.background_suppress(sup_coef = 0.0001)
-    N_cut = 250
-    th = 0.02
-    th_list = [-1., 0.10, 0.20]
+    N_cut = 1500
+    th = 0.23
     signal_test = grinder_core.signal[10:,:N_cut]
-    w_val = []
-    for th in th_list[:1]:
-        W = sc.corr_afinity(grinder_core.signal[10:,:N_cut], thresh = th, kill_diag = True)
-        L = sc.laplacian(W)
-        plt.imshow(W, cmap = 'plasma')
-        plt.colorbar()
-        plt.axis('off')
-        plt.tight_layout()
-        plt.savefig('corr_mat')
-        plt.clf()
-        plt.imshow(L-np.diag(np.diag(L)), cmap = 'plasma')
-        plt.axis('off')
-        plt.colorbar()
-        plt.tight_layout()
-        plt.savefig('graph_laplacian_nodiag')
-        plt.clf()
-        w, v = sc.sc_unnormalized(L, n_cluster = 20)
-        w_val.append(w)
+    fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,4.5))
+    fig_all.savefig('all_'+str(N_cut))
+    W = sc.corr_afinity(grinder_core.signal[10:,:N_cut], thresh = th, kill_diag = False)
+    L = sc.laplacian(W)
+    w, v = sc.sc_unnormalized(L, n_cluster = 20)
 
-    w_val[-1]*=10
-    plt.plot(np.array(w_val).T, '-x')
-    plt.legend(th_list, fontsize = 12)
-    plt.ylabel('Eigenvalue')
-    plt.savefig('Eigenvalue_GL')
-    plt.show()
     n_clu = 5
     y_labels = clustering.spec_cluster(grinder_core.signal[:,:N_cut],n_clu, threshold = th)
     #return grinder_core
@@ -251,7 +231,7 @@ def coregen():
 
     nl = sub_cluster[0]
     sub_population = signal_test[:,y_labels ==nl]
-    W = sc.corr_afinity(signal_test[:,y_labels == nl], thresh = 0.9*th)
+    W = sc.corr_afinity(signal_test[:,y_labels == nl], thresh = 0.95*th)
     L = sc.laplacian(W)
     w, v = sc.sc_unnormalized(L, n_cluster = 20)
     plt.close('all')
@@ -259,7 +239,20 @@ def coregen():
     plt.show()
     n_clu = int(input("the # of clusters in the subset:") )
 
-    y_labels = clustering.spec_cluster(grinder_core.signal[:,:N_cut],n_clu, threshold = th)
+    y_labels = clustering.spec_cluster(sub_population, n_clu, threshold = th)
+    sig_clusters = np.zeros([1775, n_clu])
+    for nl in range(n_clu):
+        signal_nl = sub_population[:, y_labels == nl]
+        NT, NC = signal_nl.shape
+        sig_clusters[:,nl] = signal_nl.mean(axis = 1)
+        fig = signal_plot.dff_rasterplot(signal_nl)
+        fig.savefig('subcluster_'+str(nl), dpi = 200)
+        fig.clf()
+
+
+    fig_mean = signal_plot.compact_dffplot(sig_clusters, dt = 0.5, sc_bar = 0.20, tbar = 2)
+    fig_mean.savefig('sub_mean', dpi = 200)
+
 
 if __name__ == '__main__':
     coregen()
