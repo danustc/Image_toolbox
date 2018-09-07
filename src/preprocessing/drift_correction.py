@@ -4,13 +4,12 @@ New trial of drift correction
 import pyfftw
 import numpy as np
 from scipy.ndimage import interpolation
-from tifffile import TiffFile
+import tifffile as tf
 import correlation
 import patch_finding
 
 package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 global_datapath_win  = 'D:/Data/2018-08-23/\\'
-
 
 
 def shift_stack(stack, shift_coord):
@@ -74,7 +73,12 @@ def cross_coord_shift_huge_stack(huge_stack, crop_ratio = 0.8, n_cut = 5, up_rat
 
 
 def main():
-    folder_list = glob.glob(data_rootpath+"/Aug*\\")
+    folder_list = glob.glob(data_rootpath+"/Aug*/*TS/\\")
     for data_path in folder_list:
         print(data_path)
+        img_path = glob.glob(data_path + 'rg*.tif')
+        for stack_name in img_path:
+            stack = tf.imread(stack_name)
+            slice_0 = stack[0] # the first stack
+            patch = 
 
