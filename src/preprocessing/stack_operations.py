@@ -161,3 +161,12 @@ def stack_global_thresholding(stack, nsig = 3):
     th_stack = np.copy(stack)
     th_stack[stack>s_mean+nsig*s_std] = s_mean+nsig*s_std
     return th_stack
+
+
+def stack_slice_thresholding(stack, nsig = 3):
+    th_stack = np.copy(stack)
+    for img_slice in th_stack:
+        img_mean = img_slice.mean()
+        img_std = img_slice.std()
+        img_slice[img_slice > img_mean + nsig*img_std] = img_mean + nsig*img_std
+    return th_stack
