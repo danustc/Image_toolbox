@@ -59,7 +59,7 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 3, bsteps =7, verbose = Tr
     '''
     # now, let's calculate threshold
     NY, NX = filled_frame.shape
-    th = (np.mean(filled_frame) - np.std(filled_frame))/8.
+    th = (np.mean(filled_frame) - np.std(filled_frame))/7.
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)

@@ -10,7 +10,7 @@ import glob
 import matplotlib.pyplot as plt
 
 package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
-global_datapath_win  = 'D:/Data/2018-08-23/\\'
+global_datapath_win  = 'D:/Data/2018-08-23/B2_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/cmtk_images/'
 
 
@@ -102,7 +102,8 @@ def cross_coord_shift_huge_stack(huge_stack, crop_ratio = 0.8, n_cut = 5, up_rat
 
 
 def main():
-    folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
+    #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
+    folder_list = glob.glob(global_datapath_win+"/*5.tif")
     for data_path in folder_list:
         print(data_path)
         cropped_stack = stack_preparation(data_path)
