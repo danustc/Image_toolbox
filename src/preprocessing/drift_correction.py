@@ -14,7 +14,7 @@ global_datapath_win  = 'D:/Data/2018-08-23/B2_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/cmtk_images/'
 
 
-def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'center', padding_width = 10):
+def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'center', padding_width = 20):
     '''
     prepare a raw stack for drift alignment
     instead of loading the whole full raw stack, just open its path and seek one slice
@@ -102,8 +102,8 @@ def cross_coord_shift_huge_stack(huge_stack, crop_ratio = 0.8, n_cut = 5, up_rat
 
 
 def main():
-    #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
-    folder_list = glob.glob(global_datapath_win+"/*5.tif")
+    folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
+    #folder_list = glob.glob(global_datapath_win+"/*5.tif")
     for data_path in folder_list:
         print(data_path)
         cropped_stack = stack_preparation(data_path)
