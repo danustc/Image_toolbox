@@ -1,15 +1,44 @@
 '''
 New trial of drift correction
 '''
-import pyfftw
 import numpy as np
 from scipy.ndimage import interpolation
-import tifffile as tf
 import correlation
 import patch_finding
+from PIL import Image, ImageSequence, ImageStat
+import glob
+import matplotlib.pyplot as plt
 
 package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 global_datapath_win  = 'D:/Data/2018-08-23/\\'
+global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/cmtk_images/'
+
+
+def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'center'):
+    '''
+    prepare a raw stack for drift alignment
+    instead of loading the whole full raw stack, just open its path and seek one slice
+    patch_size: (pw, ph), opposite to the convention of Python-array dimensions.
+    # return a cropped stack
+    '''
+    # 1. take the first slice and calculate patch
+    raw_dataset = Image.open(raw_stack_path)
+    slice_0 = raw_dataset.seek(0)
+    w, h = raw_dataset.size # width and height
+    pw, ph = patch_size
+    ileft = int((w-pw)//2)
+    iupper = int((h-ph)//2)
+    iright = ileft + pw
+    ilower = iupper + ph
+    cropped_stack = np.zeros((raw_dataset.n_frames, ph, pw)) # pay attention to the stack size!
+
+    crop_canvas = (ileft, iupper, iright, ilower)
+    for ii, page in enumerate(ImageSequence.Iterator(raw_dataset)):
+        cropped_stack[ii] = page.crop(crop_canvas)
+
+    raw_dataset.close() # remember to close the file everytime you open it!
+
+    return cropped_stack
 
 
 def shift_stack(stack, shift_coord):
@@ -73,12 +102,12 @@ def cross_coord_shift_huge_stack(huge_stack, crop_ratio = 0.8, n_cut = 5, up_rat
 
 
 def main():
-    folder_list = glob.glob(data_rootpath+"/Aug*/*TS/\\")
+    folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
     for data_path in folder_list:
         print(data_path)
-        img_path = glob.glob(data_path + 'rg*.tif')
-        for stack_name in img_path:
-            stack = tf.imread(stack_name)
-            slice_0 = stack[0] # the first stack
-            patch = 
+        cropped_stack = stack_preparation(data_path)
+        print(cropped_stack.shape)
+        correlation.cross_corr_stack_self(cropped_stack, pivot_slice = 10)
 
+if __name__ == '__main__':
+    main()

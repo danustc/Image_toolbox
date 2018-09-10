@@ -113,15 +113,12 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
     container_invx = pyfftw_container(ny, nx, bwd = True)
 
     ref_frame = stack[pivot_slice]
-    if pivot_slice == 0:
-        seq = np.arange(1, nz)
-    else:
-        seq = np.concatenate()
+
     for ii in range(nz):
-        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii+1], container_1, container_2, container_invx,up_rate)[:2]
+        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx)[:2]
         if verbose:
             print("slice ", ii+1, '-->', shy, shx)
-        shift_coord.append([-shy, -shx])
+        shift_coord[ii] = np.array([-shy, -shx])
         # then we have to shift im 2 by (-shy, -shx)
         if adj_ref:
             # if the stack is aligned in the adjacent mode, them each slice should be updated in place; otherwise we can just return the shift coordinates.

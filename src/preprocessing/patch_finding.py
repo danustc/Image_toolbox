@@ -28,7 +28,6 @@ def patch_finding_2d(img, patch_size = (512,512), stride = 20, offset = (0,0), r
     if return_position:
         r_start = pat_r[:,0]
         c_start = pat_c[:,0]
-        p_start = np.outer(r_start, c_start) # outer product
     else:
         r_start, c_start = None, None
 
@@ -44,7 +43,7 @@ def patch_maxvar(img, patch_size = (512, 512), stride = 100, offset = (20,20)):
     '''
     find the patch with the maximum variance.
     '''
-    patches = patch_finding_2d(img, patch_size, stride, offset, True) # return patches and their starting positions
+    patches, p_start = patch_finding_2d(img, patch_size, stride, offset, True) # return patches and their starting positions
     pvar = np.var(patches, axis = (1,2)) # calculate each patch's variance
     pind = np.argmax(pvar)
     patch = patches[pind]
