@@ -102,8 +102,8 @@ def cross_coord_shift_huge_stack(huge_stack, crop_ratio = 0.8, n_cut = 5, up_rat
 
 
 def main():
-    folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
-    #folder_list = glob.glob(global_datapath_win+"/*5.tif")
+    #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
+    folder_list = glob.glob(global_datapath_win+"/*25.tif")
     for data_path in folder_list:
         print(data_path)
         cropped_stack = stack_preparation(data_path)
