@@ -42,9 +42,9 @@ def pyfftw_container(ny, nx, bwd = False):
     a = pyfftw.empty_aligned((ny,nx),dtype = 'complex128')
     b = pyfftw.empty_aligned((ny,nx),dtype = 'complex128')
     if bwd:
-        container = pyfftw.FFTW(a,b,axes = (0,1))
-    else:
         container = pyfftw.FFTW(a,b,axes = (0,1),direction = 'FFTW_BACKWARD')
+    else:
+        container = pyfftw.FFTW(a,b,axes = (0,1),direction = 'FFTW_FORWARD')
     return container
 
 
@@ -57,8 +57,8 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
     precision: to single pixels
     '''
     N, M  = im_1.shape
-    hy = N//2
-    hx = M//2
+    hy = int(N//2)
+    hx = int(M//2)
     if container_1 is None:
         container_1 = pyfftw_container(N,M)
     if container_2 is None:

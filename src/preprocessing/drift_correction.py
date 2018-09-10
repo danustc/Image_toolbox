@@ -14,7 +14,7 @@ global_datapath_win  = 'D:/Data/2018-08-23/B2_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/cmtk_images/'
 
 
-def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'center'):
+def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'center', padding_width = 10):
     '''
     prepare a raw stack for drift alignment
     instead of loading the whole full raw stack, just open its path and seek one slice
@@ -30,11 +30,11 @@ def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'cente
     iupper = int((h-ph)//2)
     iright = ileft + pw
     ilower = iupper + ph
-    cropped_stack = np.zeros((raw_dataset.n_frames, ph, pw)) # pay attention to the stack size!
+    cropped_stack = np.zeros((raw_dataset.n_frames, ph+2*padding_width, pw+2*padding_width)) # pay attention to the stack size!
 
     crop_canvas = (ileft, iupper, iright, ilower)
     for ii, page in enumerate(ImageSequence.Iterator(raw_dataset)):
-        cropped_stack[ii] = page.crop(crop_canvas)
+        cropped_stack[ii] = np.pad(page.crop(crop_canvas), (padding_width, padding_width),  mode = 'constant')
 
     raw_dataset.close() # remember to close the file everytime you open it!
 
@@ -107,7 +107,7 @@ def main():
     for data_path in folder_list:
         print(data_path)
         cropped_stack = stack_preparation(data_path)
-        print(cropped_stack.shape)
+        print(cropped_stack.dtype)
         correlation.cross_corr_stack_self(cropped_stack, pivot_slice = 10)
 
 if __name__ == '__main__':
