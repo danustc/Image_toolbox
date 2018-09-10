@@ -3,6 +3,7 @@ New trial of drift correction
 '''
 import numpy as np
 from scipy.ndimage import interpolation
+from scipy import signal
 import correlation
 import patch_finding
 from PIL import Image, ImageSequence, ImageStat
@@ -30,11 +31,16 @@ def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'cente
     iupper = int((h-ph)//2)
     iright = ileft + pw
     ilower = iupper + ph
-    cropped_stack = np.zeros((raw_dataset.n_frames, ph+2*padding_width, pw+2*padding_width)) # pay attention to the stack size!
+    hann_w = signal.hann(pw)
+    hann_h = signal.hann(ph)
+    hanning_2d = np.outer(hann_h, hann_w)
+    #cropped_stack = np.zeros((raw_dataset.n_frames, ph+2*padding_width, pw+2*padding_width)) # pay attention to the stack size!
+    cropped_stack = np.zeros((raw_dataset.n_frames, ph, pw)) # pay attention to the stack size!
 
     crop_canvas = (ileft, iupper, iright, ilower)
     for ii, page in enumerate(ImageSequence.Iterator(raw_dataset)):
-        cropped_stack[ii] = np.pad(page.crop(crop_canvas), (padding_width, padding_width),  mode = 'constant')
+        #cropped_stack[ii] = np.pad(page.crop(crop_canvas), (padding_width, padding_width),  mode = 'constant')
+        cropped_stack[ii] = page.crop(crop_canvas)*hanning_2d
 
     raw_dataset.close() # remember to close the file everytime you open it!
 
@@ -102,8 +108,8 @@ def cross_coord_shift_huge_stack(huge_stack, crop_ratio = 0.8, n_cut = 5, up_rat
 
 
 def main():
-    #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
-    folder_list = glob.glob(global_datapath_win+"/*25.tif")
+    folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
+    #folder_list = glob.glob(global_datapath_win+"/*25.tif")
     for data_path in folder_list:
         print(data_path)
         cropped_stack = stack_preparation(data_path)

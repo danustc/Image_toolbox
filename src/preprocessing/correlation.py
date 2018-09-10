@@ -73,7 +73,7 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
 
     F_prod = np.conj(ft_1)*ft_2
     phase_spec = F_prod/np.absolute(F_prod) # phase_spec
-    container_inv(phase_spec) # invert phase spec or cross-correlation function?
+    container_inv(F_prod) # invert phase spec or cross-correlation function?
     corr_spec = np.fft.fftshift(np.abs(container_inv.get_output_array()))
     shy, shx = np.unravel_index(np.argmax(corr_spec), (N,M)) # find the maximum index of normalized correlation matrix
 
