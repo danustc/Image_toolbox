@@ -5,7 +5,8 @@ Based on scikit-learn
 import numpy as np
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
-
+sys.path.append('/home/sillycat/Programming/Python/tsne_python/')
+import tsne
 from Analysis import grinder, coregen
 from collections import deque
 from pca_funcs import *
@@ -51,18 +52,7 @@ if __name__ == '__main__':
     glabel = grinder_core.spatial_gridding((3,4,5))
     print(glabel)
     Anna = analysis(grinder_core)
-    pc_trans, coeffreezer = hierachical_pc_clustering(Anna._grinder.signal[:, :500], n_cut = 10,N_iter = 4, mode = -1 )
-    print("Number of clusters:", pc_trans.shape)
-    c_final = hierachical_pc_unpack(coeffreezer)
-    fig = direct_dimplot(c_final[:7].T)
-    fig.savefig(global_datapath+'test_pca_s')
-    pc_trans, pc_vecs, eigs = pca_dff(Anna._grinder.signal[5:,:200], cl_select = 1)
+    pc_trans, pc_vecs, eigs = pca_dff(Anna._grinder.signal[5:, :400], cl_select = 1)
     fig_p = direct_dimplot(pc_vecs[:7].T)
     fig_p.savefig(global_datapath+'test_pca_d')
-
-    cof = np.corrcoef(pc_trans.T)
-    np.fill_diagonal(cof, 0)
-    plt.clf()
-    plt.imshow(cof)
-    plt.colorbar()
-    plt.show()
+     

@@ -85,7 +85,8 @@ def sample_from_refstack(stack_ref, sample_range, pxl_ref, pxl_sample,  rotmat, 
     sample_range: the range of sampling, in pixels.
     pxl_ref: the pixel size of the reference stack
     pxl_sample: the pixel size of the sample stack.
-    r_shift: the translation vecter from the lab frame to the image frame, unit of pixel.
+    r_shift: the translation vector from the lab frame to the image frame, unit of pixel.
+    Warning: the origin of the image stack is the geometric center of the stack, i.e., (hx, hy, hz); the origin of the reference stack is (0,0,0). Unit in pixels.
     '''
     sx, sy, sz = sample_range
 

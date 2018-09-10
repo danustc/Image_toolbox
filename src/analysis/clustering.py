@@ -1,13 +1,13 @@
 '''
 Created on 07/27/2017 by Dan. Clustering of the data.
 Visualization is inherently included here.
-Last modification: 11/05/2017
+Last modification: 09/03/2018
 '''
 import numpy as np
 from scipy.cluster.hierarchy import dendrogram, linkage, cophenet
 from scipy.spatial.distance import pdist
 from scipy import stats
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering
 import matplotlib.pyplot as plt
 from collections import deque
 
@@ -110,3 +110,19 @@ def histo_clustering(feature, nbin, bin_cut = None,n_fold = 2, sca = 1.00):
     # to be added: find the cut off.
 
     return merged_hist, mb_centers
+
+
+
+def spec_cluster(raw_data, n_cl = 5, threshold = 0.05):
+    '''
+    raw_data: NT x NC, NT: # of trials, NC: # of cells
+    perform spectral clustering
+    threshold: correlation coefficient lower than the threshold is considered unconnected.
+    '''
+    # Create a distant matrix
+    corr_mat = np.corrcoef(raw_data.T) # create a correlation matrix
+    corr_mat[corr_mat < threshold] = 0.0
+    SC = SpectralClustering(n_clusters = n_cl, affinity = 'precomputed')
+    y_labels = SC.fit_predict(corr_mat)
+    return y_labels
+

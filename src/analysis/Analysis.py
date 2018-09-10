@@ -7,6 +7,10 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
 global_datapath = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/'
 from df_f import dff_AB
+import src.algos.spectral_clustering as sc
+import src.visualization.signal_plot as signal_plot
+import clustering
+import matplotlib.pyplot as plt
 
 class grinder(object):
     '''
@@ -155,19 +159,99 @@ class grinder(object):
                 b_ind = np.where(~act)[0]
                 self.signal[b_ind, nf] = self.signal[b_ind[shuff_order], nf]
 
+
+    def digitization(self):
+        '''
+        set all the active points to 1 and inactive points to 0.
+        '''
+        NC = self.NC
+        activity = self.activity
+        dig_signal = np.zeros_like(self.signal)
+        for nf in range(NC):
+            act = activity[:,nf]
+            dig_signal[act,nf] = 1
+
+        return dig_signal
+
+    def normalization(self):
+        '''
+        normalize the amplitude of all the neurons with mean.
+        '''
+        NC = self.NC
+        activity = self.activity
+        norm_signal = np.zeros_like(self.signal)
+        for nf in range(NC):
+            act = activity[:, nf]
+            mean_sig = self.signal[act, nf].mean()
+            norm_signal[:, nf] = self.signal[:,nf]/mean_sig
+
+        return norm_signal
+
     def shutDown(self):
         pass
 
 
 def coregen():
-    date_folder = 'Jun07_2018/'
+    date_folder = 'Aug02_2018/'
     grinder_core = grinder()
-    data_path = global_datapath+ date_folder+'Jun07_2018_B4_dff.npz'
+    data_path = global_datapath+ date_folder+'Aug02_2018_B2_dff.npz'
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
-    grinder_core.background_suppress()
-    return grinder_core
+    grinder_core.background_suppress(sup_coef = 0.0001)
+    N_cut = 1500
+    th = 0.23
+    signal_test = grinder_core.signal[10:,:N_cut]
+    fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,4.5))
+    fig_all.savefig('all_'+str(N_cut))
+    W = sc.corr_afinity(grinder_core.signal[10:,:N_cut], thresh = th, kill_diag = False)
+    L = sc.laplacian(W)
+    w, v = sc.sc_unnormalized(L, n_cluster = 20)
 
+    n_clu = 5
+    y_labels = clustering.spec_cluster(grinder_core.signal[:,:N_cut],n_clu, threshold = th)
+    #return grinder_core
+    sig_clusters = np.zeros([1775, n_clu])
+    leg_cluster = []
+    sub_cluster = []
+    for nl in range(n_clu):
+        signal_nl = signal_test[:, y_labels == nl]
+        NT, NC = signal_nl.shape
+        if NC > 500:
+            sub_cluster.append(nl)
+        sig_clusters[:,nl] = signal_nl.mean(axis = 1)
+        fig = signal_plot.dff_rasterplot(signal_nl)
+        fig.savefig('cluster_'+str(nl), dpi = 200)
+        fig.clf()
+        leg_cluster.append('cluster_'+str(nl+1))
+
+
+    fig_mean = signal_plot.compact_dffplot(sig_clusters, dt = 0.5, sc_bar = 0.20, tbar = 2)
+    fig_mean.savefig('cluster_mean', dpi = 200)
+
+
+    nl = sub_cluster[0]
+    sub_population = signal_test[:,y_labels ==nl]
+    W = sc.corr_afinity(signal_test[:,y_labels == nl], thresh = 0.95*th)
+    L = sc.laplacian(W)
+    w, v = sc.sc_unnormalized(L, n_cluster = 20)
+    plt.close('all')
+    plt.plot(w, '-x')
+    plt.show()
+    n_clu = int(input("the # of clusters in the subset:") )
+
+    y_labels = clustering.spec_cluster(sub_population, n_clu, threshold = th)
+    sig_clusters = np.zeros([1775, n_clu])
+    for nl in range(n_clu):
+        signal_nl = sub_population[:, y_labels == nl]
+        NT, NC = signal_nl.shape
+        sig_clusters[:,nl] = signal_nl.mean(axis = 1)
+        fig = signal_plot.dff_rasterplot(signal_nl)
+        fig.savefig('subcluster_'+str(nl), dpi = 200)
+        fig.clf()
+
+
+    fig_mean = signal_plot.compact_dffplot(sig_clusters, dt = 0.5, sc_bar = 0.20, tbar = 2)
+    fig_mean.savefig('sub_mean', dpi = 200)
 
 
 if __name__ == '__main__':

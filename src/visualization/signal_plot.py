@@ -6,10 +6,40 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import numpy as np
 
-def compact_dffplot(dff_data, dt = 0.5, ts_bar = 200, sc_bar = 0.25):
+def compact_dffplot(dff_data, dt = 0.5 , sc_bar = 0.25, tbar = 3, fsize = (6,2.5)):
     '''
-    compact df/f plot.
+    compact df/f plot. To be filled later.
+    the unit of tbar: minutes
+    rank: number small -large, low to high
     '''
+    NT, NC = dff_data.shape
+    tt = np.arange(NT)*dt # time series 
+    fig_comp = plt.figure(figsize = fsize)
+    ax = fig_comp.add_subplot(111)
+    dff_max = dff_data.max(axis = 0)
+    d_pad = dff_max.max() #  the padding space
+    tmark = -dt*NT/30
+    smark = tbar*60
+    tbar_start = tt[-1] - smark - 60
+    # first, plot those \Delta F/F traces
+    for ii in range(NC):
+        ax.plot(dff_data[:,ii]+(NC-ii)*d_pad, '-r')
+
+    ax.text(tmark, NC*d_pad, str(1), fontsize =10 )
+    ax.text(tmark, d_pad, str(NC), fontsize = 10)
+    ax.set_xlim([tmark, (NT+20)*dt])
+    ax.set_ylim([0, (NC+1.0)*d_pad])
+    ax.plot([tmark,tmark], [0, sc_bar], color = 'k', linewidth = 3)
+    ax.text(tmark+15, 0, r'$\Delta F/F = $'+str(sc_bar), fontsize = 10)
+    ax.plot([tbar_start, tbar_start + smark], [0, 0], color = 'k', linewidth = 3)
+    ax.text(tbar_start+smark+15, 0, str(tbar)+' min', fontsize = 10)
+    ax.set_axis_off() # do not display the axis
+
+    # second, set the scale bar of DFF and time.
+
+    plt.tight_layout()
+    return fig_comp
+
 
 
 def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
@@ -45,7 +75,7 @@ def nature_style_dffplot(dff_data, dt = 0.5, sc_bar = 0.25):
 
 
 # Raster plot, color coded
-def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = None, title = None, fig = None):
+def dff_rasterplot(dff_ordered, dt = 0.5, fw = (7.0, 5.0), tunit = 'm', n_truncate = None, title = None, fig = None):
     '''
     dff_ordered: df_f ordered from most active to least active
     # rows:  # of time points
@@ -75,10 +105,8 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
 
     cell_tick = np.array([1,n_display])
     cell_tick_label = ['Cell 1', 'Cell '+str(n_display)]
-    canvas_scale = int(np.ceil(200./n_display))
-    print("fig size:", fw, fw*5*canvas_scale*n_display/NT)
     if fig is None:
-        fig = plt.figure(figsize = (fw, fw*5*canvas_scale*n_display/NT))
+        fig = plt.figure(figsize = fw)
 
     ax = fig.add_subplot(111)
     rshow = ax.imshow(dff_ordered[:, :n_display].T, cmap = 'plasma', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
@@ -87,7 +115,7 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = 7.0, tunit = 'm', n_truncate = No
     ax.set_yticklabels(cell_tick_label)
     ax.tick_params(labelsize = 14)
     ax.set_xlabel(t_label, fontsize = 14)
-    cbar = fig.colorbar(rshow, ax = ax, orientation = 'vertical', pad = 0.02, aspect = n_display/5)
+    cbar = fig.colorbar(rshow, ax = ax, orientation = 'vertical', pad = 0.02, aspect = 20)
     cbar.ax.tick_params(labelsize = 14)
     if title is not None:
         ax.set_title(title)
