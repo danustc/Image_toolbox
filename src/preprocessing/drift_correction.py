@@ -9,14 +9,32 @@ import patch_finding
 from PIL import Image, ImageSequence, ImageStat
 import glob
 import matplotlib.pyplot as plt
+import tifffile as tf
+import psutil
 
 package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 global_datapath_win  = 'D:/Data/2018-08-23/B2_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/cmtk_images/'
-global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A3/A3_TS/'
+global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
 
-def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'center'):
+def sample_data_generation(img, n_slice, n_shifts, sample_path):
+    '''
+    generate a sample data_stack from a raw image.
+    '''
+    print(n_shifts)
+    new_stack = np.tile(img, (n_slice, 1, 1)) # create a stack
+    ph, pw = img.shape
+    hann_w = signal.hann(pw)
+    hann_h = signal.hann(ph)
+    hanning_2d = np.outer(hann_h, hann_w)
+    for ii in range(1, n_slice):
+        new_stack[ii] = interpolation.shift(img, shift = n_shifts[ii-1])*hanning_2d
+
+    tf.imsave(sample_path, new_stack)
+    return new_stack
+
+def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'center', ):
     '''
     prepare a raw stack for drift alignment
     instead of loading the whole full raw stack, just open its path and seek one slice
@@ -57,72 +75,39 @@ def shift_stack(stack, shift_coord):
         shifted_frame = interpolation.shift(stack[iz],shift = shift_coord[iz-1])
         stack[iz] = shifted_frame
 
-def shift_stack_onfile(fpath, shift_coord):
-    raw_img = Image.open(fpath)
-    n_slice = raw_img.n_frames
-    for ii, page in enumerate(ImageSequence.Iterator(raw_img)):
-        pass
-
-
-def cross_coord_shift_huge_stack(huge_stack, crop_ratio = 0.8, n_cut = 5, up_rate = None):
-    '''
-    self-alignment of a very long stack.
-    crop ratio: how much to crop in each dimension
-    instead of loading the entile huge stack, we just pass the handle of the stack to the function.
-    WARNING: Don't forget to close the handle!
-    '''
-    nz, ny, nx = huge_stack.shape
-    if (nz&n_cut ==0):
-        sub_size = nz // n_cut
+def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, srange = (0, 500)):
+    if partial:
+        print("Only save part of the stack.")
+        with tf.TiffFile(fpath) as tif:
+            raw_img = tif.asarray()[srange[0]:srange[1]]
+            shift_coord = shift_coord[srange[0]:srange[1]]
+            tif.close()
     else:
-        sub_size = nz // n_cut + 1 # thenumber of slices in each substack
+        raw_img = tf.imread(fpath)
+    n_slice, ny, nx = raw_img.shape
+    for ii in range(n_slice):
+        frame = raw_img[ii]
+        raw_img[ii] = interpolation.shift(frame, shift = shift_coord[ii])
 
-    substack_posit = np.arange(1, n_cut+1)*sub_size
-    substack_posit[-1] = nz # make sure that the last position is consistent with the stack size
-    hy = ny // 2
-    hx = nx // 2
-    coord_all = []
-    if crop_ratio is None:
-        cstack = huge_stack
-    elif np.isscalar(crop_ratio):
-        # crop x and y by the same fraction
-        sy = int(crop_ratio*hy)
-        sx = int(crop_ratio*hx)
-        cstack = huge_stack[:,hy-sy:hy+sy, hx-sx:hx+sx]
+    if new_path is None:
+        tf.imsave(fpath, raw_img)
     else:
-        sy = int(crop_ratio[0]*hy)
-        sx = int(crop_ratio[1]*hx)
-        rg_y = np.arange(hy-sy, hy+sy)
-        rg_x = np.arange(hx-sx, hx+sx)
-        cstack = huge_stack[:,rg_y, rg_x]
-
-    sub_0 = cstack[:sub_size] # crop the stack to reduce the size
-    shift_coord = cross_corr_shift_self(sub_0, up_rate, adj_ref = False, verbose = True )
-    shift_stack(huge_stack[:sub_size], shift_coord) # self-align the first substack
-    coord_all = coord_all + shift_coord
-    sub_0 = cstack[:sub_size] # This might be redundant 
-    for sub_z in range(n_cut-1):
-        sec_start = substack_posit[sub_z]
-        sec_end = substack_posit[sub_z+1]
-        sub_new = cstack[sec_start:sec_end]
-        shift_coord = cross_corr_shift_two(sub_0, sub_new, up_rate, verbose = True, inplace_correction = False)
-        shift_stack(huge_stack[sec_start:sec_end], shift_coord)
-        coord_all = coord_all + shift_coord
-
-    return np.array(coord_all)
-
+        tf.imsave(new_path, raw_img)
 
 
 
 def main():
     #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
-    folder_list = glob.glob(global_datapath_ptb+"/dup*.tif")
-    #folder_list = glob.glob(global_datapath_win+"/*25.tif")
+    #folder_list = glob.glob(global_datapath_ptb+"/dup*.tif")
+    folder_list = glob.glob(global_datapath_win+"/*.tif")
     for data_path in folder_list:
         print(data_path)
+        img = tf.imread(data_path)
+        #sample_stack = sample_data_generation(img[0], 4, shift_list, 'test.tif')
         cropped_stack = stack_preparation(data_path)
-        print(cropped_stack.dtype)
-        shift_coord = correlation.cross_corr_stack_self(cropped_stack, pivot_slice = 10)
+        #print(cropped_stack.dtype)
+        shift_coord = correlation.cross_corr_stack_self(cropped_stack, pivot_slice = 0)
+        #print(shift_coord)
         shift_stack_onfile(data_path, shift_coord)
 
 if __name__ == '__main__':

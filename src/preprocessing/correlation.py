@@ -113,8 +113,10 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
     container_1 = pyfftw_container(ny, nx)
     container_2 = pyfftw_container(ny, nx)
     container_invx = pyfftw_container(ny, nx, bwd = True)
-
-    ref_frame = stack[pivot_slice]
+    if np.isscalar(pivot_slice):
+        ref_frame = stack[pivot_slice]
+    else:
+        ref_frame = pivot_slice
 
     for ii in range(nz):
         shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx)[:2]
