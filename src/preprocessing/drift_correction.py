@@ -99,7 +99,7 @@ def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, sra
 def main():
     #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
     #folder_list = glob.glob(global_datapath_ptb+"/dup*.tif")
-    folder_list = glob.glob(global_datapath_win+"/*25.tif")
+    folder_list = glob.glob(global_datapath_win+"/*22.tif")
     for data_path in folder_list:
         print(data_path)
         img = tf.imread(data_path)
