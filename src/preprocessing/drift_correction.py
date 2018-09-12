@@ -99,7 +99,7 @@ def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, sra
 def main():
     #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
     #folder_list = glob.glob(global_datapath_ptb+"/dup*.tif")
-    folder_list = glob.glob(global_datapath_win+"/*.tif")
+    folder_list = glob.glob(global_datapath_win+"/*25.tif")
     for data_path in folder_list:
         print(data_path)
         img = tf.imread(data_path)
@@ -108,7 +108,7 @@ def main():
         #print(cropped_stack.dtype)
         shift_coord = correlation.cross_corr_stack_self(cropped_stack, pivot_slice = 0)
         #print(shift_coord)
-        shift_stack_onfile(data_path, shift_coord)
+        shift_stack_onfile(data_path, shift_coord, new_path = global_datapath_win+ '/test.tif')
 
 if __name__ == '__main__':
     main()
