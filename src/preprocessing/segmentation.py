@@ -14,22 +14,34 @@ from skimage.feature import blob_log
 from src.shared_funcs.numeric_funcs import circ_mask_patch
 
 
-OL_blob = 0.2
+OL_blob = 0.8
 
 # let's have some small handy functions
-def blank_refill(raw_frame):
+def blank_refill(raw_frame, cutoff = None, mode = 'min'):
     '''
     If there are zero pixels, refill them.
     if there are too many zero pixels, refill them by sampling
+    mode to select:
+        min: the mininum N non-zero values
+        peak: fill with value around the background
     '''
-    rb_y, rb_x = np.where(raw_frame==0)
+    if cutoff is None:
+        hist, be = np.histogram(raw_frame.ravel(), bins = 256)
+        val_ind = hist.argmax() +1
+        cutoff = be[val_ind]
+
+    rb_y, rb_x = np.where(raw_frame < cutoff)
     if rb_y.size ==0:
         return raw_frame
     else:
-        raw_valid = np.sort(raw_frame[np.nonzero(raw_frame)])
-        nblank = len(rb_y)
-        fill_values = raw_valid[:nblank]
-        np.random.shuffle(fill_values)
+        if mode == 'min':
+            raw_valid = np.sort(raw_frame[np.nonzero(raw_frame)])
+            nblank = len(rb_y)
+            fill_values = raw_valid[:nblank]
+            np.random.shuffle(fill_values)
+        elif mode == 'peak':
+            print("cutoff:", cutoff)
+            fill_values = np.random.poisson(lam = cutoff, size = rb_y.size)
         try:
             raw_frame[rb_y, rb_x] = fill_values
         except ValueError as err:
@@ -38,21 +50,31 @@ def blank_refill(raw_frame):
 
         return raw_frame
 
+def build_psf(sig, width=10):
+    xx = np.arange(-width, width+1)
+    g = np.exp(-xx**2/(2*sig*sig))
+    psf = np.outer(g,g)
+    psf /= psf.sum()
+    return psf
 
-def frame_deblur(raw_frame, sig = 40 ):
+
+def frame_deblur(raw_frame, sig = 7, Nit = 15, padding = ((10,10), (10,10))):
     '''
     raw_frame: a single frame of image
     sig: the width of gaussian filter
     '''
-    ifilt = filters.gaussian(raw_frame, sigma = sig)
-    iratio = raw_frame/ifilt
-    nmin = np.argmin(iratio)
-    gmin_ind = np.unravel_index(nmin, raw_frame.shape)
-    sca =raw_frame[gmin_ind]/(ifilt[gmin_ind])
-    db_frame = raw_frame - ifilt*sca*0.999
-    return db_frame
+    psf = build_psf(sig)
+    img = np.pad(raw_frame, padding, mode = 'constant')
+    img = blank_refill(img, cutoff=180,  mode = 'peak')
 
-def frame_blobs(filled_frame, bsize = 8, btolerance = 3, bsteps =7, verbose = True):
+    dc_image = restoration.richardson_lucy(img, psf, iterations = Nit, clip = False)
+    ci, cf = padding
+    yi, xi = ci
+    yf, xf = cf
+    recrop = dc_image[yi:-yf, xi:-xf]
+    return blank_refill(recrop, mode = 'peak')
+
+def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = True, edge_ratio = 3.):
     '''
     extract blobs from a single frame. Added on 06/10/2017
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
@@ -65,8 +87,8 @@ def frame_blobs(filled_frame, bsize = 8, btolerance = 3, bsteps =7, verbose = Tr
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
     # clean blobs that is at the edge
     by, bx = cblobs[:,0], cblobs[:,1]
-    valid_indY = np.logical_and(by > bsize, by< (NY-bsize))
-    valid_indX = np.logical_and(bx > bsize, bx< (NX-bsize))
+    valid_indY = np.logical_and(by > edge_ratio*bsize, by< (NY-edge_ratio*bsize))
+    valid_indX = np.logical_and(bx > edge_ratio*bsize, bx< (NX-edge_ratio*bsize))
     valid_ind = np.logical_and(valid_indY, valid_indX)
     cblobs = cblobs[valid_ind] # remove those edge blobs --- added by Dan on 08/11/2018.
 
@@ -142,15 +164,15 @@ def stack_redundreduct(blob_stack, th= 4):
     return data_merge
 
 
-def stack_blobs(small_stack, diam, bg_sub = 40):
+def stack_blobs(small_stack, diam, sig = 7):
     '''
     just extract all the blobs from a small stack and return as a list after background subtraction
     btolerance is always considered 2
     '''
     blobs_stack = []
     for sample_slice in small_stack:
-        if bg_sub > 0:
-            db_slice = frame_deblur(sample_slice, bg_sub)
+        if sig > 0:
+            db_slice = frame_deblur(sample_slice, sig )
             cs_blobs = frame_blobs(db_slice, bsize = diam)
         else:
             cs_blobs = frame_blobs(sample_slice, bsize = diam)
@@ -222,7 +244,7 @@ class Cell_extract(object):
         self.redund = True
 
 
-    def stack_blobs(self, bg_sub=40, verbose = True):
+    def stack_blobs(self, sig=40, verbose = True):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         Update on 08/16: make the radius of blobs uniform.
@@ -234,8 +256,8 @@ class Cell_extract(object):
             extract blobs from each frame and save into data_list
             '''
             im_raw = self.stack[n_frame]
-            if bg_sub > 0:
-                im0 = frame_deblur(im_raw, bg_sub)
+            if sig > 0:
+                im0 = frame_deblur(im_raw, sig)
                 cblobs = frame_blobs(im0, self.diam)
             else:
                 cblobs = frame_blobs(im_raw, self.diam)
@@ -272,12 +294,12 @@ class Cell_extract(object):
 
 
 
-    def extract_sampling(self, nsamples, mode = 'm', bg_sub = 40, red_reduct = 5):
+    def extract_sampling(self, nsamples, mode = 'm', sig = 40, red_reduct = 5):
         '''
         nsamples: indice of slices that are selected for cell extraction
         mode:   m --- mean of the selected slices, then extract cells from the single slice
                 a --- extract cells from all the slices and do the redundance removal
-                bg_sub:if true, subtract background.
+                sig:if true, subtract background.
                 the core part is rewrapped into an independent function.
         '''
         single_slice = False
@@ -288,13 +310,13 @@ class Cell_extract(object):
             single_slice = True
             # subtract the background
         if single_slice:
-            if(bg_sub > 0):
-                db_slice = frame_deblur(mean_slice, bg_sub)
+            if(sig > 0):
+                db_slice = frame_deblur(mean_slice, sig)
                 cblobs = frame_blobs(db_slice,self.diam)
             else:
                 cblobs = frame_blobs(mean_slice, self.diam)
         else: # if not single slice
-            blobs_sample = stack_blobs(ext_stack, self.diam, bg_sub)
+            blobs_sample = stack_blobs(ext_stack, self.diam, sig)
 
             # redundance reduction
             if (red_reduct > 0):
@@ -353,9 +375,7 @@ def main():
     '''
     The main function for testing the cell extraction code.
     '''
-    tf_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/CPD/'
-    TS_stack = 'ref_crop.tif'
-    tstack = read_tiff(tf_path+TS_stack ).astype('float64')
+    tstack = read_tiff(tf_path+TS_stack).astype('float64')
     CEt = Cell_extract(tstack, diam = 7)
     CEt.stack_blobs()
     CEt.save_data_list(tf_path + 'ref_ext')
