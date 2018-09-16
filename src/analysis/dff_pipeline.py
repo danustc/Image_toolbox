@@ -217,7 +217,7 @@ class pipeline(object):
 def main_rawf():
     #data_folder = 'FB_resting_15min/Jul2017/'
     data_folder = 'FB_resting_15min/Aug02_2018/'
-    raw_list = glob.glob(global_datapath_ubn+data_folder+'*merged.npz')
+    raw_list = glob.glob(portable_datapath+'*A2_merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
@@ -227,7 +227,7 @@ def main_rawf():
         ppl.edge_truncate(edge_width = 2.0)
         ppl.baseline_cleaning(bcut = 160.0)
         ppl.dff_calc(ft_width = 6, filt = True)
-        ppl.valid_check(df_th = 5.)
+        ppl.valid_check(df_th = 4.)
         ppl.save_cleaned_dff(global_datapath_ubn +data_folder+ acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
