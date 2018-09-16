@@ -4,7 +4,8 @@ Last update: 06/15/2017, some major changes are made.
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
 This is the windows version. Don't mix it with the linux version!
 """
-package_path ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
+package_path_win ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
+package_path_ubn='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 
 import os
 import sys
@@ -15,6 +16,9 @@ import src.shared_funcs.tifffunc as tifffunc
 
 from src.preprocessing.segmentation import *
 
+data_rootpath_win ='D:/Data/2018-08-02/\\'
+data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_A2/\\'
+folder_list = glob.glob(data_rootpath+"/B3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
 
 class pipeline_zstacks(object):
@@ -237,7 +241,6 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    data_rootpath ='D:/Data/2018-08-02/\\'
     folder_list = glob.glob(data_rootpath+"/B3_TS\\")
     for data_path in folder_list:
         print(data_path)
