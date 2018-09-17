@@ -11,14 +11,14 @@ import os
 import sys
 import glob
 import numpy as np
-sys.path.append(package_path)
+sys.path.append(package_path_win)
 import src.shared_funcs.tifffunc as tifffunc
 
 from src.preprocessing.segmentation import *
 
-data_rootpath_win ='D:/Data/2018-08-02/\\'
+data_rootpath_win ='D:/Data/2018-08-23\\'
 data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_A2/\\'
-folder_list = glob.glob(data_rootpath+"/B3_TS\\")
+#folder_list = glob.glob(data_rootpath+"/B3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
 
 class pipeline_zstacks(object):
@@ -80,7 +80,7 @@ class pipeline_zstacks(object):
 
         raw_stack = self.tif_handle.asarray()
         self.CE_dpt.stack_reload(raw_stack, refill = True)
-        self.CE_dpt.stack_blobs(bg_sub = 40, verbose = True)
+        self.CE_dpt.stack_blobs(sig = 4, verbose = True)
 
         self.tif_handle.filehandle.close()
         self.tif_handle.close() # close the tif handle 
@@ -180,7 +180,7 @@ class pipeline_tstacks(object):
         '''
         sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
-        blobs_sample = stack_blobs(sample_stack, self.cdiam, bg_sub = 40)
+        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 4)
         self.cblobs = stack_redundreduct(blobs_sample, th = 5) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
@@ -241,11 +241,11 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath+"/B3_TS\\")
+    folder_list = glob.glob(data_rootpath_win+"/A5_TS/\\")
     for data_path in folder_list:
         print(data_path)
         pt = pipeline_tstacks(data_path, fname_flags = 'rg')
-        pt.run_pipeline([5,10,15,20])
+        pt.run_pipeline([5,10, 15])
     #pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
     #pt.run_pipeline([5,10,15,20])
 
