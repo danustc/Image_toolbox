@@ -139,7 +139,7 @@ class pipeline_tstacks(object):
         ax.imshow(sample_frame, cmap = 'Greys_r')
         ax.scatter(cblobs[:,1], cblobs[:,0], s = 7)
         ax.axis('off')
-        ax.set_title('# of blobs:', cblobs.shape[0])
+        ax.set_title('# of blobs: '+ str(cblobs.shape[0]))
         fig_display.savefig(fname_stem + '_cells')
 
 
