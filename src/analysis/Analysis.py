@@ -2,6 +2,8 @@
 A general class for analysis, which can be overloaded by many modules.
 """
 import numpy as np
+from scipy.stats import norm
+from scipy.signal import savgol_filter
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
@@ -95,11 +97,54 @@ class grinder(object):
             activity_map[sig_ind, nf] = True # set the activity map to True
             sig_integ = (cell_signal-background).sum()
             ms[nf] = np.array([background, noi, sig_integ]) # mean and std
+            if nf%100 ==0:
+                print("Finished", nf, "cells.")
 
         integ_ind = np.argsort(ms[:,2])[::-1] # descending order
         self._trim_data_(integ_ind) # OK this is not a very elegant way to put it. 
         self.stat = ms[integ_ind]
         self.activity = activity_map[:, integ_ind] # sort the activity map as well
+
+    def cutoff_bayesian(self, PH_const = 1., nb = 200, stake = 0.95, activity_range = 0.95, conserve_cutting = False):
+        '''
+        Use Bayesian inference to set the cutoff value that divides active/inactive neurons.
+        if PHE > stake, then we believe that H happens
+        '''
+        if self.stat is None:
+            print("No statistics data.")
+            return
+        else:
+            int_val = self.stat[:,-1]
+            hist, be = np.histogram(int_val, bins = nb, density = True, range = (0., activity_range*int_val.max()))
+            PE_hist = savgol_filter(hist, window_length = 5, polyorder = 3)
+            ind_peak = np.argmax(PE_hist)
+            beh = (be[1:] + be[:-1])*0.5 # take the center value of each bin
+            mu = beh[ind_peak] # The center of Gaussian distribution
+            hsig = beh[ind_peak] - beh[0] # the half-sigma of the Gaussian distribution
+            PEH = norm.pdf(beh, loc = mu, scale = hsig)
+            PHE = PEH * PH_const/(PE_hist+0.001)#arg_be
+            PHE[PHE>1.] = 1.
+            if conserve_cutting:
+                # conservative cutting
+                beh_cut = np.where(PHE < stake)[0][0] # where to cut in the probability density function x-axis
+            else:
+                # aggressive cutting
+                beh_cut = np.where(PHE > stake)[0][-1]+1 # where to cut in the probability density function x-axis
+            activity_cut = beh[beh_cut] # if a cell's activity falls below activity cut,
+            print("cut_off activity:", beh_cut, activity_cut)
+            num_cut = (int_val< activity_cut).sum() # How many cells have activity levels falling below the activity cut?
+            print("rejected cells:", num_cut)
+            self.n_cut = num_cut
+            cut_position = np.array([activity_cut, num_cut])
+
+            return PHE, beh, cut_position
+
+
+    def cutoff_simple(self, nb = 200, conf_level = 0.95, activity_range= 0.95):
+        '''
+        use simple model of gaussian to infer where the cutoff line should be.
+        '''
+
 
     def background_suppress(self, sup_coef = 0.010, shuffle = True):
         '''
@@ -164,9 +209,14 @@ def coregen():
     data_path = portable_datapath + 'Jul19_2017_A2_dff.npz'
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
-    plt.hist(grinder_core.activity, bins = 200)
+    stake = 0.95
+    PHE, beh, cut_position = grinder_core.cutoff_bayesian(PH_const = 0.7, stake = 0.98, activity_range = 0.80)
+    print("% of inactive cells:", cut_position[1]*100/grinder_core.NC)
+    plt.plot(beh, PHE)
+    cutoff = cut_position[0]
+    plt.plot(np.array([cutoff, cutoff]), np.array([0, PHE.max()]), '--r', linewidth = 2)
     plt.show()
-    grinder_core.background_suppress(sup_coef = 0.0001)
+    #grinder_core.background_suppress(sup_coef = 0.0001)
     N_cut = 1500
     th = 0.23
     signal_test = grinder_core.signal[10:,:N_cut]
@@ -179,7 +229,7 @@ def coregen():
     n_clu = 5
     y_labels = clustering.spec_cluster(grinder_core.signal[:,:N_cut],n_clu, threshold = th)
     #return grinder_core
-    sig_clusters = np.zeros([1775, n_clu])
+    sig_clusters = np.zeros([1770, n_clu])
     leg_cluster = []
     sub_cluster = []
     for nl in range(n_clu):
@@ -209,7 +259,7 @@ def coregen():
     n_clu = int(input("the # of clusters in the subset:") )
 
     y_labels = clustering.spec_cluster(sub_population, n_clu, threshold = th)
-    sig_clusters = np.zeros([1775, n_clu])
+    sig_clusters = np.zeros([1770, n_clu])
     for nl in range(n_clu):
         signal_nl = sub_population[:, y_labels == nl]
         NT, NC = signal_nl.shape

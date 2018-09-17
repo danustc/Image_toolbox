@@ -104,7 +104,7 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     B_indices = np.logical_and(diff_range, sum_range)
     B_diff = Z_diff[B_indices]
     B_sum = Z_sum[B_indices]
-    md,sd = stats.norm.fit(B_diff) #:does not work. More constraints should be added to the fit.
+    md,sd = stats.norm.fit(B_diff)
     ms,ss = stats.norm.fit(B_sum) # ms is the recognized noise level
 
     dmin, dmax, smin, smax = Z_diff.min(), Z_diff.max(), Z_sum.min(), Z_sum.max()
