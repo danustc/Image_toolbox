@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 data_path_ptb = '/media/sillycat/DanData/Test_pool/'
 
 
+
 def main():
     flist = glob.glob(data_path_ptb+'*.tif')
     stack = tf.imread(flist)
