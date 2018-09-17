@@ -11,6 +11,7 @@ global_datapath = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/
 portable_datapath = '/media/sillycat/DanData/'
 from df_f import dff_AB
 import src.algos.spectral_clustering as sc
+from src.shared_funcs.numeric_funcs import gaussian1d_fit
 import src.visualization.signal_plot as signal_plot
 import clustering
 import matplotlib.pyplot as plt
@@ -144,6 +145,22 @@ class grinder(object):
         '''
         use simple model of gaussian to infer where the cutoff line should be.
         '''
+        if self.stat is None:
+            print("No statistics data.")
+            return
+        else:
+            # create a Gaussian distribution
+            int_val = self.stat[:,-1]
+            hist, be = np.histogram(int_val, bins = nb, density = True, range = (0., activity_range*int_val.max()))
+            PE_hist = savgol_filter(hist, window_length = 5, polyorder = 3)
+            ind_peak = np.argmax(PE_hist)
+            beh = (be[1:] + be[:-1])*0.5 # take the center value of each bin
+            be_bg = beh[:2*ind_peak+1]
+            PE_peak_left = PE_hist[:ind_peak+1]
+            PE_bg = np.concatenate((PE_peak_left, PE_peak_left[::-1][1:]))
+
+            print("Fit parameters:", mu, sigx)
+
 
 
     def background_suppress(self, sup_coef = 0.010, shuffle = True):
@@ -210,7 +227,7 @@ def coregen():
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
     stake = 0.95
-    PHE, beh, cut_position = grinder_core.cutoff_bayesian(PH_const = 0.7, stake = 0.98, activity_range = 0.80)
+    PHE, beh, cut_position = grinder_core.cutoff_bayesian(PH_const = 0.7, stake = 0.95, activity_range = 0.70, conserve_cutting = True)
     print("% of inactive cells:", cut_position[1]*100/grinder_core.NC)
     plt.plot(beh, PHE)
     cutoff = cut_position[0]
@@ -218,16 +235,19 @@ def coregen():
     plt.show()
     #grinder_core.background_suppress(sup_coef = 0.0001)
     N_cut = 1500
-    th = 0.23
+    th = -1.00
     signal_test = grinder_core.signal[10:,:N_cut]
-    fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,4.5))
-    fig_all.savefig('all_'+str(N_cut))
-    W = sc.corr_afinity(grinder_core.signal[10:,:N_cut], thresh = th, kill_diag = False)
-    L = sc.laplacian(W)
-    w, v = sc.sc_unnormalized(L, n_cluster = 20)
-
-    n_clu = 5
-    y_labels = clustering.spec_cluster(grinder_core.signal[:,:N_cut],n_clu, threshold = th)
+    #fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,4.5))
+    #fig_all.savefig('all_'+str(N_cut))
+    W = sc.corr_afinity(signal_test, thresh = th, kill_diag = False)
+    hist, be = sc.corr_distribution(W)
+    plt.clf()
+    plt.plot(be[1:], hist)
+    plt.show()
+    #L = sc.laplacian(W)
+    #w, v = sc.sc_unnormalized(L, n_cluster = 20)
+    #n_clu = 5
+    #y_labels = clustering.spec_cluster(grinder_core.signal[:,:N_cut],n_clu, threshold = th)
     #return grinder_core
     sig_clusters = np.zeros([1770, n_clu])
     leg_cluster = []

@@ -1,5 +1,5 @@
 '''
-Additional signal munging
+Additional signal munging that can be shared among analysis pipelines
 peak finding, flag_decode
 '''
 
@@ -10,6 +10,7 @@ import pyfftw
 import scipy.fftpack as fftpack
 from scipy import signal
 import src.analysis.clustering as clustering
+from scipy.stats import norm
 
 def flag_decode(n_flag, n_mask = 294):
     if n_flag < 294:
@@ -109,6 +110,5 @@ def stimuli_trigger_arbitrary(dt, NT, t_sti, d_sti, t_shift = 0., mode = 'q'):
             sig_sti[nt:nt+3*t_duration]=a*np.exp(-np.arange(3*t_duration)*dt)+b
 
     return sig_sti
-
 
 
