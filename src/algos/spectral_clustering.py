@@ -39,15 +39,25 @@ def sc_unnormalized(L, n_cluster = 8):
     return w, v
 
 
-def corr_afinity(data_raw, thresh = 0.01, kill_diag = True):
+def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = True):
     '''
     Create the afinity matrix
     '''
-    corr_mat = np.corrcoef(data_raw.T)
+    if corr_mat is None:
+        corr_mat = np.corrcoef(data_raw.T)
+
     corr_mat[corr_mat < thresh] = 1.0e-09
     if kill_diag:
         corr_mat = corr_mat -np.diag(np.diag(corr_mat))
     return corr_mat
+
+
+def corr_distribution(corr_mat, nb = 200):
+    # set the diagonal to zero first
+    corr_mat_sd = corr_mat - np.diag(2*np.diag(corr_mat))
+    hist, be = np.histogram(corr_mat_sd.ravel(),  bins = nb, density = True, range = (0,0.4))
+    return hist, be
+
 
 
 def n_clusters(eigen_list):
