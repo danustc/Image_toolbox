@@ -7,7 +7,7 @@ from scipy.signal import savgol_filter
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
-global_datapath = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/'
+global_datapath = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
 portable_datapath = '/media/sillycat/DanData/'
 from df_f import dff_AB
 import src.algos.spectral_clustering as sc
@@ -223,31 +223,30 @@ def coregen():
     date_folder = 'Aug02_2018/'
     grinder_core = grinder()
     #data_path = global_datapath+ date_folder+'Aug02_2018_B2_dff.npz'
-    data_path = portable_datapath + 'Jul19_2017_A2_dff.npz'
+    data_path = global_datapath + 'Jul19_2017_A2_dff.npz'
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
     stake = 0.95
-    PHE, beh, cut_position = grinder_core.cutoff_bayesian(PH_const = 0.7, stake = 0.95, activity_range = 0.70, conserve_cutting = True)
+    PHE, beh, cut_position = grinder_core.cutoff_bayesian(PH_const = 0.6, stake = 0.95, activity_range = 0.30, conserve_cutting = False)
     print("% of inactive cells:", cut_position[1]*100/grinder_core.NC)
     plt.plot(beh, PHE)
     cutoff = cut_position[0]
     plt.plot(np.array([cutoff, cutoff]), np.array([0, PHE.max()]), '--r', linewidth = 2)
+    plt.xlabel('Activity')
+    plt.ylabel('P(B|E)')
     plt.show()
     #grinder_core.background_suppress(sup_coef = 0.0001)
-    N_cut = 1500
-    th = -1.00
+    N_cut = grinder_core.NC - cut_position[1] # remove cut_position[1] cells
+    th = 0.200
     signal_test = grinder_core.signal[10:,:N_cut]
     #fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,4.5))
     #fig_all.savefig('all_'+str(N_cut))
     W = sc.corr_afinity(signal_test, thresh = th, kill_diag = False)
     hist, be = sc.corr_distribution(W)
-    plt.clf()
-    plt.plot(be[1:], hist)
-    plt.show()
-    #L = sc.laplacian(W)
-    #w, v = sc.sc_unnormalized(L, n_cluster = 20)
-    #n_clu = 5
-    #y_labels = clustering.spec_cluster(grinder_core.signal[:,:N_cut],n_clu, threshold = th)
+    L = sc.laplacian(W)
+    w, v = sc.sc_unnormalized(L, n_cluster = 20)
+    n_clu = 10
+    y_labels = clustering.spec_cluster(signal_test, n_clu, threshold = th)
     #return grinder_core
     sig_clusters = np.zeros([1770, n_clu])
     leg_cluster = []

@@ -11,7 +11,6 @@ import h5py
 from df_f import *
 import spectral as spec
 from munging import coord_edgeclean
-import simple_variance as simple_variance
 import matplotlib.pyplot as plt
 
 global_datapath_ubn  = '/home/sillycat/Programming/Python/data_test/'
@@ -215,9 +214,9 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main_rawf():
-    #data_folder = 'FB_resting_15min/Jul2017/'
-    data_folder = 'FB_resting_15min/Aug02_2018/'
-    raw_list = glob.glob(portable_datapath+'*A2_merged.npz')
+    data_folder = 'FB_resting_15min/Jul2017/'
+    #data_folder = 'FB_resting_15min/Aug02_2018/'
+    raw_list = glob.glob(global_datapath_ubn + data_folder +'*_merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
