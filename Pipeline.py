@@ -92,7 +92,7 @@ class pipeline_tstacks(object):
         '''
         sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
-        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 4)
+        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 0)
         self.cblobs = stack_redundreduct(blobs_sample, th = 5) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
@@ -164,7 +164,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_win+"/A5_TS/\\")
+    folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:
         print(data_path)
         pt = pipeline_tstacks(data_path, fname_flags = 'rg')

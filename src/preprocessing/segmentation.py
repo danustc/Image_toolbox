@@ -175,7 +175,7 @@ def stack_blobs(small_stack, diam, sig = 7):
             db_slice = frame_deblur(sample_slice, sig )
             cs_blobs = frame_blobs(db_slice, bsize = diam)
         else:
-            cs_blobs = frame_blobs(sample_slice, bsize = diam)
+            cs_blobs = frame_blobs(sample_slice.astype('float64'), bsize = diam)
         blobs_stack.append(cs_blobs)
 
     return blobs_stack
@@ -244,7 +244,7 @@ class Cell_extract(object):
         self.redund = True
 
 
-    def stack_blobs(self, sig=40, verbose = True):
+    def stack_blobs(self, sig=4, verbose = True):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         Update on 08/16: make the radius of blobs uniform.
@@ -294,7 +294,7 @@ class Cell_extract(object):
 
 
 
-    def extract_sampling(self, nsamples, mode = 'm', sig = 40, red_reduct = 5):
+    def extract_sampling(self, nsamples, mode = 'm', sig = 4, red_reduct = 5):
         '''
         nsamples: indice of slices that are selected for cell extraction
         mode:   m --- mean of the selected slices, then extract cells from the single slice
