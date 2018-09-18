@@ -223,7 +223,7 @@ def coregen():
     date_folder = 'Aug02_2018/'
     grinder_core = grinder()
     #data_path = global_datapath+ date_folder+'Aug02_2018_B2_dff.npz'
-    data_path = global_datapath + 'Jul19_2017_A2_dff.npz'
+    data_path = global_datapath + 'Jul19_2017_A4_dff.npz'
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
     stake = 0.95
@@ -235,24 +235,34 @@ def coregen():
     plt.xlabel('Activity')
     plt.ylabel('P(B|E)')
     plt.show()
-    #grinder_core.background_suppress(sup_coef = 0.0001)
-    N_cut = grinder_core.NC - cut_position[1] # remove cut_position[1] cells
-    th = 0.200
+    grinder_core.background_suppress(sup_coef = 0.0001)
+    #N_cut = grinder_core.NC - cut_position[1] # remove cut_position[1] cells
+    N_cut = 1000
+    th = 0.250
     signal_test = grinder_core.signal[10:,:N_cut]
-    #fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,4.5))
-    #fig_all.savefig('all_'+str(N_cut))
-    W = sc.corr_afinity(signal_test, thresh = th, kill_diag = False)
+    coord_test = grinder_core.coord[:N_cut]
+    fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,5.5))
+    fig_all.savefig('all_'+str(N_cut))
+    plt.close(fig_all)
+    W = sc.corr_afinity(signal_test, thresh = th, kill_diag = False, adaptive_th=True)
     hist, be = sc.corr_distribution(W)
     L = sc.laplacian(W)
     w, v = sc.sc_unnormalized(L, n_cluster = 20)
-    n_clu = 10
+    plt.plot(w, '-x')
+    plt.show()
+
+    n_clu = int(input("the # of clusters in the subset:") )
+    #n_clu = 5
     y_labels = clustering.spec_cluster(signal_test, n_clu, threshold = th)
     #return grinder_core
     sig_clusters = np.zeros([1770, n_clu])
     leg_cluster = []
     sub_cluster = []
+    fig_dist = plt.figure(figsize = (7,5))
+    ax = fig_dist.add_subplot(111)
     for nl in range(n_clu):
         signal_nl = signal_test[:, y_labels == nl]
+        coord_nl = coord_test[y_labels == nl]
         NT, NC = signal_nl.shape
         if NC > 500:
             sub_cluster.append(nl)
@@ -261,7 +271,9 @@ def coregen():
         fig.savefig('cluster_'+str(nl), dpi = 200)
         fig.clf()
         leg_cluster.append('cluster_'+str(nl+1))
-
+        ax.scatter(coord_nl[:,2], coord_nl[:,1], s = 11)
+    ax.legend(leg_cluster)
+    fig_dist.savefig('cluster_distribution', dpi = 200)
 
     fig_mean = signal_plot.compact_dffplot(sig_clusters, dt = 0.5, sc_bar = 0.20, tbar = 2)
     fig_mean.savefig('cluster_mean', dpi = 200)

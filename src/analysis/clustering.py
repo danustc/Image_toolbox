@@ -157,7 +157,7 @@ def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random'):
 
     for gg in range(n_group): # iterate over n_group
         sg_data = raw_data[:,group_index[gg]] # takeout a subgroup of data
-        spec_cluster(sg_data,)
+        spec_cluster(sg_data, n_cl)
 
     # divide the group  
 

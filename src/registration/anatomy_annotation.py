@@ -46,6 +46,7 @@ def anatomical_labeling(coord_file, arti_clear = True):
     coord_file: the file (reformatted) to be labeledannatomically.
     arti_clear: remove cells that have anatomical label -1
     '''
+    print(coord_file)
     if coord_file[-4] == '.':
         dest_path = coord_file.split('.')[0]+'_lb'
         data = np.load(coord_file)
@@ -103,7 +104,7 @@ def anatomical_labeling(coord_file, arti_clear = True):
     return np.array(labels_covered)
 
 
-def dimension_check(key_date, meta_dim, nyear = '18'):
+def dimension_check(key_date, meta_dim, nyear = '17'):
     # parse the key_data first 
     if key_date[0].isalpha():
         month = key_date[:3]#
@@ -233,9 +234,9 @@ def label_summary(group_labels, n_range = (20, 100), bar_plot = True, bar_color 
             raw_name = MD.get_name(lab)
             raw_parts = raw_name.split('-')
             if len(raw_parts) > 1:
-                short_name = '-'.join([raw_parts[0][:4], raw_parts[1][1:6]])
+                short_name = '-'.join([raw_parts[0][:4], raw_parts[1][1:10]])
             else:
-                short_name = raw_parts[0][:10]
+                short_name = raw_parts[0][:14]
             name_list.append(short_name)
 
         fig_sum = plt.figure(figsize = (8, 4.5))
@@ -259,23 +260,23 @@ def reg_annotate():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_path+'FB_resting_15min/Jun07_2018/*_dff.npz')
+    response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_dff.npz')
     print(response_list)
     label_sum = dict()
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
 
         print("Fish:", basename)
-        xdim =dimension_check(basename, meta_dim)
+        xdim =dimension_check(basename, meta_dim, nyear = '17')
         print(xdim)
         temp_list = basename.split('_')
         reglist  = ''.join([temp_list[0], temp_list[-1]])
 
-        reg_list = data_path + 'Good_registrations/Jun2018_rest/' + reglist +  '.list'
+        reg_list = data_path + 'Good_registrations/Jul2017_rest/' + reglist +  '.list'
         fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
         label_covered = anatomical_labeling(fine_dest_name)
         label_sum [basename] = label_covered
-    label_path = data_path + 'FB_resting_15min/Jun07_2018_labels.npz'
+    label_path = data_path + 'FB_resting_15min/Jul2017_labels.npz'
     np.savez(label_path, **label_sum)
 
     fig_sum = label_summary(label_path, n_range = (0,20), bar_color = 'coral')
