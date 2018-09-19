@@ -8,7 +8,6 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
 from df_f import dff_AB
-import src.algos.spectral_clustering as sc
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
 import src.visualization.signal_plot as signal_plot
 import clustering
@@ -142,6 +141,7 @@ class grinder(object):
     def cutoff_simple(self, nb = 200, conf_level = 0.95, activity_range= 0.95):
         '''
         use simple model of gaussian to infer where the cutoff line should be.
+        Warning: This function is far from being complete.
         '''
         if self.stat is None:
             print("No statistics data.")
@@ -158,6 +158,15 @@ class grinder(object):
             PE_bg = np.concatenate((PE_peak_left, PE_peak_left[::-1][1:]))
 
             print("Fit parameters:", mu, sigx)
+
+
+    def shuffle_control(self, n_shuffle = 2000):
+        '''
+        shuffle the first n_shuffle data to create a new dataset.
+        '''
+        shuffle_sig = np.copy(self.signal[:,:n_shuffle]) # maybe this copy is not necessary? 
+        shuffle_sig = np.random.permutation(shuffle_sig) # only shuffles along the 0th dimension, which is convenient for me! :D
+        return shuffle_sig
 
 
 
@@ -215,30 +224,4 @@ class grinder(object):
 
     def shutDown(self):
         pass
-
-
-def coregen():
-    '''
-    Now it is time to break it down.
-    '''
-    date_folder = 'Aug02_2018/'
-    #data_path = global_datapath+ date_folder+'Aug02_2018_B2_dff.npz'
-    data_path = global_datapath + 'Jul19_2017_A4_dff.npz'
-    #N_cut = grinder_core.NC - cut_position[1] # remove cut_position[1] cells
-    fig_all.savefig('all_'+str(N_cut))
-    plt.close(fig_all)
-    W = sc.corr_afinity(signal_test, thresh = th, kill_diag = False, adaptive_th=True)
-    hist, be = sc.corr_distribution(W)
-    L = sc.laplacian(W)
-    w, v = sc.sc_unnormalized(L, n_cluster = 20)
-    plt.plot(w, '-x')
-    plt.show()
-
-    n_clu = int(input("the # of clusters in the subset:") )
-    #n_clu = 5
-    ind_groups, cl_average = clustering.spec_cluster(signal_test, n_clu, threshold = th)
-    #return grinder_core
-    fig_dist = plt.figure(figsize = (7,5))
-    ax = fig_dist.add_subplot(111)
-
 

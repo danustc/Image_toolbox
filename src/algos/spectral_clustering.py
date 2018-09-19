@@ -26,11 +26,12 @@ def laplacian(W, mode = 'un'):
         return L_sym
     elif mode == 'rw':
         L_rw = np.diag(1./D_sum).dot(L)
+        return L_rw
     else:
         return L
 
 
-def sc_eigen(L, n_cluster = 8):
+def sc_eigen(L, n_cluster = 20):
     '''
     compute the embedding space of L and cluster. L can be unnormalized or normalized.
     '''
@@ -44,10 +45,16 @@ def sc_eigen(L, n_cluster = 8):
 def weakest_connection(corr_mat):
     '''
     check if any individuals are disconnected with anybody else.
+    In addition to the weakest link, also compute a general trend of the link strength among the group.
     '''
     nd_mat = corr_mat - np.diag(np.diag(corr_mat))# kill the diagonal elements
+    nd_mat[nd_mat < 0] = 0.
     max_corr = nd_mat.max(axis = 0) # the strongest correlation of each cell to everybody else
-    weak_link = max_corr.min() # The weakest of the strongest
+    sorted_mc = sorted(max_corr) # sort the strongest correlation
+    weak_link = sorted_mc[0] # the weakest link
+
+
+
     return weak_link
 
 
@@ -62,13 +69,13 @@ def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = Tr
     if adaptive_th:
         # adaptive thresholding 
         thresh = weakest_connection(corr_mat)
-        print("The real threshold:", thresh*1.1)
+        print("The real threshold:", thresh)
 
     corr_mat[corr_mat < thresh] = 1.0e-09
 
     if kill_diag:
         corr_mat = corr_mat -np.diag(np.diag(corr_mat))
-    return corr_mat
+    return corr_mat, thresh
 
 
 def corr_distribution(corr_mat, nb = 200):
@@ -79,11 +86,29 @@ def corr_distribution(corr_mat, nb = 200):
 
 
 
-def n_clusters(eigen_list, norder = 0):
+def leigen_nclusters(eigen_list, norder = 0):
     '''
     determining how many clusters the eigenvalue array suggests by finding the kinks in the eigen value list.
     '''
     eig_diff = np.diff(eigen_list)
-    peaks, _ = argrelextrema(eig_diff, np.greater) # find kinks
+    peaks = argrelextrema(eig_diff, np.greater)[0] # find kinks
 
     return peaks[norder]
+
+
+def dataset_evaluation(raw_data):
+    '''
+    Have an evaluation of how to set the sc parameters.
+
+    '''
+    cmat = np.corrcoef(raw_data.T)
+    #weak_link = weakest_connection(cmat)
+    aff_mat, th = corr_afinity(data_raw = None, corr_mat = cmat,thresh = 0.01, kill_diag = False, adaptive_th = True ) # first, using adaptive threshold to evaluate the thresholds
+    L = laplacian(aff_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
+    w, v = sc_eigen(L, n_cluster = 20) # calculate the first 20th eigen values and eigen states
+    peak_position = leigen_nclusters(w, norder = np.arange(3)) # where should I cut off?
+    return peak_position
+
+
+
+

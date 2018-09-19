@@ -129,7 +129,6 @@ def histo_clustering(feature, nbin, bin_cut = None,n_fold = 2, sca = 1.00):
     return merged_hist, mb_centers
 
 
-
 def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
     '''
     raw_data: NT x NC, NT: # of trials, NC: # of cells
@@ -140,7 +139,7 @@ def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
     # Create a distant matrix
     NT, NC = raw_data.shape
     corr_mat = np.corrcoef(raw_data.T) # create a correlation matrix
-    corr_mat[corr_mat < threshold] = 0.0
+    corr_mat[corr_mat < threshold] = 1.0e-09 # set to a tiny tiny number instead of 0 to prevent disconnected graph
     SC = SpectralClustering(n_clusters = n_cl, affinity = 'precomputed')
     y_labels = SC.fit_predict(corr_mat)
     total_ind = np.arange(NC)
@@ -164,6 +163,7 @@ def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
     #return ind_groups
 
 
+
 def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random'):
     '''
     spectral clustering by layers.
@@ -181,7 +181,7 @@ def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random'):
 
     for gg in range(n_group): # iterate over n_group
         sg_data = raw_data[:,group_index[gg]] # takeout a subgroup of data
-        ind_groups, _= spec_cluster(sg_data, n_cl)
+        ind_groups, cl_average = spec_cluster(sg_data, n_cl)
 
     # divide the group  
 
