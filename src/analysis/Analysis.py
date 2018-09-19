@@ -236,54 +236,9 @@ def coregen():
 
     n_clu = int(input("the # of clusters in the subset:") )
     #n_clu = 5
-    y_labels = clustering.spec_cluster(signal_test, n_clu, threshold = th)
+    ind_groups, cl_average = clustering.spec_cluster(signal_test, n_clu, threshold = th)
     #return grinder_core
-    sig_clusters = np.zeros([1770, n_clu])
-    leg_cluster = []
-    sub_cluster = []
     fig_dist = plt.figure(figsize = (7,5))
     ax = fig_dist.add_subplot(111)
-    for nl in range(n_clu):
-        signal_nl = signal_test[:, y_labels == nl]
-        coord_nl = coord_test[y_labels == nl]
-        NT, NC = signal_nl.shape
-        if NC > 500:
-            sub_cluster.append(nl)
-        sig_clusters[:,nl] = signal_nl.mean(axis = 1)
-        fig = signal_plot.dff_rasterplot(signal_nl)
-        fig.savefig('cluster_'+str(nl), dpi = 200)
-        fig.clf()
-        leg_cluster.append('cluster_'+str(nl+1))
-        ax.scatter(coord_nl[:,2], coord_nl[:,1], s = 11)
-    ax.legend(leg_cluster)
-    fig_dist.savefig('cluster_distribution', dpi = 200)
-
-    fig_mean = signal_plot.compact_dffplot(sig_clusters, dt = 0.5, sc_bar = 0.20, tbar = 2)
-    fig_mean.savefig('cluster_mean', dpi = 200)
-
-
-    nl = sub_cluster[0]
-    sub_population = signal_test[:,y_labels ==nl]
-    W = sc.corr_afinity(signal_test[:,y_labels == nl], thresh = 0.95*th)
-    L = sc.laplacian(W)
-    w, v = sc.sc_unnormalized(L, n_cluster = 20)
-    plt.close('all')
-    plt.plot(w, '-x')
-    plt.show()
-    n_clu = int(input("the # of clusters in the subset:") )
-
-    y_labels = clustering.spec_cluster(sub_population, n_clu, threshold = th)
-    sig_clusters = np.zeros([1770, n_clu])
-    for nl in range(n_clu):
-        signal_nl = sub_population[:, y_labels == nl]
-        NT, NC = signal_nl.shape
-        sig_clusters[:,nl] = signal_nl.mean(axis = 1)
-        fig = signal_plot.dff_rasterplot(signal_nl)
-        fig.savefig('subcluster_'+str(nl), dpi = 200)
-        fig.clf()
-
-
-    fig_mean = signal_plot.compact_dffplot(sig_clusters, dt = 0.5, sc_bar = 0.20, tbar = 2)
-    fig_mean.savefig('sub_mean', dpi = 200)
 
 
