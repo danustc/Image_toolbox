@@ -30,14 +30,15 @@ def laplacian(W, mode = 'un'):
         return L
 
 
-def sc_unnormalized(L, n_cluster = 8):
+def sc_eigen(L, n_cluster = 8):
     '''
-    compute the embedding space of L and cluster.
+    compute the embedding space of L and cluster. L can be unnormalized or normalized.
     '''
     w, v = linalg.eigsh(L, k = n_cluster, which = 'SA') # compute the 1st n_cluster smallest eigenvalues and eigenvectors.
     print("representing eigenvalues:", w[:n_cluster])
 
     return w, v
+
 
 
 def weakest_connection(corr_mat):

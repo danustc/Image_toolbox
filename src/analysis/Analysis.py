@@ -7,8 +7,6 @@ from scipy.signal import savgol_filter
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
-global_datapath = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
-portable_datapath = '/media/sillycat/DanData/'
 from df_f import dff_AB
 import src.algos.spectral_clustering as sc
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
@@ -220,28 +218,13 @@ class grinder(object):
 
 
 def coregen():
+    '''
+    Now it is time to break it down.
+    '''
     date_folder = 'Aug02_2018/'
-    grinder_core = grinder()
     #data_path = global_datapath+ date_folder+'Aug02_2018_B2_dff.npz'
     data_path = global_datapath + 'Jul19_2017_A4_dff.npz'
-    grinder_core.parse_data(data_path)
-    grinder_core.activity_sorting()
-    stake = 0.95
-    PHE, beh, cut_position = grinder_core.cutoff_bayesian(PH_const = 0.6, stake = 0.95, activity_range = 0.30, conserve_cutting = False)
-    print("% of inactive cells:", cut_position[1]*100/grinder_core.NC)
-    plt.plot(beh, PHE)
-    cutoff = cut_position[0]
-    plt.plot(np.array([cutoff, cutoff]), np.array([0, PHE.max()]), '--r', linewidth = 2)
-    plt.xlabel('Activity')
-    plt.ylabel('P(B|E)')
-    plt.show()
-    grinder_core.background_suppress(sup_coef = 0.0001)
     #N_cut = grinder_core.NC - cut_position[1] # remove cut_position[1] cells
-    N_cut = 1000
-    th = 0.250
-    signal_test = grinder_core.signal[10:,:N_cut]
-    coord_test = grinder_core.coord[:N_cut]
-    fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,5.5))
     fig_all.savefig('all_'+str(N_cut))
     plt.close(fig_all)
     W = sc.corr_afinity(signal_test, thresh = th, kill_diag = False, adaptive_th=True)
@@ -304,5 +287,3 @@ def coregen():
     fig_mean.savefig('sub_mean', dpi = 200)
 
 
-if __name__ == '__main__':
-    coregen()
