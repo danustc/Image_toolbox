@@ -7,7 +7,6 @@ import numpy as np
 from scipy.cluster.hierarchy import dendrogram, linkage, cophenet
 from scipy.spatial.distance import pdist
 from scipy import stats
-from sklearn.cluster import KMeans, SpectralClustering
 import matplotlib.pyplot as plt
 from collections import deque
 
@@ -129,59 +128,4 @@ def histo_clustering(feature, nbin, bin_cut = None,n_fold = 2, sca = 1.00):
     return merged_hist, mb_centers
 
 
-def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
-    '''
-    raw_data: NT x NC, NT: # of trials, NC: # of cells
-    perform spectral clustering
-    threshold: correlation coefficient lower than the threshold is considered unconnected.
-    Add: calculate cluster population and average, then order by population size.
-    '''
-    # Create a distant matrix
-    NT, NC = raw_data.shape
-    corr_mat = np.corrcoef(raw_data.T) # create a correlation matrix
-    corr_mat[corr_mat < threshold] = 1.0e-09 # set to a tiny tiny number instead of 0 to prevent disconnected graph
-    SC = SpectralClustering(n_clusters = n_cl, affinity = 'precomputed')
-    y_labels = SC.fit_predict(corr_mat)
-    total_ind = np.arange(NC)
-    ind_groups = []
-    g_population = np.zeros(cl)
-    for ii in range(n_cl):
-        ind_clu = total_ind[ y_labels == ii]
-        ind_groups.append(ind_clu)
-        g_population[ii] = len(ind_clu)
-
-    sort_pop = np.argsort(g_population)
-    ind_groups = ind_groups[sort_pop]
-    if average_calc:
-        cl_average = np.zeros([NT, n_cl])
-        for ii in range(n_cl):
-            cl_average[:,ii] = raw_data[:, ind_groups[ii]].mean(axis = 1)
-
-    else:
-        cl_average = None
-    return ind_groups,  cl_average
-    #return ind_groups
-
-
-
-def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random'):
-    '''
-    spectral clustering by layers.
-    hard part: how to keep tracing the clustering results.
-    '''
-    NT, NC = raw_data.shape
-    arr = np.arange(NC)
-    group_index = smart_partition(NC, n_group, last_big = False) # Equally partition the dataset into several groups, the last group has the smallest population.
-
-    if mode == 'random':
-        np.random.shuffle(arr)
-
-    elif mode == 'ordered':
-        pass
-
-    for gg in range(n_group): # iterate over n_group
-        sg_data = raw_data[:,group_index[gg]] # takeout a subgroup of data
-        ind_groups, cl_average = spec_cluster(sg_data, n_cl)
-
-    # divide the group  
 

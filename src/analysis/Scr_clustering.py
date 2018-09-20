@@ -8,7 +8,6 @@ import os
 from src.analysis.Analysis import grinder
 import src.algos.spectral_clustering as sc
 import matplotlib.pyplot as plt
-import clustering
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
 portable_datapath = '/media/sillycat/DanData/'
@@ -21,9 +20,11 @@ def main():
     grinder_core.activity_sorting()
     grinder_core.background_suppress(sup_coef = 0.0001)
     signal_test = grinder_core.signal[10:, :N_cut]
-    peak_position = sc.dataset_evaluation(signal_test)
+    peak_position, th  = sc.dataset_evaluation(signal_test)
     print("suggested number of clusters:", peak_position)
-    ind_groups, cl_average = clustering.spec_cluster(signal_test, n_clu, threshold = th)
+    print("suggested threshold:", th)
+    n_clu = peak_position[0]
+    ind_groups, cl_average = sc.spec_cluster(signal_test, n_clu, threshold = th)
 
 
 if __name__ == '__main__':
