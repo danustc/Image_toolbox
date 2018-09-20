@@ -24,6 +24,7 @@ class hrc_sc(object):
         hard part: how to keep tracing the clustering results.
         This can be full automatic or semi-automatic.
         '''
+        ncl_total = 0 # the total number of clusters
         NT, NC = self.signal.shape
         arr = np.arange(NC)
         group_index = sc.smart_partition(NC, n_group, last_big = False) # Equally partition the dataset into several groups, the last group has the smallest population.
@@ -54,7 +55,22 @@ class hrc_sc(object):
                     n_cl = peak_position[1]
             ind_groups, cl_average = spec_cluster(sg_data, n_cl)
             self.ind_group_pool.append(ind_groups)
-            self.cl_average_pool.append(cl_average)
+            self.cl_average_pool.append(cl_average)# 
+            ncl_total += n_cl
+
+        self.ncl_total = ncl_total
+
+
+    def labeling_assignment(self):
+        '''
+        create an NCx2 matrix to save each neuron's group number and label number.
+        First column: the group that each neuron belongs to.
+        Second column: the label of each neuron within the group.
+        For instance, if a cell is labeled (2,3), then it belongs to the second group and has clustering label 3.
+        '''
+        group_label = np.zeros((self.NC, 2))
+        for id_group, cl_aver in zip(self.ind_group_pool, self.cl_average_pool):
+            pass
 
 
 
@@ -64,3 +80,4 @@ class hrc_sc(object):
         Idea:
         create a similarity matrix between the different clusters.
         '''
+        
