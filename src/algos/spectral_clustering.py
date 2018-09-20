@@ -7,6 +7,7 @@ import scipy.sparse.linalg as linalg
 from scipy.signal import argrelextrema
 from sklearn.cluster import KMeans, SpectralClustering
 import matplotlib.pyplot as plt
+from collections import deque
 
 
 def symmetric(mat, tol = 1.0e-08):
@@ -163,10 +164,11 @@ def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
     return ind_groups,  cl_average
 
 
-def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random'):
+def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random', interactive = True):
     '''
     spectral clustering by layers.
     hard part: how to keep tracing the clustering results.
+    This can be full automatic or semi-automatic.
     '''
     NT, NC = raw_data.shape
     arr = np.arange(NC)
@@ -178,6 +180,8 @@ def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random'):
     elif mode == 'ordered':
         pass
 
+    cl_average_pool = deque() # list of lists, saving the cluster average
+    ind_group_pool = deque() # list of lists, saving the group index average
     for gg in range(n_group): # iterate over n_group
         '''
         first, evaluate the group's threshold
@@ -186,6 +190,14 @@ def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random'):
         cluster_peaks, th = dataset_evaluation(sg_data)
         print("suggested number of clusters:", peak_position)
         print("suggested threshold:", th)
+
+        if interactive:
+            n_cl = int(input("Enter the number of clusters: "))
+        else:
+            if len(cluster_peaks) == 1:
+                n_cl = peak_position[0]
+            else:
+                n_cl = peak_position[1]
         ind_groups, cl_average = spec_cluster(sg_data, n_cl)
 
 
