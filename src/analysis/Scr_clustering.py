@@ -6,7 +6,7 @@ import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
 from src.analysis.Analysis import grinder
-import src.algos.spectral_clustering as sc
+import src.analysis.spectral_clustering as sc
 import matplotlib.pyplot as plt
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
