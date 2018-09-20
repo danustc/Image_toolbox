@@ -17,7 +17,7 @@ global_datapath_ubn  = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/'
 package_path_win  = r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\" # This is for windows
 sys.path.append(package_path)
-#global_datapath_win = r"D:\/Data/2018-06-07\\"
+global_datapath_win = r"D:\/Data\\"
 
 # ---------------------Below are small functions for data cleaning -------------
 
@@ -214,9 +214,9 @@ class pipeline(object):
 #------------------------------The main test function ---------------------
 
 def main_rawf():
-    data_folder = 'FB_resting_15min/Jul2017/'
+    #data_folder = 'FB_resting_15min/Jul2017/'
     #data_folder = 'FB_resting_15min/Aug02_2018/'
-    raw_list = glob.glob(global_datapath_ubn + data_folder +'*_merged.npz')
+    raw_list = glob.glob(global_datapath_win +'*_merged.npz')
     #raw_list = glob.glob(portable_datapath+'Jul*merged.npz')
     for raw_file in raw_list:
         acquisition_date = '_'.join(os.path.basename(raw_file).split('.')[0].split('_')[:-1])
@@ -226,8 +226,8 @@ def main_rawf():
         ppl.edge_truncate(edge_width = 2.0)
         ppl.baseline_cleaning(bcut = 160.0)
         ppl.dff_calc(ft_width = 6, filt = True)
-        ppl.valid_check(df_th = 4.)
-        ppl.save_cleaned_dff(global_datapath_ubn +data_folder+ acquisition_date + '_dff')
+        ppl.valid_check(df_th = 6.)
+        ppl.save_cleaned_dff(global_datapath_win + acquisition_date + '_dff')
         print("Finished processing:", acquisition_date)
 
 def main_dff():
