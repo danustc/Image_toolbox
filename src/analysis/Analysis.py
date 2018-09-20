@@ -17,7 +17,7 @@ class grinder(object):
     '''
     the general data grinder module, which reads signal, coordinates and do shuffling when necessary.
     '''
-    def __init__(self,coord = None, signal = None, rev = True):
+    def __init__(self,coord = None, signal = None, rev = True, dt = 0.50):
         self.signal = signal
         self.coord = coord
         self.rev = rev # whether the coordinates are reversed.
@@ -27,6 +27,7 @@ class grinder(object):
 
         self.stat = None
         self.activity = None
+        self.dt = dt
 
     def _trim_data_(self, ind_trim):
         self.signal = self.signal[:,ind_trim]
@@ -170,6 +171,19 @@ class grinder(object):
         return shuffle_sig
 
 
+    def activity_evolution(self, twindow = 300):
+        '''
+        twindow: time window for integrating the signal intensity
+        prerequisite: self.stat is not None.
+        '''
+        signal = self.signal
+        nw = int(twindow//self.dt) # the width of the sliding window in the unit of time stamps
+        w_filter = np.ones(nw)
+        tw_act = np.empty([self.NT-nw+1, self.NC])
+        for ii in range(self.NC):
+            tw_act[:,ii] = np.convolve(signal[:,ii], w_filter, mode = 'valid')
+
+        return tw_act
 
     def background_suppress(self, sup_coef = 0.010, shuffle = True):
         '''
@@ -231,6 +245,7 @@ class grinder(object):
             newpath = global_datapath_ubn + self.basename + '_cleaned'
         cleaned_dataset = {'coord':self.coord, 'signal':self.signal}
         np.savez(newpath, **cleaned_dataset)
+
 
     def shutDown(self):
         pass

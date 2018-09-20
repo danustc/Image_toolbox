@@ -58,7 +58,6 @@ class hrc_sc(object):
 
 
 
-
     def cluster_crosscheck(self):
         '''
         cross check the similarity between different clusters.
