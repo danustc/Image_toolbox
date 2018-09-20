@@ -13,6 +13,23 @@ from collections import deque
 def symmetric(mat, tol = 1.0e-08):
     return np.allclose(mat, mat.T, atol = tol)
 
+def smart_partition(NC, n_group, last_big = True):
+    arr = np.arange(NC)
+    if last_big:
+        g_pop = int(NC//n_group)
+    else:
+        g_pop = int(NC//n_group) + 1
+    cutoff_pos = np.arange(n_group+1) * g_pop
+    cutoff_pos[-1] = NC #reset the last element to NC
+    group_index = []
+    for ii in range(n_group):
+        ni = cutoff_pos[ii]
+        nf = cutoff_pos[ii+1]
+        group_index.append(arr[ni:nf])
+
+    return group_index
+
+
 def laplacian(W, mode = 'un'):
     '''
     construct graph laplacian from the weight matrix
@@ -140,8 +157,6 @@ def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
     NT, NC = raw_data.shape
     affi_mat, th = corr_afinity(raw_data, thresh = threshold )
     SC = SpectralClustering(n_clusters = n_cl, affinity = 'precomputed')
-    plt.imshow(affi_mat-affi_mat.T)
-    plt.show()
     y_labels = SC.fit_predict(affi_mat)
     total_ind = np.arange(NC)
     ind_groups = []
@@ -188,7 +203,7 @@ def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random', interac
         '''
         sg_data = raw_data[:,group_index[gg]] # takeout a subgroup of data
         cluster_peaks, th = dataset_evaluation(sg_data)
-        print("suggested number of clusters:", peak_position)
+        print("suggested number of clusters:", cluster_peaks)
         print("suggested threshold:", th)
 
         if interactive:
@@ -199,6 +214,10 @@ def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random', interac
             else:
                 n_cl = peak_position[1]
         ind_groups, cl_average = spec_cluster(sg_data, n_cl)
+        ind_group_pool.append(ind_groups)
+        cl_average_pool.append(cl_average)
+
+    return ind_group_pool, cl_average_pool
 
 
 

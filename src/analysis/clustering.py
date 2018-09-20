@@ -13,22 +13,6 @@ from collections import deque
 Z_dic = {'L':0, 'R':1}
 
 
-def smart_partition(NC, n_group, last_big = True):
-    arr = np.arange(NC)
-    if last_big:
-        g_pop = int(NC//n_group)
-    else:
-        g_pop = int(NC//n_group) + 1
-    cutoff_pos = np.arange(n_group+1) * g_pop
-    cutoff_pos[-1] = NC #reset the last element to NC
-    group_index = []
-    for ii in n_group:
-        ni = cutoff_pos[ii]
-        nf = cutorr_pos[ii+1]
-        group_index.append(arr[ni:nf])
-
-    return group_index
-
 def dis2cluster(dataset, p_levels = None, yield_z = False):
     '''
     dendrogram clustering

@@ -11,7 +11,7 @@ from df_f import dff_AB
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
 import src.visualization.signal_plot as signal_plot
 import clustering
-import matplotlib.pyplot as plt
+global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
 
 class grinder(object):
     '''
@@ -42,7 +42,8 @@ class grinder(object):
             self.NT, self.NC = 0, 0
 
     def parse_data(self, data_file, rev = True):
-        fmt = os.path.basename(data_file).split('.')[-1]
+        basename, fmt = os.path.basename(data_file).split('.')
+        self.basename = basename
         if fmt == 'h5':
             try:
                 print(data_file)
@@ -222,6 +223,31 @@ class grinder(object):
 
         return norm_signal
 
+    def saveas(self, newpath = None):
+        '''
+        save the dataset as the new file.
+        '''
+        if newpath is None:
+            newpath = global_datapath_ubn + self.basename + '_cleaned'
+        cleaned_dataset = {'coord':self.coord, 'signal':self.signal}
+        np.savez(newpath, **cleaned_dataset)
+
     def shutDown(self):
         pass
 
+
+
+def main():
+    '''
+    some initial munging of the datasets.
+    '''
+    data_path = global_datapath_ubn + 'Jul19_2017_A4_dff.npz'
+    grinder_core = grinder()
+    grinder_core.parse_data(data_path)
+    grinder_core.activity_sorting()
+    grinder_core.background_suppress(sup_coef = 0.0001)
+    grinder_core.saveas()
+
+
+if __name__ == '__main__':
+    main()

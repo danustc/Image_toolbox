@@ -13,18 +13,12 @@ global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15
 portable_datapath = '/media/sillycat/DanData/'
 
 def main():
-    data_path = global_datapath_ubn + 'Jul19_2017_A4_dff.npz'
-    N_cut = 1000
-    grinder_core = grinder()
-    grinder_core.parse_data(data_path)
-    grinder_core.activity_sorting()
-    grinder_core.background_suppress(sup_coef = 0.0001)
-    signal_test = grinder_core.signal[10:, :N_cut]
-    peak_position, th  = sc.dataset_evaluation(signal_test)
-    print("suggested number of clusters:", peak_position)
-    print("suggested threshold:", th)
-    n_clu = peak_position[0]
-    ind_groups, cl_average = sc.spec_cluster(signal_test, n_clu, threshold = th)
+    data_path = global_datapath_ubn + 'Jul19_2017_A4_dff_cleaned.npz'
+    dff_data = np.load(data_path)
+    signal_test = dff_data['signal']
+    coord_test = dff_data['coord']
+    igp, cap = sc.hierachical_sc(signal_test, n_group = 8, threshold = 0.25, interactive = True)
+
 
 
 if __name__ == '__main__':
