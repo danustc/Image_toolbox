@@ -68,7 +68,7 @@ class hrc_sc(object):
             '''
             sg_data = self.signal[:,group_index[gg]] # takeout a subgroup of data
             sc_holder.load_data(sg_data)
-            sc_holder.link_evaluate(sca = 1.15)
+            sc_holder.link_evaluate(sca = 1.12)
             sc_holder.affinity()
 
             cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
@@ -131,9 +131,9 @@ class hrc_sc(object):
         cl_average = np.column_stack(self.cl_average_pool)
         sc_holder = Corr_sc()
         sc_holder.load_data(cl_average)
-        sc_holder.link_evaluate(sca = 1.15)
+        sc_holder.link_evaluate(sca = 1.20)
         sc_holder.affinity()
-        cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
+        cluster_peaks, fig_plot = sc_holder.laplacian_evaluation(ncl = 30)
         fig_plot.show()
         n_cl = int(input("Enter the number of clusters: "))
         plt.close(fig_plot)
@@ -149,9 +149,9 @@ class hrc_sc(object):
         '''
         merged_label = np.zeros(self.NC)
         n_supgroup = len(cluster_cg) # number of supergroups
-        for ind_cg in cluster_cg:
+        for ii in range(n_supgroup):
+            ind_cg =  cluster_cg[ii]
             label_cg = self.cluster_label[ind_cg]
-            print(label_cg)
             merged_group = []
             for labels in label_cg:
                 '''
@@ -163,6 +163,8 @@ class hrc_sc(object):
             # After iterating through the labels
             ind_mg = np.concatenate(merged_group) # indices of the merged group
             merged_label[ind_mg] = ii
+
+        return merged_label
 
 
     def merge_clusters(label_a, label_b):

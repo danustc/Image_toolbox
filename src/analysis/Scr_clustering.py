@@ -9,6 +9,7 @@ from src.analysis.Analysis import grinder
 import src.analysis.spectral_clustering as sc
 import matplotlib.pyplot as plt
 from hierachical_sc import hrc_sc
+from src.visualization.signal_plot import compact_dffplot
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
 portable_datapath = '/media/sillycat/DanData/'
@@ -18,11 +19,15 @@ def main():
     dff_data = np.load(data_path)
     signal_test = dff_data['signal']
     coord_test = dff_data['coord']
-    HS_class = hrc_sc(signal_test, n_group = 5)
+    HS_class = hrc_sc(signal_test, n_group = 6)
     print(HS_class.__dict__.keys())
     HS_class.divide_sc(threshold = 0.25)
     HS_class.population_labeling()
-    HS_class.cluster_corrcheck()
+    merged_label = HS_class.cluster_corrcheck()
+    ind_groups, cl_average = sc.label_assignment(signal_test, merged_label)
+
+    fig_merged = compact_dffplot(cl_average, fsize = (6,3.0))
+    fig_merged.savefig('sc_merged')
     print(HS_class.__dict__.keys())
 
 

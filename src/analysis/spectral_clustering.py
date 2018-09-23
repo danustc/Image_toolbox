@@ -85,20 +85,6 @@ def leigen_nclusters(eigen_list, norder = 0):
     return peaks[norder]
 
 
-def dataset_evaluation(raw_data, plotout = True):
-    '''
-    Have an evaluation of how to set the sc parameters.
-    This is not a very good function because lots of computation power is wasted. Should I pack it into a class?
-
-    '''
-    cmat = np.corrcoef(raw_data.T)
-    #weak_link = weakest_connection(cmat)
-    L = laplacian(aff_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
-    w, v = sc_eigen(L, n_cluster = 20) # calculate the first 20th eigen values and eigen states
-    peak_position = leigen_nclusters(w, norder = np.arange(3)) # where should I cut off?
-    return peak_position, th, fig_plot
-
-
 def label_assignment(raw_data, n_cl, y_labels):
     '''
     raw_data: NT x NC, NT: # of trials, NC: # of cells
@@ -178,10 +164,10 @@ class Corr_sc(object):
         self.affi_mat = affi_mat
 
 
-    def laplacian_evaluation(self, plotout = True):
+    def laplacian_evaluation(self, plotout = True, ncl = 20):
 
         L = laplacian(self.affi_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
-        w, v = sc_eigen(L, n_cluster = 20) # calculate the first 20th eigen values and eigen states
+        w, v = sc_eigen(L, n_cluster = ncl) # calculate the first 20th eigen values and eigen states
         peak_position = leigen_nclusters(w, norder = np.arange(3)) # where should I cut off?
         if plotout:
             fig_plot = plt.figure(figsize = (6,3.5))
