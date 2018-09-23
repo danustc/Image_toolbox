@@ -6,7 +6,7 @@ root_path = '/home/sillycat/Programming/Python/Image_toolbox/'
 import sys
 sys.path.append(root_path)
 import numpy as np
-from spectral_clustering import Corr_sc
+from spectral_clustering import Corr_sc, label_assignment
 import matplotlib.pyplot as plt
 from collections import deque
 from src.visualization import signal_plot
@@ -92,7 +92,7 @@ class hrc_sc(object):
         self.ncl_total = ncl_total
 
 
-    def population_labeling(self):
+    def groupwise_population_labeling(self):
         '''
         create an NCx2 matrix to save each neuron's group number and label number.
         First column: the group that each neuron belongs to.
@@ -135,21 +135,21 @@ class hrc_sc(object):
         sc_holder.affinity()
         cluster_peaks, fig_plot = sc_holder.laplacian_evaluation(ncl = 30)
         fig_plot.show()
-        n_cl = int(input("Enter the number of clusters: "))
+        self.n_supgroup = int(input("Enter the number of clusters: "))
         plt.close(fig_plot)
-        sc_holder.clustering(n_cl)
+        sc_holder.clustering(self.n_supgroup)
         cluster_corrgroup = sc_holder.ind_groups
-        self.trace_back(cluster_corrgroup)
+        return cluster_corrgroup
 
 
-    def trace_back(self, cluster_cg):
+    def merge_clusters(self, cluster_cg):
         '''
         cluster_cg: cluster y_label index, which should be traced back to self.group_label
         for each cluster, trace back its i,j
         '''
         merged_label = np.zeros(self.NC)
-        n_supgroup = len(cluster_cg) # number of supergroups
-        for ii in range(n_supgroup):
+
+        for ii in range(self.n_supgroup):
             ind_cg =  cluster_cg[ii]
             label_cg = self.cluster_label[ind_cg]
             merged_group = []
@@ -164,13 +164,12 @@ class hrc_sc(object):
             ind_mg = np.concatenate(merged_group) # indices of the merged group
             merged_label[ind_mg] = ii
 
-        return merged_label
+        ind_supgroups, cl_supaverage = label_assignment(self.data, self.n_supgroup,merged_label)
 
+        return merged_label, cl_supaverage
 
-    def merge_clusters(label_a, label_b):
-        '''
-        merge two clusters with label_a and label_b.
-        '''
+    def merged_population_labeling(self):
+
 
     def cluster_view(self):
         '''

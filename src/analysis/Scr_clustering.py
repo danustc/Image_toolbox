@@ -22,9 +22,9 @@ def main():
     HS_class = hrc_sc(signal_test, n_group = 6)
     print(HS_class.__dict__.keys())
     HS_class.divide_sc(threshold = 0.25)
-    HS_class.population_labeling()
-    merged_label = HS_class.cluster_corrcheck()
-    ind_groups, cl_average = sc.label_assignment(signal_test, merged_label)
+    HS_class.groupwise_population_labeling()
+    HS_class.cluster_corrcheck()
+    HS_class.merge_clusters()
 
     fig_merged = compact_dffplot(cl_average, fsize = (6,3.0))
     fig_merged.savefig('sc_merged')
