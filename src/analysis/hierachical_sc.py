@@ -147,8 +147,22 @@ class hrc_sc(object):
         cluster_cg: cluster y_label index, which should be traced back to self.group_label
         for each cluster, trace back its i,j
         '''
+        merged_label = np.zeros(self.NC)
+        n_supgroup = len(cluster_cg) # number of supergroups
         for ind_cg in cluster_cg:
             label_cg = self.cluster_label[ind_cg]
+            print(label_cg)
+            merged_group = []
+            for labels in label_cg:
+                '''
+                first element: the group number
+                second element: the label number within that group
+                '''
+                search_neurons = np.where(np.logical_and(self.neuron_label[:,0]==labels[0], self.neuron_label[:,1]==labels[1]))[0]
+                merged_group.append(search_neurons)
+            # After iterating through the labels
+            ind_mg = np.concatenate(merged_group) # indices of the merged group
+            merged_label[ind_mg] = ii
 
 
     def merge_clusters(label_a, label_b):
