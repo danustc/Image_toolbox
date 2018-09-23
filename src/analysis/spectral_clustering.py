@@ -84,7 +84,7 @@ def weakest_connection(corr_mat):
 
 
 
-def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = True, adaptive_th = False, cut_scale = 1.10):
+def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = True, adaptive_th = False, cut_scale = 1.15):
     '''
     Create the afinity matrix
     The cutoff is radical
@@ -114,10 +114,10 @@ def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = Tr
     return corr_mat, thresh
 
 
-def corr_distribution(corr_mat, nb = 200):
+def corr_distribution(corr_mat, nb = 200, uprange = 0.5):
     # set the diagonal to zero first
     corr_mat_sd = corr_mat - np.diag(2*np.diag(corr_mat))
-    hist, be = np.histogram(corr_mat_sd.ravel(),  bins = nb, density = True, range = (0,0.4))
+    hist, be = np.histogram(corr_mat_sd.ravel(),  bins = nb, density = True, range = (0, uprange))
     return hist, be
 
 
@@ -135,6 +135,7 @@ def leigen_nclusters(eigen_list, norder = 0):
 def dataset_evaluation(raw_data, plotout = True):
     '''
     Have an evaluation of how to set the sc parameters.
+    This is not a very good function because lots of computation power is wasted. Should I pack it into a class?
 
     '''
     cmat = np.corrcoef(raw_data.T)
@@ -185,3 +186,37 @@ def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
     return ind_groups,  cl_average
 
 
+# --------------------Class of spectral clustering -----
+
+class Corr_sc(object):
+    '''
+    spectral clustering based on correlation coefficient.
+    '''
+    def __init__(self, raw_data):
+        '''
+        Initialize the class, compute the correlation matrix.
+        '''
+        self.data = raw_data
+        self.corr_mat = np.corrcoef(raw_data.T)
+
+
+    def evaluate(self, histo = True, sca = 1.20):
+        '''
+        Evaluate how densely/intensely this graph is linked
+        '''
+        wk_link, peak = weakest_connection(self.corr_mat)
+        if histo:
+            hi, be = corr_distribution(self.corr_mat)
+        print("The weakest link:", wk_link)
+        self.thresh = sca*wk_link
+
+    def reload(self, new_data):
+        self.data = new_data
+        self.corr_mat = np.corrcoef(new_data.T)
+
+
+    def affinity(self):
+        affi_mat = np.copy(self.corr_mat)
+        affi_mat[affi_mat < self.thresh] = 1.0e-09
+        if not(symmetric(affi_mat)):
+            affi_mat = (affi_mat+affi_mat.T)*0.5

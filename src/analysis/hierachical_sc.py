@@ -8,6 +8,24 @@ import spectral_clustering as sc
 import matplotlib.pyplot as plt
 from collections import deque
 
+def smart_partition(NC, n_group, last_big = True):
+    arr = np.arange(NC)
+    if last_big:
+        g_pop = int(NC//n_group)
+    else:
+        g_pop = int(NC//n_group) + 1
+    cutoff_pos = np.arange(n_group+1) * g_pop
+    cutoff_pos[-1] = NC #reset the last element to NC
+    group_index = []
+    for ii in range(n_group):
+        ni = cutoff_pos[ii]
+        nf = cutoff_pos[ii+1]
+        group_index.append(arr[ni:nf])
+
+    return group_index
+
+# -----------------------Below is the class of hierachical spectral clustering ------------
+
 class hrc_sc(object):
     '''
     class description blablabla.....
@@ -87,14 +105,24 @@ class hrc_sc(object):
 
 
 
-    def cluster_crosscheck(self):
+    def cluster_corrcheck(self):
         '''
         cross check the similarity between different clusters.
         Idea:
-        create a similarity matrix between the different clusters.
+        1. create a similarity matrix between the different clusters.
+        2. perform spectral clustering again on the corrmat
         '''
         # First, convert the cluster averages in subgroups into a big array          
         cl_average = np.column_stack(self.cl_average_pool)
         cluster_cm = np.corrcoef(cl_average.T)
+        aff_mat, th = sc.corr_afinity(corr_mat = cluster_cm, adaptive_th = True, cut_scale = 1.20)
+
+        sc.SpectralClustering(aff_mat,)
         return cluster_cm
 
+
+
+    def cluster_view(self):
+        '''
+        view the average of clusters
+        '''
