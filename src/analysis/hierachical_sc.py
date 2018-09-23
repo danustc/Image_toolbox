@@ -14,10 +14,11 @@ class hrc_sc(object):
     '''
 
     def __init__(self, raw_signal, n_group):
+        self.n_group = n_group
         self.signal = signal
 
 
-    def divide_sc(self, n_group, threshold = 0.25, mode = 'random', interactive = True):
+    def divide_sc(self, threshold = 0.25, mode = 'random', interactive = True):
         '''
         spectral clustering by groups.
         partitions the whole dataset into several groups, and do spectral clustering on each group
@@ -27,7 +28,7 @@ class hrc_sc(object):
         ncl_total = 0 # the total number of clusters
         NT, NC = self.signal.shape
         arr = np.arange(NC)
-        group_index = sc.smart_partition(NC, n_group, last_big = False) # Equally partition the dataset into several groups, the last group has the smallest population.
+        group_index = sc.smart_partition(NC, self.n_group, last_big = False) # Equally partition the dataset into several groups, the last group has the smallest population.
 
         if mode == 'random':
             np.random.shuffle(arr)
@@ -37,7 +38,7 @@ class hrc_sc(object):
 
         self.cl_average_pool = deque() # list of lists, saving the cluster average
         self.ind_group_pool = deque() # list of lists, saving the group index average
-        for gg in range(n_group): # iterate over n_group
+        for gg in range(self.n_group): # iterate over n_group
             '''
             first, evaluate the group's threshold
             '''
@@ -69,8 +70,14 @@ class hrc_sc(object):
         For instance, if a cell is labeled (2,3), then it belongs to the second group and has clustering label 3.
         '''
         group_label = np.zeros((self.NC, 2))
-        for id_group, cl_aver in zip(self.ind_group_pool, self.cl_average_pool):
-            pass
+        for ii in range(self.n_group):
+            id_group, cl_aver = self.ind_group_pool[ii], self.cl_average_pool[ii]
+            # next, iterate through the id_group
+            n_labels = len(id_group)
+            for jj in range(n_labels):
+                idx = id_group[jj]
+                group_label[idx] = ii
+                group_label[id_group,1] = 
 
 
 

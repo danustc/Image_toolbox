@@ -163,7 +163,7 @@ def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
     g_population = np.zeros(n_cl)
 
     for ii in range(n_cl):
-        ind_clu = total_ind[ y_labels == ii]
+        ind_clu = total_ind[y_labels == ii]
         ind_groups.append(ind_clu)
         g_population[ii] = len(ind_clu)
 
