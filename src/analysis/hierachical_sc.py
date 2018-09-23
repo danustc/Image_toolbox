@@ -4,7 +4,7 @@ Last update by Dan on 09/20/2018.
 '''
 
 import numpy as np
-import spectral_clustering as sc
+from spectral_clustering import Corr_sc
 import matplotlib.pyplot as plt
 from collections import deque
 
@@ -47,7 +47,7 @@ class hrc_sc(object):
         NT, NC = self.signal.shape
         self.NT, self.NC = NT, NC
         arr = np.arange(NC)
-        group_index = sc.smart_partition(NC, self.n_group, last_big = False) # Equally partition the dataset into several groups, the last group has the smallest population.
+        group_index = smart_partition(NC, self.n_group, last_big = False) # Equally partition the dataset into several groups, the last group has the smallest population.
 
         if mode == 'random':
             np.random.shuffle(arr)
@@ -57,14 +57,18 @@ class hrc_sc(object):
 
         self.cl_average_pool = deque() # list of lists, saving the cluster average
         self.ind_group_pool = deque() # list of lists, saving the group index average
+        sc_holder = Corr_sc() # initialize an empty holder 
+
         for gg in range(self.n_group): # iterate over n_group
             '''
             first, evaluate the group's threshold
             '''
             sg_data = self.signal[:,group_index[gg]] # takeout a subgroup of data
-            cluster_peaks, th, fig_plot = sc.dataset_evaluation(sg_data)
+            sc_holder.load_data(sg_data)
+            sc_holder.link_evaluate(sca = 1.20)
+
+            cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
             print("suggested number of clusters:", cluster_peaks)
-            print("suggested threshold:", th)
 
             if interactive:
                 fig_plot.show()
@@ -72,18 +76,19 @@ class hrc_sc(object):
                 plt.close(fig_plot)
             else:
                 if len(cluster_peaks) == 1:
-                    n_cl = peak_position[0]
+                    n_cl = cluster_peaks[0]
                 else:
-                    n_cl = peak_position[1]
-            ind_groups, cl_average = sc.spec_cluster(sg_data, n_cl)
-            self.ind_group_pool.append(ind_groups)
-            self.cl_average_pool.append(cl_average)# 
+                    n_cl = cluster_peaks[1]
+            #ind_groups, cl_average = sc.spec_cluster(sg_data, n_cl)
+            sc_holder.clustering(n_cl)
+            self.ind_group_pool.append(sc_holder.ind_groups)
+            self.cl_average_pool.append(sc_holder.cl_average)# 
             ncl_total += n_cl
 
         self.ncl_total = ncl_total
 
 
-    def labeling_assignment(self):
+    def population_labeling(self):
         '''
         create an NCx2 matrix to save each neuron's group number and label number.
         First column: the group that each neuron belongs to.

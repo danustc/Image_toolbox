@@ -135,13 +135,16 @@ class Corr_sc(object):
     '''
     spectral clustering based on correlation coefficient.
     '''
-    def __init__(self, raw_data):
+    def __init__(self, raw_data = None):
         '''
         Initialize the class, compute the correlation matrix.
         '''
-        self.load_data(raw_data)
+        if raw_data is not None:
+            self.load_data(raw_data)
+        else:
+            print("No data loaded.")
 
-    def evaluate(self, histo = True, sca = 1.20):
+    def link_evaluate(self, histo = False, sca = 1.20):
         '''
         Evaluate how densely/intensely this graph is linked
         '''
@@ -170,7 +173,7 @@ class Corr_sc(object):
         self.affi_mat = affi_mat
 
 
-    def cluster_number(self, plotout = True):
+    def laplacian_evaluation(self, plotout = True):
 
         L = laplacian(self.affi_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
         w, v = sc_eigen(L, n_cluster = 20) # calculate the first 20th eigen values and eigen states
@@ -179,15 +182,23 @@ class Corr_sc(object):
             fig_plot = plt.figure(figsize = (6,3.5))
             ax = fig_plot.add_subplot(111)
             ax.plot(w, '-xr')
+            fig_plot.show()
         else:
             fig_plot = None
 
-        return fig_plot
+        return peak_position, fig_plot
 
 
     def clustering(self, n_clu = 5):
         SC = SpectralClustering(n_clusters = n_clu, affinity = 'precomputed')
         y_labels = SC.fit_predict(self.affi_mat)
-        self.ind_groups,  self.cl_average  =  label_assignment(self.raw_data, n_clu, y_labels)
+        self.ind_groups, self.cl_average = label_assignment(self.raw_data, n_clu, y_labels)
 
 
+
+    def clearup(self):
+        '''
+        clear up all the contents and keep the class shell only.
+        There might be more elegant ways to do it, but I will start crude.
+        '''
+        self.corr_mat = None
