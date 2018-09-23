@@ -68,7 +68,7 @@ class hrc_sc(object):
             '''
             sg_data = self.signal[:,group_index[gg]] # takeout a subgroup of data
             sc_holder.load_data(sg_data)
-            sc_holder.link_evaluate(sca = 1.10)
+            sc_holder.link_evaluate(sca = 1.15)
             sc_holder.affinity()
 
             cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
@@ -99,18 +99,25 @@ class hrc_sc(object):
         Second column: the label of each neuron within the group.
         For instance, if a cell is labeled (2,3), then it belongs to the second group and has clustering label 3.
         '''
-        group_label = np.zeros((self.NC, 2))
+        neuron_label = np.zeros((self.NC, 2))
+        cluster_label = np.zeros((self.ncl_total,2))
+        cl_start = 0
         for ii in range(self.n_group):
             id_group, cl_aver = self.ind_group_pool[ii], self.cl_average_pool[ii]
             # next, iterate through the id_group
             n_labels = len(id_group)
+            cluster_label[cl_start : cl_start+n_labels, 0] = ii
+            cluster_label[cl_start : cl_start+n_labels, 1] = np.arange(n_labels)
             for jj in range(n_labels):
                 # fill up the group label
                 idx = id_group[jj]
-                group_label[idx, 0] = ii
-                group_label[idx, 1] = jj
+                neuron_label[idx, 0] = ii
+                neuron_label[idx, 1] = jj
+            cl_start += n_labels
 
-        self.group_label = group_label
+        self.neuron_label = neuron_label
+        self.cluster_label = cluster_label
+
 
 
     def cluster_corrcheck(self):
@@ -124,7 +131,7 @@ class hrc_sc(object):
         cl_average = np.column_stack(self.cl_average_pool)
         sc_holder = Corr_sc()
         sc_holder.load_data(cl_average)
-        sc_holder.link_evaluate()
+        sc_holder.link_evaluate(sca = 1.15)
         sc_holder.affinity()
         cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
         fig_plot.show()
@@ -135,10 +142,14 @@ class hrc_sc(object):
         self.trace_back(cluster_corrgroup)
 
 
-    def tract_back(self, cluster_cg):
+    def trace_back(self, cluster_cg):
         '''
         cluster_cg: cluster y_label index, which should be traced back to self.group_label
+        for each cluster, trace back its i,j
         '''
+        for ind_cg in cluster_cg:
+            label_cg = self.cluster_label[ind_cg]
+
 
     def merge_clusters(label_a, label_b):
         '''
