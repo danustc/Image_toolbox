@@ -13,22 +13,6 @@ from collections import deque
 def symmetric(mat, tol = 1.0e-08):
     return np.allclose(mat, mat.T, atol = tol)
 
-def smart_partition(NC, n_group, last_big = True):
-    arr = np.arange(NC)
-    if last_big:
-        g_pop = int(NC//n_group)
-    else:
-        g_pop = int(NC//n_group) + 1
-    cutoff_pos = np.arange(n_group+1) * g_pop
-    cutoff_pos[-1] = NC #reset the last element to NC
-    group_index = []
-    for ii in range(n_group):
-        ni = cutoff_pos[ii]
-        nf = cutoff_pos[ii+1]
-        group_index.append(arr[ni:nf])
-
-    return group_index
-
 
 def laplacian(W, mode = 'un'):
     '''
@@ -84,36 +68,6 @@ def weakest_connection(corr_mat):
 
 
 
-def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = True, adaptive_th = False, cut_scale = 1.15):
-    '''
-    Create the afinity matrix
-    The cutoff is radical
-    '''
-    if corr_mat is None:
-        corr_mat = np.corrcoef(data_raw.T)
-
-    if adaptive_th:
-        # adaptive thresholding 
-        weak_link, peak = weakest_connection(corr_mat)
-        if len(peak):
-            thresh = weak_link[0]
-        else:
-            thresh = weak_link
-        print("The real threshold:", thresh)
-
-    corr_mat[corr_mat < thresh*cut_scale] = 1.0e-09
-    if symmetric(corr_mat):
-        pass
-    else:
-        print("Affinity matrix not symmetric.")
-        print((corr_mat-corr_mat.T).max())
-        corr_mat = (corr_mat + corr_mat.T)*0.5
-
-    if kill_diag:
-        corr_mat = corr_mat -np.diag(np.diag(corr_mat))
-    return corr_mat, thresh
-
-
 def corr_distribution(corr_mat, nb = 200, uprange = 0.5):
     # set the diagonal to zero first
     corr_mat_sd = corr_mat - np.diag(2*np.diag(corr_mat))
@@ -144,27 +98,16 @@ def dataset_evaluation(raw_data, plotout = True):
     L = laplacian(aff_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
     w, v = sc_eigen(L, n_cluster = 20) # calculate the first 20th eigen values and eigen states
     peak_position = leigen_nclusters(w, norder = np.arange(3)) # where should I cut off?
-    if plotout:
-        fig_plot = plt.figure(figsize = (6,3.5))
-        ax = fig_plot.add_subplot(111)
-        ax.plot(w, '-xr')
-    else:
-        fig_plot = None
     return peak_position, th, fig_plot
 
 
-def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):
+def label_assignment(raw_data, n_cl, y_labels):
     '''
     raw_data: NT x NC, NT: # of trials, NC: # of cells
-    perform spectral clustering
-    threshold: correlation coefficient lower than the threshold is considered unconnected.
-    Add: calculate cluster population and average, then order by population size.
+    After spectral clustering, calculate the population and average of each group.
     '''
     # Create a distant matrix
     NT, NC = raw_data.shape
-    affi_mat, th = corr_afinity(raw_data, thresh = threshold )
-    SC = SpectralClustering(n_clusters = n_cl, affinity = 'precomputed')
-    y_labels = SC.fit_predict(affi_mat)
     total_ind = np.arange(NC)
     ind_groups = []
     g_population = np.zeros(n_cl)
@@ -196,9 +139,7 @@ class Corr_sc(object):
         '''
         Initialize the class, compute the correlation matrix.
         '''
-        self.data = raw_data
-        self.corr_mat = np.corrcoef(raw_data.T)
-
+        self.load_data(raw_data)
 
     def evaluate(self, histo = True, sca = 1.20):
         '''
@@ -210,13 +151,43 @@ class Corr_sc(object):
         print("The weakest link:", wk_link)
         self.thresh = sca*wk_link
 
-    def reload(self, new_data):
+    def load_data(self, new_data):
         self.data = new_data
+        self.NT, self.NC = raw_data.shape
         self.corr_mat = np.corrcoef(new_data.T)
+        self.affinity()
 
 
     def affinity(self):
+        '''
+        calculate affinity matrix.
+        '''
         affi_mat = np.copy(self.corr_mat)
         affi_mat[affi_mat < self.thresh] = 1.0e-09
         if not(symmetric(affi_mat)):
             affi_mat = (affi_mat+affi_mat.T)*0.5
+
+        self.affi_mat = affi_mat
+
+
+    def cluster_number(self, plotout = True):
+
+        L = laplacian(self.affi_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
+        w, v = sc_eigen(L, n_cluster = 20) # calculate the first 20th eigen values and eigen states
+        peak_position = leigen_nclusters(w, norder = np.arange(3)) # where should I cut off?
+        if plotout:
+            fig_plot = plt.figure(figsize = (6,3.5))
+            ax = fig_plot.add_subplot(111)
+            ax.plot(w, '-xr')
+        else:
+            fig_plot = None
+
+        return fig_plot
+
+
+    def clustering(self, n_clu = 5):
+        SC = SpectralClustering(n_clusters = n_clu, affinity = 'precomputed')
+        y_labels = SC.fit_predict(self.affi_mat)
+        self.ind_groups,  self.cl_average  =  label_assignment(self.raw_data, n_clu, y_labels)
+
+
