@@ -84,7 +84,7 @@ def weakest_connection(corr_mat):
 
 
 
-def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = True, adaptive_th = False):
+def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = True, adaptive_th = False, cut_scale = 1.10):
     '''
     Create the afinity matrix
     The cutoff is radical
@@ -101,7 +101,7 @@ def corr_afinity(data_raw = None, corr_mat = None, thresh = 0.01, kill_diag = Tr
             thresh = weak_link
         print("The real threshold:", thresh)
 
-    corr_mat[corr_mat < thresh] = 1.0e-09
+    corr_mat[corr_mat < thresh*cut_scale] = 1.0e-09
     if symmetric(corr_mat):
         pass
     else:
@@ -132,7 +132,7 @@ def leigen_nclusters(eigen_list, norder = 0):
     return peaks[norder]
 
 
-def dataset_evaluation(raw_data):
+def dataset_evaluation(raw_data, plotout = True):
     '''
     Have an evaluation of how to set the sc parameters.
 
@@ -143,7 +143,13 @@ def dataset_evaluation(raw_data):
     L = laplacian(aff_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
     w, v = sc_eigen(L, n_cluster = 20) # calculate the first 20th eigen values and eigen states
     peak_position = leigen_nclusters(w, norder = np.arange(3)) # where should I cut off?
-    return peak_position, th
+    if plotout:
+        fig_plot = plt.figure(figsize = (6,3.5))
+        ax = fig_plot.add_subplot(111)
+        ax.plot(w, '-xr')
+    else:
+        fig_plot = None
+    return peak_position, th, fig_plot
 
 
 def spec_cluster(raw_data, n_cl = 5, threshold = 0.05, average_calc = True):

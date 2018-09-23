@@ -8,6 +8,7 @@ import os
 from src.analysis.Analysis import grinder
 import src.analysis.spectral_clustering as sc
 import matplotlib.pyplot as plt
+from hierachical_sc import hrc_sc
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
 portable_datapath = '/media/sillycat/DanData/'
@@ -17,7 +18,13 @@ def main():
     dff_data = np.load(data_path)
     signal_test = dff_data['signal']
     coord_test = dff_data['coord']
-    igp, cap = sc.hierachical_sc(signal_test, n_group = 8, threshold = 0.25, interactive = True)
+    HS_class = hrc_sc(signal_test, n_group = 5)
+    HS_class.divide_sc(threshold = 0.25)
+    HS_class.labeling_assignment()
+    cl_mat = HS_class.cluster_crosscheck()
+    plt.imshow(cl_mat)
+    plt.show()
+
 
 
 
