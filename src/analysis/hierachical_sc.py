@@ -75,9 +75,12 @@ class hrc_sc(object):
             # next, iterate through the id_group
             n_labels = len(id_group)
             for jj in range(n_labels):
+                # fill up the group label
                 idx = id_group[jj]
-                group_label[idx] = ii
-                group_label[id_group,1] = 
+                group_label[idx, 0] = ii
+                group_label[idx, 1] = jj
+
+        self.group_label = group_label
 
 
 
@@ -87,4 +90,4 @@ class hrc_sc(object):
         Idea:
         create a similarity matrix between the different clusters.
         '''
-        
+         
