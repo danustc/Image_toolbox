@@ -19,11 +19,11 @@ def main():
     signal_test = dff_data['signal']
     coord_test = dff_data['coord']
     HS_class = hrc_sc(signal_test, n_group = 5)
+    print(HS_class.__dict__.keys())
     HS_class.divide_sc(threshold = 0.25)
-    HS_class.labeling_assignment()
-    cl_mat = HS_class.cluster_crosscheck()
-    plt.imshow(cl_mat)
-    plt.show()
+    HS_class.population_labeling()
+    HS_class.cluster_corrcheck()
+    print(HS_class.__dict__.keys())
 
 
 

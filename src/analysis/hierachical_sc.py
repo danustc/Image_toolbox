@@ -2,11 +2,14 @@
 A class that does spectral clustering on large datasets using the divide-and-conquer strategy.
 Last update by Dan on 09/20/2018.
 '''
-
+root_path = '/home/sillycat/Programming/Python/Image_toolbox/'
+import sys
+sys.path.append(root_path)
 import numpy as np
 from spectral_clustering import Corr_sc
 import matplotlib.pyplot as plt
 from collections import deque
+from src.visualization import signal_plot
 
 def smart_partition(NC, n_group, last_big = True):
     arr = np.arange(NC)
@@ -65,7 +68,8 @@ class hrc_sc(object):
             '''
             sg_data = self.signal[:,group_index[gg]] # takeout a subgroup of data
             sc_holder.load_data(sg_data)
-            sc_holder.link_evaluate(sca = 1.20)
+            sc_holder.link_evaluate(sca = 1.10)
+            sc_holder.affinity()
 
             cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
             print("suggested number of clusters:", cluster_peaks)
@@ -109,7 +113,6 @@ class hrc_sc(object):
         self.group_label = group_label
 
 
-
     def cluster_corrcheck(self):
         '''
         cross check the similarity between different clusters.
@@ -119,15 +122,31 @@ class hrc_sc(object):
         '''
         # First, convert the cluster averages in subgroups into a big array          
         cl_average = np.column_stack(self.cl_average_pool)
-        cluster_cm = np.corrcoef(cl_average.T)
-        aff_mat, th = sc.corr_afinity(corr_mat = cluster_cm, adaptive_th = True, cut_scale = 1.20)
+        sc_holder = Corr_sc()
+        sc_holder.load_data(cl_average)
+        sc_holder.link_evaluate()
+        sc_holder.affinity()
+        cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
+        fig_plot.show()
+        n_cl = int(input("Enter the number of clusters: "))
+        plt.close(fig_plot)
+        sc_holder.clustering(n_cl)
+        cluster_corrgroup = sc_holder.ind_groups
+        self.trace_back(cluster_corrgroup)
 
-        sc.SpectralClustering(aff_mat,)
-        return cluster_cm
 
+    def tract_back(self, cluster_cg):
+        '''
+        cluster_cg: cluster y_label index, which should be traced back to self.group_label
+        '''
 
+    def merge_clusters(label_a, label_b):
+        '''
+        merge two clusters with label_a and label_b.
+        '''
 
     def cluster_view(self):
         '''
         view the average of clusters
         '''
+        signal_plot.compact_dffplot(fsize = (6, 4.))

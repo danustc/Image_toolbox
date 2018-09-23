@@ -24,7 +24,6 @@ def laplacian(W, mode = 'un'):
     '''
     D_sum = W.sum(axis = 1) # diagonal matrix
     D = np.diag(D_sum)
-    print(D.shape)
     L = D - W
     D_isq = np.diag(1./(D_sum**0.5))
     if mode =='sym':
@@ -94,7 +93,6 @@ def dataset_evaluation(raw_data, plotout = True):
     '''
     cmat = np.corrcoef(raw_data.T)
     #weak_link = weakest_connection(cmat)
-    aff_mat, th = corr_afinity(data_raw = None, corr_mat = cmat,thresh = 0.01, kill_diag = False, adaptive_th = True ) # first, using adaptive threshold to evaluate the thresholds
     L = laplacian(aff_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
     w, v = sc_eigen(L, n_cluster = 20) # calculate the first 20th eigen values and eigen states
     peak_position = leigen_nclusters(w, norder = np.arange(3)) # where should I cut off?
@@ -119,13 +117,10 @@ def label_assignment(raw_data, n_cl, y_labels):
 
     sort_pop = np.argsort(g_population).astype('int')
     ind_groups = [ind_groups[sort_pop[ii]] for ii in range(n_cl)]
-    if average_calc:
-        cl_average = np.zeros([NT, n_cl])
-        for ii in range(n_cl):
-            cl_average[:,ii] = raw_data[:, ind_groups[ii]].mean(axis = 1)
+    cl_average = np.zeros([NT, n_cl])
+    for ii in range(n_cl):
+        cl_average[:,ii] = raw_data[:, ind_groups[ii]].mean(axis = 1)
 
-    else:
-        cl_average = None
     return ind_groups,  cl_average
 
 
@@ -152,21 +147,31 @@ class Corr_sc(object):
         if histo:
             hi, be = corr_distribution(self.corr_mat)
         print("The weakest link:", wk_link)
-        self.thresh = sca*wk_link
+        if np.isscalar(wk_link):
+            self.thresh = sca*wk_link
+        else:
+            self.thresh = sca*wk_link[-1]
 
     def load_data(self, new_data):
         self.data = new_data
-        self.NT, self.NC = raw_data.shape
+        self.NT, self.NC = new_data.shape
         self.corr_mat = np.corrcoef(new_data.T)
-        self.affinity()
+        self.link_evaluate()
 
 
-    def affinity(self):
+    def affinity(self, thresh = None):
         '''
         calculate affinity matrix.
         '''
         affi_mat = np.copy(self.corr_mat)
-        affi_mat[affi_mat < self.thresh] = 1.0e-09
+        if thresh is None:
+            try:
+                thresh = self.thresh
+            except AttributeError:
+                print("The default threshold is not set.")
+                return
+
+        affi_mat[affi_mat < thresh] = 1.0e-09
         if not(symmetric(affi_mat)):
             affi_mat = (affi_mat+affi_mat.T)*0.5
 
@@ -192,7 +197,7 @@ class Corr_sc(object):
     def clustering(self, n_clu = 5):
         SC = SpectralClustering(n_clusters = n_clu, affinity = 'precomputed')
         y_labels = SC.fit_predict(self.affi_mat)
-        self.ind_groups, self.cl_average = label_assignment(self.raw_data, n_clu, y_labels)
+        self.ind_groups, self.cl_average = label_assignment(self.data, n_clu, y_labels)
 
 
 
@@ -201,4 +206,8 @@ class Corr_sc(object):
         clear up all the contents and keep the class shell only.
         There might be more elegant ways to do it, but I will start crude.
         '''
+        self.data = None
         self.corr_mat = None
+        self.affi_mat = None
+        self.ind_groups = None
+        self.cl_average = None
