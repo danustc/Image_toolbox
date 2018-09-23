@@ -244,11 +244,7 @@ class Cell_extract(object):
         self.redund = True
 
 
-<<<<<<< HEAD
     def stack_blobs(self, sig=4., verbose = True):
-=======
-    def stack_blobs(self, sig=4, verbose = True):
->>>>>>> f3250908c731ea2363434333bf6c8957ef775181
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         Update on 08/16: make the radius of blobs uniform.
@@ -298,11 +294,7 @@ class Cell_extract(object):
 
 
 
-<<<<<<< HEAD
-    def extract_sampling(self, nsamples, mode = 'm', sig = 4., red_reduct = 5):
-=======
     def extract_sampling(self, nsamples, mode = 'm', sig = 4, red_reduct = 5):
->>>>>>> f3250908c731ea2363434333bf6c8957ef775181
         '''
         nsamples: indice of slices that are selected for cell extraction
         mode:   m --- mean of the selected slices, then extract cells from the single slice
