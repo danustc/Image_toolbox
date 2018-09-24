@@ -66,9 +66,9 @@ class hrc_sc(object):
             '''
             first, evaluate the group's threshold
             '''
-            sg_data = self.signal[:,group_index[gg]] # takeout a subgroup of data
+            sg_data = self.signal[:,arr[group_index[gg]]] # takeout a subgroup of data
             sc_holder.load_data(sg_data)
-            sc_holder.link_evaluate(sca = 1.12)
+            sc_holder.link_evaluate(sca = 1.11)
             sc_holder.affinity()
 
             cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
@@ -128,6 +128,7 @@ class hrc_sc(object):
         2. perform spectral clustering again on the corrmat
         '''
         # First, convert the cluster averages in subgroups into a big array          
+        print("Perform cross check of the clusters:")
         cl_average = np.column_stack(self.cl_average_pool)
         sc_holder = Corr_sc()
         sc_holder.load_data(cl_average)
@@ -139,6 +140,7 @@ class hrc_sc(object):
         plt.close(fig_plot)
         sc_holder.clustering(self.n_supgroup)
         cluster_corrgroup = sc_holder.ind_groups
+        print(cluster_corrgroup)
         return cluster_corrgroup
 
 
@@ -148,7 +150,7 @@ class hrc_sc(object):
         for each cluster, trace back its i,j
         '''
         merged_label = np.zeros(self.NC)
-
+        print("# of super groups:", self.n_supgroup)
         for ii in range(self.n_supgroup):
             ind_cg =  cluster_cg[ii]
             label_cg = self.cluster_label[ind_cg]
@@ -164,11 +166,10 @@ class hrc_sc(object):
             ind_mg = np.concatenate(merged_group) # indices of the merged group
             merged_label[ind_mg] = ii
 
-        ind_supgroups, cl_supaverage = label_assignment(self.data, self.n_supgroup,merged_label)
+        ind_supgroups, cl_supaverage = label_assignment(self.signal, self.n_supgroup,merged_label)
 
         return merged_label, cl_supaverage
 
-    def merged_population_labeling(self):
 
 
     def cluster_view(self):

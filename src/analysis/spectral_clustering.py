@@ -105,7 +105,11 @@ def label_assignment(raw_data, n_cl, y_labels):
     ind_groups = [ind_groups[sort_pop[ii]] for ii in range(n_cl)]
     cl_average = np.zeros([NT, n_cl])
     for ii in range(n_cl):
-        cl_average[:,ii] = raw_data[:, ind_groups[ii]].mean(axis = 1)
+        # add a check point: if this cluster has one member only, then do not do the average
+        if len(ind_groups[ii])>1:
+            cl_average[:,ii] = raw_data[:, ind_groups[ii]].mean(axis = 1)
+        else:
+            cl_average[:,ii] = raw_data[:,ind_groups[ii]]
 
     return ind_groups,  cl_average
 
@@ -125,14 +129,13 @@ class Corr_sc(object):
         else:
             print("No data loaded.")
 
-    def link_evaluate(self, histo = False, sca = 1.20):
+    def link_evaluate(self, histo = False, sca = 1.150):
         '''
         Evaluate how densely/intensely this graph is linked
         '''
         wk_link, peak = weakest_connection(self.corr_mat)
         if histo:
             hi, be = corr_distribution(self.corr_mat)
-        print("The weakest link:", wk_link)
         if np.isscalar(wk_link):
             self.thresh = sca*wk_link
         else:
@@ -142,7 +145,7 @@ class Corr_sc(object):
         self.data = new_data
         self.NT, self.NC = new_data.shape
         self.corr_mat = np.corrcoef(new_data.T)
-        self.link_evaluate()
+        #self.link_evaluate() # Do I need this extra link_evaluate?
 
 
     def affinity(self, thresh = None):
