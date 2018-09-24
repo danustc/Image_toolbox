@@ -101,6 +101,7 @@ def label_assignment(raw_data, n_cl, y_labels):
         ind_groups.append(ind_clu)
         g_population[ii] = len(ind_clu)
 
+    print("cluster population:", g_population)
     sort_pop = np.argsort(g_population).astype('int')
     ind_groups = [ind_groups[sort_pop[ii]] for ii in range(n_cl)]
     cl_average = np.zeros([NT, n_cl])

@@ -60,15 +60,19 @@ class hrc_sc(object):
 
         self.cl_average_pool = deque() # list of lists, saving the cluster average
         self.ind_group_pool = deque() # list of lists, saving the group index average
+        self.group_partition = deque()
+
         sc_holder = Corr_sc() # initialize an empty holder 
 
         for gg in range(self.n_group): # iterate over n_group
             '''
             first, evaluate the group's threshold
             '''
-            sg_data = self.signal[:,arr[group_index[gg]]] # takeout a subgroup of data
+            neuron_ind = arr[group_index[gg]] # if arr is not shuffled, then it is the same as group_index[gg]
+            self.group_partition.append(neuron_ind)
+            sg_data = self.signal[:,neuron_ind] # takeout a subgroup of data
             sc_holder.load_data(sg_data)
-            sc_holder.link_evaluate(sca = 1.11)
+            sc_holder.link_evaluate(sca = 1.105)
             sc_holder.affinity()
 
             cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
@@ -104,13 +108,14 @@ class hrc_sc(object):
         cl_start = 0
         for ii in range(self.n_group):
             id_group, cl_aver = self.ind_group_pool[ii], self.cl_average_pool[ii]
+            id_partition = self.group_partition[ii]
             # next, iterate through the id_group
             n_labels = len(id_group)
             cluster_label[cl_start : cl_start+n_labels, 0] = ii
             cluster_label[cl_start : cl_start+n_labels, 1] = np.arange(n_labels)
             for jj in range(n_labels):
                 # fill up the group label
-                idx = id_group[jj]
+                idx = id_partition[id_group[jj]]
                 neuron_label[idx, 0] = ii
                 neuron_label[idx, 1] = jj
             cl_start += n_labels
@@ -132,7 +137,7 @@ class hrc_sc(object):
         cl_average = np.column_stack(self.cl_average_pool)
         sc_holder = Corr_sc()
         sc_holder.load_data(cl_average)
-        sc_holder.link_evaluate(sca = 1.20)
+        sc_holder.link_evaluate(sca = 2.00)
         sc_holder.affinity()
         cluster_peaks, fig_plot = sc_holder.laplacian_evaluation(ncl = 30)
         fig_plot.show()

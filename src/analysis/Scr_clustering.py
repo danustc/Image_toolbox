@@ -17,9 +17,9 @@ portable_datapath = '/media/sillycat/DanData/'
 def main():
     data_path = global_datapath_ubn + 'Jul19_2017_A4_dff_cleaned.npz'
     dff_data = np.load(data_path)
-    signal_test = dff_data['signal'][20:]
+    signal_test = dff_data['signal'][10:]
     coord_test = dff_data['coord']
-    HS_class = hrc_sc(signal_test, n_group = 6)
+    HS_class = hrc_sc(signal_test, n_group = 7)
     print(HS_class.__dict__.keys())
     HS_class.divide_sc(threshold = 0.25)
     HS_class.groupwise_population_labeling()
