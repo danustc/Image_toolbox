@@ -19,7 +19,7 @@ def main():
     dff_data = np.load(data_path)
     signal_test = dff_data['signal'][10:]
     coord_test = dff_data['coord']
-    HS_class = hrc_sc(signal_test, n_group = 7)
+    HS_class = hrc_sc(signal_test, n_group = 10)
     print(HS_class.__dict__.keys())
     HS_class.divide_sc(threshold = 0.25)
     HS_class.groupwise_population_labeling()

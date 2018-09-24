@@ -108,6 +108,7 @@ class hrc_sc(object):
         cl_start = 0
         for ii in range(self.n_group):
             id_group, cl_aver = self.ind_group_pool[ii], self.cl_average_pool[ii]
+            #id_group, cl_aver = self.group_partition[ii], self.cl_average_pool[ii]
             id_partition = self.group_partition[ii]
             # next, iterate through the id_group
             n_labels = len(id_group)
@@ -115,6 +116,7 @@ class hrc_sc(object):
             cluster_label[cl_start : cl_start+n_labels, 1] = np.arange(n_labels)
             for jj in range(n_labels):
                 # fill up the group label
+                # check the neuron
                 idx = id_partition[id_group[jj]]
                 neuron_label[idx, 0] = ii
                 neuron_label[idx, 1] = jj
@@ -137,6 +139,9 @@ class hrc_sc(object):
         cl_average = np.column_stack(self.cl_average_pool)
         sc_holder = Corr_sc()
         sc_holder.load_data(cl_average)
+        cmat = sc_holder.corr_mat
+        plt.imshow(cmat)
+        plt.show()
         sc_holder.link_evaluate(sca = 2.00)
         sc_holder.affinity()
         cluster_peaks, fig_plot = sc_holder.laplacian_evaluation(ncl = 30)
@@ -170,16 +175,19 @@ class hrc_sc(object):
                 merged_group.append(search_neurons)
             # After iterating through the labels
             ind_mg = np.concatenate(merged_group) # indices of the merged group
+            if len(ind_mg)==0:
+                print("Error! ")
             merged_label[ind_mg] = ii
             cell_ind.append(ind_mg)
 
         ind_supgroups, cl_supaverage = label_assignment(self.signal, self.n_supgroup, merged_label)
 
+        # This is solely for checking the group populations
         return merged_label, cl_supaverage, cell_ind
 
 
 
-    def cluster_view(self):
+    def cluster_view(self, background_figure = None):
         '''
         view the average of clusters
         '''

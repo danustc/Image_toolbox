@@ -85,7 +85,7 @@ def leigen_nclusters(eigen_list, norder = 0):
     return peaks[norder]
 
 
-def label_assignment(raw_data, n_cl, y_labels):
+def label_assignment(raw_data, n_cl, y_labels, verbose = True):
     '''
     raw_data: NT x NC, NT: # of trials, NC: # of cells
     After spectral clustering, calculate the population and average of each group.
@@ -106,11 +106,13 @@ def label_assignment(raw_data, n_cl, y_labels):
     ind_groups = [ind_groups[sort_pop[ii]] for ii in range(n_cl)]
     cl_average = np.zeros([NT, n_cl])
     for ii in range(n_cl):
+        n_pop = len(ind_groups[ii])
+        print("population of group", ii, ":", n_pop)
         # add a check point: if this cluster has one member only, then do not do the average
         if len(ind_groups[ii])>1:
             cl_average[:,ii] = raw_data[:, ind_groups[ii]].mean(axis = 1)
         else:
-            cl_average[:,ii] = raw_data[:,ind_groups[ii]]
+            cl_average[:,ii] = raw_data[:,ind_groups[ii][0]]
 
     return ind_groups,  cl_average
 
