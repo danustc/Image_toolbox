@@ -151,6 +151,7 @@ class hrc_sc(object):
         '''
         merged_label = np.zeros(self.NC)
         print("# of super groups:", self.n_supgroup)
+        cell_ind = []
         for ii in range(self.n_supgroup):
             ind_cg =  cluster_cg[ii]
             label_cg = self.cluster_label[ind_cg]
@@ -165,10 +166,11 @@ class hrc_sc(object):
             # After iterating through the labels
             ind_mg = np.concatenate(merged_group) # indices of the merged group
             merged_label[ind_mg] = ii
+            cell_ind.append(ind_mg)
 
-        ind_supgroups, cl_supaverage = label_assignment(self.signal, self.n_supgroup,merged_label)
+        ind_supgroups, cl_supaverage = label_assignment(self.signal, self.n_supgroup, merged_label)
 
-        return merged_label, cl_supaverage
+        return merged_label, cl_supaverage, cell_ind
 
 
 

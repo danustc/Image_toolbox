@@ -17,18 +17,22 @@ portable_datapath = '/media/sillycat/DanData/'
 def main():
     data_path = global_datapath_ubn + 'Jul19_2017_A4_dff_cleaned.npz'
     dff_data = np.load(data_path)
-    signal_test = dff_data['signal'][10:]
+    signal_test = dff_data['signal'][20:]
     coord_test = dff_data['coord']
     HS_class = hrc_sc(signal_test, n_group = 6)
     print(HS_class.__dict__.keys())
     HS_class.divide_sc(threshold = 0.25)
     HS_class.groupwise_population_labeling()
     cluster_cg = HS_class.cluster_corrcheck()
-    _, cl_average = HS_class.merge_clusters(cluster_cg)
+    merged_label, cl_average, cind = HS_class.merge_clusters(cluster_cg)
 
+
+    indall = np.concatenate(cind)
+    print(indall.size)
+    print(len(set(indall)))
     fig_merged = compact_dffplot(cl_average, fsize = (6,3.0))
     fig_merged.savefig('sc_merged')
-    print(HS_class.__dict__.keys())
+    #print(HS_class.__dict__.keys())
 
 
 
