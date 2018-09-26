@@ -1,5 +1,5 @@
 # Image\_toolbox
-Last update: 09/20/2018 by [@danustc](https://github.com/danustc/) 
+Last update: 09/25/2018 by [@danustc](https://github.com/danustc/) 
 ## Source code instructions
 
 ### -------------------Package dependence------------------
@@ -31,6 +31,8 @@ should be pre-aligned with the _MultiStackReg_ plugin in FIJI. Cell extraction i
 * **network\_ui.py**: an interactive UI for individual dataset analysis and visualization.
 * **Analysis.py**: The core class of data analysis, which does activity soring, shuffling and background suppression. The class can be loaded by other analysis classes, such as **pca\_analysis**
 * **spectral.py**: The analysis on the frequency domain.
+* **spectral\_clustering.py**: some basic functions of spectral clustering. Although the clustering itself is performed by some built-in functions in **scikit-learn**, the unnormalized or normalized laplacian matrix and its eigen values are calculated and can be viewed, which helps you determine the number of clusters.
+* **hierachical\_sc.py**: using divide-and-conquer strategy to cluster a large population of neurons, and merge subclusters with high correlations. This module is still under test.
 
 ####  **registration**
 * **anatomy\_annotation.py**: annotate neuronal identities of selected neurons based on image registration outputs. Image stacks should be registered to the Z-brain template.
