@@ -93,7 +93,7 @@ class grinder(object):
         sig_integ = np.zeros(NC) # signal integral
         for nf in range(NC):
             cell_signal = self.signal[:,nf]
-            sig_ind, background, noi = dff_AB(cell_signal, gam = 0.05, nbins = nbin)
+            sig_ind, background, noi = dff_AB(cell_signal, gam = 0.02, nbins = nbin)
             activity_map[sig_ind, nf] = True # set the activity map to True
             sig_integ = (cell_signal-background).sum()
             ms[nf] = np.array([background, noi, sig_integ]) # mean and std
@@ -260,6 +260,16 @@ def main():
     grinder_core = grinder()
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
+    ind_high, ind_low = 20, -1
+    n_cut = 10
+    act_high = grinder_core.activity[n_cut:,ind_high]
+    act_low = grinder_core.activity[n_cut:,ind_low]
+    sig_high = grinder_core.signal[n_cut:,ind_high]
+    sig_low = grinder_core.signal[n_cut:,ind_low]
+    fig_high = signal_plot.dff_AB_plot(sig_high, act_high)
+    fig_low = signal_plot.dff_AB_plot(sig_low, act_low)
+    fig_high.savefig('high_act')
+    fig_low.savefig('low_act')
     grinder_core.background_suppress(sup_coef = 0.0001)
     grinder_core.saveas()
 
