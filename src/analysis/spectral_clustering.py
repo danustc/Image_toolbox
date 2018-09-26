@@ -170,13 +170,13 @@ class Corr_sc(object):
         self.affi_mat = affi_mat
 
 
-    def laplacian_evaluation(self, plotout = True, ncl = 20):
+    def laplacian_evaluation(self, plotout = True, ncl = 25):
 
         L = laplacian(self.affi_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
         w, v = sc_eigen(L, n_cluster = ncl) # calculate the first 20th eigen values and eigen states
-        peak_position = leigen_nclusters(w, norder = np.arange(3)) # where should I cut off?
+        peak_position = leigen_nclusters(w, norder = np.arange(5)) # where should I cut off?
         if plotout:
-            fig_plot = plt.figure(figsize = (6,3.5))
+            fig_plot = plt.figure(figsize = (7,3.5))
             ax = fig_plot.add_subplot(111)
             ax.plot(w, '-xr')
             fig_plot.show()

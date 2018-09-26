@@ -61,6 +61,7 @@ class hrc_sc(object):
         self.cl_average_pool = deque() # list of lists, saving the cluster average
         self.ind_group_pool = deque() # list of lists, saving the group index average
         self.group_partition = deque()
+        self.group_cstat = np.zeros((self.n_group, 2)) # group cluster number and threshold
 
         sc_holder = Corr_sc() # initialize an empty holder 
 
@@ -74,6 +75,7 @@ class hrc_sc(object):
             sc_holder.load_data(sg_data)
             sc_holder.link_evaluate(sca = 1.105)
             sc_holder.affinity()
+            self.group_cstat[gg, 0] = sc_holder.thresh
 
             cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
             print("suggested number of clusters:", cluster_peaks)
@@ -88,6 +90,7 @@ class hrc_sc(object):
                 else:
                     n_cl = cluster_peaks[1]
             #ind_groups, cl_average = sc.spec_cluster(sg_data, n_cl)
+            self.group_cstat[gg,1] = n_cl
             sc_holder.clustering(n_cl)
             self.ind_group_pool.append(sc_holder.ind_groups)
             self.cl_average_pool.append(sc_holder.cl_average)# 
@@ -133,6 +136,7 @@ class hrc_sc(object):
         Idea:
         1. create a similarity matrix between the different clusters.
         2. perform spectral clustering again on the corrmat
+        Note on 09/24: I should be cautious merging clusters between subgroups
         '''
         # First, convert the cluster averages in subgroups into a big array          
         print("Perform cross check of the clusters:")

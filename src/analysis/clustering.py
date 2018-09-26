@@ -111,5 +111,3 @@ def histo_clustering(feature, nbin, bin_cut = None,n_fold = 2, sca = 1.00):
 
     return merged_hist, mb_centers
 
-
-
