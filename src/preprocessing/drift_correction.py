@@ -18,24 +18,9 @@ global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/cmtk_images/'
 global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
 
-def sample_data_generation(img, n_slice, n_shifts, sample_path):
+def stack_crop(raw_stack_path, patch_size = (512,512), seek_mode = 'center'):
     '''
-    generate a sample data_stack from a raw image.
-    '''
-    print(n_shifts)
-    new_stack = np.tile(img, (n_slice, 1, 1)) # create a stack
-    ph, pw = img.shape
-    hann_w = signal.hann(pw)
-    hann_h = signal.hann(ph)
-    hanning_2d = np.outer(hann_h, hann_w)
-    for ii in range(1, n_slice):
-        new_stack[ii] = interpolation.shift(img, shift = n_shifts[ii-1])*hanning_2d
-
-    tf.imsave(sample_path, new_stack)
-    return new_stack
-
-def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'center', ):
-    '''
+    Update on 09/28/2018: Split this into two functions
     prepare a raw stack for drift alignment
     instead of loading the whole full raw stack, just open its path and seek one slice
     patch_size: (pw, ph), opposite to the convention of Python-array dimensions.
@@ -50,20 +35,32 @@ def stack_preparation(raw_stack_path, patch_size = (512,512), seek_mode = 'cente
     iupper = int((h-ph)//2)
     iright = ileft + pw
     ilower = iupper + ph
-    hann_w = signal.hann(pw)
-    hann_h = signal.hann(ph)
-    hanning_2d = np.outer(hann_h, hann_w)
     cropped_stack = np.zeros((raw_dataset.n_frames, ph, pw)) # pay attention to the stack size!
 
     crop_canvas = (ileft, iupper, iright, ilower)
     for ii, page in enumerate(ImageSequence.Iterator(raw_dataset)):
-        cropped_stack[ii] = page.crop(crop_canvas)*hanning_2d
+        cropped_stack[ii] = page.crop(crop_canvas)
         if(ii%100 == 0):
             print(ii, '------------------Loaded. ')
 
     raw_dataset.close() # remember to close the file everytime you open it!
 
     return cropped_stack
+
+
+def stack_hanning(stack):
+    '''
+    Create a hanning filter and apply it on each slice of the stack
+    '''
+    NZ, NY, NX = stack.shape
+    # create a 2d Hanning filter
+    hann_w = signal.hann(pw)
+    hann_h = signal.hann(ph)
+    hanning_2d = np.outer(hann_h, hann_w)
+    hstack = np.tile(hanning_2d, (NZ,1,1))
+    filtered_stack = stack*hstack
+    return filtered_stack
+
 
 
 def shift_stack(stack, shift_coord):
@@ -74,6 +71,8 @@ def shift_stack(stack, shift_coord):
     for iz in range(nz):
         shifted_frame = interpolation.shift(stack[iz],shift = shift_coord[iz-1])
         stack[iz] = shifted_frame
+
+    return stack
 
 def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, srange = (0, 500)):
     if partial:
@@ -95,6 +94,43 @@ def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, sra
         tf.imsave(new_path, raw_img)
 
 
+
+def noise_simulation(NZ, NY, NX, model = 'gauss', mean = 160, sig = 100):
+    '''
+    simulate a pure noisy stack.
+    '''
+    if model =='gauss':
+        noise_stack = np.random.normal(loc = mean, scale = sig, size = (NZ, NY, NX))
+    elif model = 'poisson':
+        noise_stack = np.random.poisson(lam = mean, size = (NZ, NY, NX))
+
+    return noise_stack
+
+
+
+def stack_simulation(img, shift_list, noise_model = 'gauss', noise_level = 0.1):
+    '''
+    simulate a noisy, drifted image with raw image as the seed; if img is None, then simulate a stack with noise only.
+    '''
+    NZ = len(shift_list) + 1
+    sig_mean, sig_std = np.mean(img), np.std(img)
+    if img is None:
+        NY, NX = NR
+    else:
+        NY, NX = img.shape
+
+    stack = np.zeros((NZ, NY, NX))
+    stack[0] = img
+    for ii in range(1, NZ):
+         stack[ii] = interpolation.shift(img,shift_list[ii-1])
+
+    noise_stack = noise_simulation(NZ, NY, NX, noise_model, mean = noise_level*sig_mean, sig = sig_std*noise_level)
+    stack = stack*noise_stack
+    return stack
+
+
+
+# ---------------------------------------Below is the main function for test.-----------------------------------
 
 def main():
     #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
