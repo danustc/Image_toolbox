@@ -21,7 +21,7 @@ def dff_AB_plot(dff_data, peak_ind, dt = 0.5, yrange = (-0.2,2.0), fsize = (7,2.
     ax.set_xlabel('time (s)', fontsize = 12)
     ax.set_ylabel(r'$\Delta F/F $', fontsize = 12)
     ax.set_ylim(yrange)
-
+    fig.tight_layout()
     return fig
 
 def compact_dffplot(dff_data, dt = 0.5 , sc_bar = 0.25, tbar = 3, fsize = (6,2.5)):

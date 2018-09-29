@@ -14,7 +14,7 @@ import psutil
 
 package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 global_datapath_win  = 'D:/Data/2018-08-23/B2_TS/\\'
-global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/cmtk_images/'
+global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/Image_labs/'
 global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
 
@@ -54,8 +54,8 @@ def stack_hanning(stack):
     '''
     NZ, NY, NX = stack.shape
     # create a 2d Hanning filter
-    hann_w = signal.hann(pw)
-    hann_h = signal.hann(ph)
+    hann_w = signal.hann(NX)
+    hann_h = signal.hann(NY)
     hanning_2d = np.outer(hann_h, hann_w)
     hstack = np.tile(hanning_2d, (NZ,1,1))
     filtered_stack = stack*hstack
@@ -101,7 +101,7 @@ def noise_simulation(NZ, NY, NX, model = 'gauss', mean = 160, sig = 100):
     '''
     if model =='gauss':
         noise_stack = np.random.normal(loc = mean, scale = sig, size = (NZ, NY, NX))
-    elif model = 'poisson':
+    elif model == 'poisson':
         noise_stack = np.random.poisson(lam = mean, size = (NZ, NY, NX))
 
     return noise_stack
@@ -124,8 +124,11 @@ def stack_simulation(img, shift_list, noise_model = 'gauss', noise_level = 0.1):
     for ii in range(1, NZ):
          stack[ii] = interpolation.shift(img,shift_list[ii-1])
 
-    noise_stack = noise_simulation(NZ, NY, NX, noise_model, mean = noise_level*sig_mean, sig = sig_std*noise_level)
-    stack = stack*noise_stack
+    if noise_level > 0:
+        noise_stack = noise_simulation(NZ, NY, NX, noise_model, mean = noise_level*sig_mean, sig = sig_std*noise_level)
+        print(noise_stack.max())
+        stack = stack + noise_stack
+
     return stack
 
 
@@ -133,18 +136,21 @@ def stack_simulation(img, shift_list, noise_model = 'gauss', noise_level = 0.1):
 # ---------------------------------------Below is the main function for test.-----------------------------------
 
 def main():
-    #folder_list = glob.glob(global_datapath_ubn+"/Aug*.tif")
+    folder_list = glob.glob(global_datapath_ubn+"/*slice*.tif")
     #folder_list = glob.glob(global_datapath_ptb+"/dup*.tif")
-    folder_list = glob.glob(global_datapath_win+"/*22.tif")
+    #folder_list = glob.glob(global_datapath_win+"/*22.tif")
+    shift_list = np.array([[10,1], [1,-1], [2,4], [5,20], [18,22]])
     for data_path in folder_list:
         print(data_path)
         img = tf.imread(data_path)
-        #sample_stack = sample_data_generation(img[0], 4, shift_list, 'test.tif')
-        cropped_stack = stack_preparation(data_path)
+        sample_stack = stack_simulation(img, shift_list, noise_level = 0.50)
+        tf.imsave("shift_test.tif", sample_stack.astype('uint16'))
+        sample_hanning = stack_hanning(sample_stack)
         #print(cropped_stack.dtype)
-        shift_coord = correlation.cross_corr_stack_self(cropped_stack, pivot_slice = 0)
+        shift_coord = correlation.cross_corr_stack_self(sample_stack, pivot_slice = 0)
+        shift_coord = correlation.cross_corr_stack_self(sample_hanning, pivot_slice = 0)
         #print(shift_coord)
-        shift_stack_onfile(data_path, shift_coord, new_path = global_datapath_win+ '/test.tif')
+        #shift_stack_onfile(data_path, shift_coord, new_path = global_datapath_win+ '/test.tif')
 
 if __name__ == '__main__':
     main()

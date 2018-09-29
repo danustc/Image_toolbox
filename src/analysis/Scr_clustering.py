@@ -5,7 +5,7 @@ import numpy as np
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
-from src.analysis.Analysis import grinder
+from src.single_analysis.Analysis import grinder
 import src.analysis.spectral_clustering as sc
 import matplotlib.pyplot as plt
 from hierachical_sc import hrc_sc

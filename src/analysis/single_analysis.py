@@ -1,5 +1,5 @@
 """
-A general class for analysis, which can be overloaded by many modules.
+A general class for single-dataset analysis, which can be overloaded by many modules.
 """
 import numpy as np
 from scipy.stats import norm
@@ -55,10 +55,12 @@ class grinder(object):
                     hf.close()
                 except KeyError:
                     print("No signal data stored in the file!")
-                    sys.exit(1)
+                    return False
+
             except OSError:
                 print("Unable to open the file.")
-                sys.exit(1)
+                return False
+
         else:
             try:
                 print(data_file)
@@ -68,13 +70,22 @@ class grinder(object):
                     self.signal = data_pz['signal']
                 except KeyError:
                     print('No signal data stored in the file!')
-                    sys.exit(1)
+                    return False
+                if 'annotation' in data_pz.keys():
+                    self.annotated = True
+                    self.keys = data_pz['annotation'][-1] # the masks that have been covered 
+                    self.neuron_label = data_pz['annotation'][:-1] # the labeling of each neuron
+                else:
+                    self.annotated = False
+
             except OSError:
                 print("Unable to open the file.")
-                sys.exit(1)
+                return False
 
         self.rev = rev
         self._get_size_()
+
+        return True
 
     def rev_coords(self):
         '''
@@ -104,6 +115,29 @@ class grinder(object):
         self._trim_data_(integ_ind) # OK this is not a very elegant way to put it. 
         self.stat = ms[integ_ind]
         self.activity = activity_map[:, integ_ind] # sort the activity map as well
+
+
+    def select_mask(self, n_mask):
+        '''
+        return the activity of neurons within a mask only.
+        '''
+        if self.annotated:
+            m_included = (self.keys == n_mask) # check whether the key is included in the mask.
+            if np.any(m_included):
+                ind_mask = np.where(m_included)[0] #This is the index of the mask in self.keys
+                mask_coverage = self.neuron_label[:, ind_mask] # the neuronal labeling of n_mask
+                cell_ind = np.where(mask_coverage)[0] # these are the indices of the cells that belong to mask # n_mask.
+
+                return cell_ind
+
+            else:
+                print("The mask", n_mask, "is not covered.")
+                return
+        else:
+            print("The fish has not been annotated yet.")
+            return
+
+
 
     def cutoff_bayesian(self, PH_const = 1., nb = 200, stake = 0.95, activity_range = 0.95, conserve_cutting = False):
         '''
@@ -184,6 +218,7 @@ class grinder(object):
             tw_act[:,ii] = np.convolve(signal[:,ii], w_filter, mode = 'valid')
 
         return tw_act
+
 
     def background_suppress(self, sup_coef = 0.010, shuffle = True):
         '''
@@ -266,8 +301,8 @@ def main():
     act_low = grinder_core.activity[n_cut:,ind_low]
     sig_high = grinder_core.signal[n_cut:,ind_high]
     sig_low = grinder_core.signal[n_cut:,ind_low]
-    fig_high = signal_plot.dff_AB_plot(sig_high, act_high)
-    fig_low = signal_plot.dff_AB_plot(sig_low, act_low)
+    fig_high = signal_plot.dff_AB_plot(sig_high, act_high, fsize = (6, 2.5))
+    fig_low = signal_plot.dff_AB_plot(sig_low, act_low, fsize = (6,2.5))
     fig_high.savefig('high_act')
     fig_low.savefig('low_act')
     grinder_core.background_suppress(sup_coef = 0.0001)
