@@ -34,6 +34,20 @@ def _phase_construct_(row_range, col_range, n_denom, forward = True, shift_r = F
         return re_exin + im_exin*1j
 
 
+def fft_image(img, abs_only = True):
+    '''
+    return the fourier transform of the image with the zero-frequency component shifted to the center.
+    '''
+    NY, NX = img.shape
+    ct = pyfftw_container(NY, NX)
+    ct(img)
+    ft_img = ct.get_output_array()
+    ft_img = np.fft.fftshift(ft_img) # move the zero-freq components to the center
+    if abs_only:
+        return np.abs(ft_img)
+    else:
+        return ft_img
+
 
 def pyfftw_container(ny, nx, bwd = False):
     '''

@@ -1,6 +1,8 @@
 '''
 New trial of drift correction
 '''
+import sys
+sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 from scipy.ndimage import interpolation
 from scipy import signal
@@ -11,6 +13,7 @@ import glob
 import matplotlib.pyplot as plt
 import tifffile as tf
 import psutil
+from src.visualization import brain_navigation
 
 package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 global_datapath_win  = 'D:/Data/2018-08-23/B2_TS/\\'
@@ -136,19 +139,36 @@ def stack_simulation(img, shift_list, noise_model = 'gauss', noise_level = 0.1):
 # ---------------------------------------Below is the main function for test.-----------------------------------
 
 def main():
-    folder_list = glob.glob(global_datapath_ubn+"/*slice*.tif")
-    #folder_list = glob.glob(global_datapath_ptb+"/dup*.tif")
-    #folder_list = glob.glob(global_datapath_win+"/*22.tif")
-    shift_list = np.array([[10,1], [1,-1], [2,4], [5,20], [18,22]])
+    folder_list = glob.glob(global_datapath_ubn+"*slice.tif")
     for data_path in folder_list:
         print(data_path)
-        img = tf.imread(data_path)
-        sample_stack = stack_simulation(img, shift_list, noise_level = 0.50)
-        tf.imsave("shift_test.tif", sample_stack.astype('uint16'))
+        sample_stack= tf.imread(data_path).astype('float64')
+        noise_slice = np.random.poisson(size = (512,512), lam = 0.5)
+        noise_slice = noise_slice**2
+        ft_raw = correlation.fft_image(sample_stack[1])
         sample_hanning = stack_hanning(sample_stack)
-        #print(cropped_stack.dtype)
+        ft_han = correlation.fft_image(sample_hanning[1])
+        ft_noise= correlation.fft_image(noise_slice)
+
+        fig_raw = brain_navigation.slices_compare(sample_stack[1], np.log(ft_raw), 'Raw image', 'Fourier Transform')
+        fig_han = brain_navigation.slices_compare(sample_hanning[1], np.log(ft_han), 'Hanning-filtered image', 'Fourier Transform')
+        fig_noise = brain_navigation.slices_compare(noise_slice, np.log(ft_noise), 'Simulated noise', 'Fourier Transform')
+        fig_raw.savefig('raw_fft')
+        fig_han.savefig('han_fft')
+        fig_noise.savefig('noise_fft')
+
+
+
         shift_coord = correlation.cross_corr_stack_self(sample_stack, pivot_slice = 0)
+        np.savetxt(global_datapath_ubn + 'drift_raw.txt', shift_coord, delimiter = '\t', fmt = '%d')
+        vraw = shift_coord.var(axis = 0 )
+        mraw = np.abs(shift_coord).sum(axis = 0)
         shift_coord = correlation.cross_corr_stack_self(sample_hanning, pivot_slice = 0)
+        vhan = shift_coord.var(axis = 0 )
+        mhan = np.abs(shift_coord).sum(axis = 0)
+        np.savetxt(global_datapath_ubn + 'drift_han.txt', shift_coord, delimiter = '\t', fmt = '%d')
+        print("mean of raw:", mraw)
+        print("mean of han-filtered:", mhan)
         #print(shift_coord)
         #shift_stack_onfile(data_path, shift_coord, new_path = global_datapath_win+ '/test.tif')
 
