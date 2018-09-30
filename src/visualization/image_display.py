@@ -1,7 +1,7 @@
 """
 Created by Dan on 08/16/16.
 This one contains all the plt-based graphic functions shared among all the functions.
-Last update: 08/19/16
+Last update: 09/30/18
 """
 
 import numpy as np

@@ -45,14 +45,14 @@ def slice_display(slice_blobs, title = None, ref_image = None, s_diag = 15):
     return figd
 
 
-def slices_compare(im_slice1, im_slice2):
+def slices_compare(im_slice1, im_slice2, title_1 = None, title_2 = None):
     '''
     imshow two slices side by side.
     '''
     y1, x1 = im_slice1.shape
     y2, x2 = im_slice2.shape
 
-    figc = plt.figure(figsize = ((x1+x2)/(y1+y2)*6., 6.))
+    figc = plt.figure(figsize = ((x1+x2)/(y1+y2)*4., 4.))
     ax1 = figc.add_subplot(121)
     ax2 = figc.add_subplot(122)
     ax1.imshow(im_slice1, cmap = 'Greys_r')
@@ -60,15 +60,19 @@ def slices_compare(im_slice1, im_slice2):
     ax1.set_ylim([0, y1])
     ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_visible(False)
+    if title_1 is not None:
+        ax1.set_title(title_1, fontsize = 12)
 
     ax2.imshow(im_slice2, cmap = 'Greys_r')
     ax2.set_xlim([0, x2])
     ax2.set_ylim([0, y2])
     ax2.get_xaxis().set_visible(False)
+    ax2.get_yaxis().set_visible(False)
+    if title_2 is not None:
+        ax2.set_title(title_2, fontsize = 12)
 
     figc.tight_layout()
     return figc
-    ax2.get_yaxis().set_visible(False)
 
 
 
