@@ -246,6 +246,7 @@ def label_summary(group_labels, n_range = (20, 100), bar_plot = True, bar_color 
         ax.set_xticklabels(name_list, rotation = 35, ha = 'right', fontsize = 12)
         ax.set_ylabel('Counts', fontsize = 12)
         fig_sum.tight_layout()
+        MD.shutdown()
         return fig_sum
 
     else:
