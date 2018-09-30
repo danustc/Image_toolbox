@@ -7,6 +7,7 @@ from single_analysis import grinder
 import os
 import glob
 from collections import deque
+import matplotlib.pyplot as plt
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/'
 global_datapath_portable= '/media/sillycat/DanData/'
@@ -54,14 +55,27 @@ class mass_grinder(object):
         '''
         Make a statistics for the masks covered in the group.
         '''
-        nanno = 0
+        nanno = []
         group_mask = np.array([])
-        for g in self.grinder_arr:
+        for ii in range(self.n_fish):
+            g = self.grinder_arr[ii]
             if g.annotated:
-                group_mask = np.union1d(group_mask, g.keys)
-                nanno +=1
+                group_mask = np.union1d(group_mask, g.keys) # This is naturally sorted
+                nanno.append(ii)
 
         ngm = group_mask.size # The total number of mask covered
+        nfm = len(nanno)
+        mask_summary = np.zeros((ngm, nfm))
+
+        for jj in range(nfm):
+            ind_fish = nanno[jj]
+            key_fish = self.grinder_arr[ind_fish].keys
+            kst_fish = self.grinder_arr[ind_fish].key_stat
+            ik =  np.searchsorted(group_mask, key_fish)
+
+            mask_summary[ik,jj] = kst_fish
+
+        return group_mask, mask_summary
 
 
 
@@ -78,7 +92,10 @@ class mass_grinder(object):
 def main():
     path_Jul2017 = global_datapath_ubn + dp_list[0]
     MG = mass_grinder(path_Jul2017)
+    g_mask, m_sum = MG.anatomical_mask_statistics()
 
+    plt.plot(g_mask, m_sum.sum(axis = 1), 'x')
+    plt.show()
 
 if __name__ == '__main__':
     main()

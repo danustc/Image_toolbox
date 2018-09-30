@@ -75,6 +75,7 @@ class grinder(object):
                     self.annotated = True
                     self.keys = data_pz['annotation'][-1] # the masks that have been covered 
                     self.neuron_label = data_pz['annotation'][:-1] # the labeling of each neuron
+                    self.key_stat = self.neuron_label.sum(axis = 0)
                 else:
                     self.annotated = False
 
