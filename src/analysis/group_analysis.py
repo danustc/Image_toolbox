@@ -2,12 +2,15 @@
 A general class for multiple dataset analysis.
 """
 
+import sys
+sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
+import src.visualization.anatomy_view as anview
 import numpy as np
 from single_analysis import grinder
 import os
 import glob
 from collections import deque
-import matplotlib.pyplot as plt
+from pandas import DataFrame as DF
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
 global_datapath_portable= '/media/sillycat/DanData/'
@@ -55,6 +58,7 @@ class mass_grinder(object):
     def anatomical_mask_statistics(self):
         '''
         Make a statistics for the masks covered in the group.
+        Construct a DataFrame with mask name as indices and fish name as keys
         '''
         nanno = []
         group_mask = np.array([])
@@ -76,7 +80,12 @@ class mass_grinder(object):
 
             mask_summary[ik,jj] = kst_fish
 
-        return group_mask, mask_summary
+        mname = np.genfromtxt(global_datapath_ubn + mask_database, dtype = 'str', delimiter = '\t') # load the name of masks
+        col_names = self.keys[nanno]
+        row_inds = mname[group_mask]
+        df_mask = DF(data = mask_summary, index = row_inds, columns = col_names)
+
+        return group_mask, df_mask
 
 
 
@@ -91,7 +100,6 @@ class mass_grinder(object):
 # ----------------------------Below is a test main function. -------------
 
 def main():
-    mname = np.genfromtxt(global_datapath_ubn + mask_database, dtype = 'str', delimiter = '\t') # load the name of masks
 
 
     path_Jul2017 = global_datapath_ubn + FB_resting_folder + dp_list[0]
