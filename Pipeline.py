@@ -16,7 +16,7 @@ import src.shared_funcs.tifffunc as tifffunc
 import matplotlib.pyplot as plt
 from src.preprocessing.segmentation import *
 
-data_rootpath_win ='D:/Data/2018-08-23\\'
+data_rootpath_win ='D:/Data/2018-08-23/Aug23_2018_B4\\'
 data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_A2/\\'
 #folder_list = glob.glob(data_rootpath+"/B3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
@@ -164,7 +164,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
+    folder_list = glob.glob(data_rootpath_win+"/B4_TS/\\")
     for data_path in folder_list:
         print(data_path)
         pt = pipeline_tstacks(data_path, fname_flags = 'rg')
