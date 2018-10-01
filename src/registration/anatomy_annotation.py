@@ -261,34 +261,35 @@ def reg_annotate():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_dff.npz')
+    response_list = glob.glob(data_path+'FB_resting_15min/Aug2018/*_dff.npz')
     print(response_list)
     label_sum = dict()
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
 
         print("Fish:", basename)
-        xdim =dimension_check(basename, meta_dim, nyear = '17')
+        xdim =dimension_check(basename, meta_dim, nyear = '18')
         print(xdim)
         temp_list = basename.split('_')
-        reglist  = ''.join([temp_list[0], temp_list[-1]])
+        reglist  = '_'.join([temp_list[0], temp_list[-1]])
+        print(reglist)
 
-        reg_list = data_path + 'Good_registrations/Jul2017_rest/' + reglist +  '.list'
+        reg_list = data_path + 'Good_registrations/Aug2018_rest/' + reglist +  '.list'
         fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
         label_covered = anatomical_labeling(fine_dest_name)
         label_sum [basename] = label_covered
     label_path = data_path + 'FB_resting_15min/Jul2017_labels.npz'
     np.savez(label_path, **label_sum)
 
-    fig_sum = label_summary(label_path, n_range = (0,20), bar_color = 'coral')
-    fig_sum.savefig('label_summary_0_20')
-    fig_sum = label_summary(label_path, n_range = (20,100), bar_color = 'turquoise')
-    fig_sum.savefig('label_summary_20_100')
-    fig_sum = label_summary(label_path, n_range = (100,500), bar_color = 'violet')
-    fig_sum.savefig('label_summary_100_500')
-    fig_sum = label_summary(label_path, n_range = (500,5000), bar_color = 'sienna')
-    fig_sum.savefig('label_summary_500_5000')
-    # next 
+   # fig_sum = label_summary(label_path, n_range = (0,20), bar_color = 'coral')
+   # fig_sum.savefig('label_summary_0_20')
+   # fig_sum = label_summary(label_path, n_range = (20,100), bar_color = 'turquoise')
+   # fig_sum.savefig('label_summary_20_100')
+   # fig_sum = label_summary(label_path, n_range = (100,500), bar_color = 'violet')
+   # fig_sum.savefig('label_summary_100_500')
+   # fig_sum = label_summary(label_path, n_range = (500,5000), bar_color = 'sienna')
+   # fig_sum.savefig('label_summary_500_5000')
+   # # next 
 
 
 def edge():

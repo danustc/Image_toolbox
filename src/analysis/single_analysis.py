@@ -139,7 +139,6 @@ class grinder(object):
             return
 
 
-
     def cutoff_bayesian(self, PH_const = 1., nb = 200, stake = 0.95, activity_range = 0.95, conserve_cutting = False):
         '''
         Use Bayesian inference to set the cutoff value that divides active/inactive neurons.

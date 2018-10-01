@@ -9,10 +9,11 @@ import glob
 from collections import deque
 import matplotlib.pyplot as plt
 
-global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/'
+global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
 global_datapath_portable= '/media/sillycat/DanData/'
-
-dp_list = ['Jul2017/', 'Aug2018']
+FB_resting_folder = 'FB_resting_15min/'
+mask_database = 'mask_name.txt'
+dp_list = ['Jul2017/', 'Aug2018/']
 
 class mass_grinder(object):
     '''
@@ -27,9 +28,9 @@ class mass_grinder(object):
         self.keys = deque()
         self.grinder_arr = deque()
 
-        self._parse_folder_(work_path, name_flag)
+        self.parse_folder(work_path, name_flag)
 
-    def _parse_folder_(self, work_path, nf):
+    def parse_folder(self, work_path, nf):
         '''
         Parsing the folder. Should contain .npz files
         Warning: this does not wipe off the old data inside the class. One has to manually clean up the class if you want everything reset.
@@ -90,10 +91,18 @@ class mass_grinder(object):
 # ----------------------------Below is a test main function. -------------
 
 def main():
-    path_Jul2017 = global_datapath_ubn + dp_list[0]
-    MG = mass_grinder(path_Jul2017)
+    mname = np.genfromtxt(global_datapath_ubn + mask_database, dtype = 'str', delimiter = '\t') # load the name of masks
+
+
+    path_Jul2017 = global_datapath_ubn + FB_resting_folder + dp_list[0]
+    path_Aug2018 = global_datapath_ubn + FB_resting_folder + dp_list[1]
+    MG = mass_grinder(path_Aug2018)
     g_mask, m_sum = MG.anatomical_mask_statistics()
 
+    mask_covered = mname[g_mask]
+
+    mask_mean = m_sum.mean(axis = 1)
+    mask_se = m_sum.std(axis = 1)
     plt.plot(g_mask, m_sum.sum(axis = 1), 'x')
     plt.show()
 
