@@ -6,11 +6,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 
 
-def label_scatter(mask_counts, mask_name, color = 'coral'):
+def label_scatter(mask_counts, color = 'coral'):
     '''
     mask_counts: the count of each mask
     '''
-    ax = scatterplot(x = "Masks", y = "Counts", data = mask_counts)
+    ax = sns.boxplot(data = mask_counts, orient = 'h')
+    #ax.set_xticklabels(ax.get_xticklabels(), rotation = 45)
 
     return ax
 

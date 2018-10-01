@@ -11,12 +11,24 @@ import os
 import glob
 from collections import deque
 from pandas import DataFrame as DF
+import matplotlib.pyplot as plt
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
 global_datapath_portable= '/media/sillycat/DanData/'
 FB_resting_folder = 'FB_resting_15min/'
 mask_database = 'mask_name.txt'
 dp_list = ['Jul2017/', 'Aug2018/']
+
+def mask_abbreviation(m_name):
+    '''
+    Create an abbreviation of the input mask name.
+    '''
+    mn_div = m_name.split('-')
+    mn_main = mn_div[0][:4]
+    mn_sub = mn_div[1]
+
+
+
 
 class mass_grinder(object):
     '''
@@ -33,7 +45,7 @@ class mass_grinder(object):
 
         self.parse_folder(work_path, name_flag)
 
-    def parse_folder(self, work_path, nf):
+    def parse_folder(self, work_path, nf = 'lb'):
         '''
         Parsing the folder. Should contain .npz files
         Warning: this does not wipe off the old data inside the class. One has to manually clean up the class if you want everything reset.
@@ -65,7 +77,7 @@ class mass_grinder(object):
         for ii in range(self.n_fish):
             g = self.grinder_arr[ii]
             if g.annotated:
-                group_mask = np.union1d(group_mask, g.keys) # This is naturally sorted
+                group_mask = np.union1d(group_mask, g.keys).astype('uint16') # This is naturally sorted
                 nanno.append(ii)
 
         ngm = group_mask.size # The total number of mask covered
@@ -81,9 +93,9 @@ class mass_grinder(object):
             mask_summary[ik,jj] = kst_fish
 
         mname = np.genfromtxt(global_datapath_ubn + mask_database, dtype = 'str', delimiter = '\t') # load the name of masks
-        col_names = self.keys[nanno]
-        row_inds = mname[group_mask]
-        df_mask = DF(data = mask_summary, index = row_inds, columns = col_names)
+        col_names = mname[group_mask]
+        row_inds = [self.keys[nn] for nn in nanno]
+        df_mask = DF(data = mask_summary.T, index = row_inds, columns = col_names)
 
         return group_mask, df_mask
 
@@ -104,15 +116,14 @@ def main():
 
     path_Jul2017 = global_datapath_ubn + FB_resting_folder + dp_list[0]
     path_Aug2018 = global_datapath_ubn + FB_resting_folder + dp_list[1]
-    MG = mass_grinder(path_Aug2018)
+    MG = mass_grinder(path_Jul2017)
+    MG.parse_folder(path_Aug2018)
     g_mask, m_sum = MG.anatomical_mask_statistics()
 
-    mask_covered = mname[g_mask]
-
+    ax = anview.label_scatter(m_sum)
+    plt.show()
     mask_mean = m_sum.mean(axis = 1)
     mask_se = m_sum.std(axis = 1)
-    plt.plot(g_mask, m_sum.sum(axis = 1), 'x')
-    plt.show()
 
 if __name__ == '__main__':
     main()
