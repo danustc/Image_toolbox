@@ -18,6 +18,7 @@ from src.preprocessing.segmentation import *
 
 data_rootpath_win ='D:/Data/2018-08-23\\'
 data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_A3/'
+#data_rootpath_portable ='/media/sillycat/DanData/'
 #folder_list = glob.glob(data_rootpath+"/B3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -92,7 +93,7 @@ class pipeline_tstacks(object):
         '''
         sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
-        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 4.0)
+        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 4.5)
         self.cblobs = stack_redundreduct(blobs_sample, th = 5) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
@@ -134,13 +135,16 @@ class pipeline_tstacks(object):
         self.tif_handle = None
         self.process_log[self.current_file] = 3
 
-        fig_display  = plt.figure(figsize = (9,7))
+        sample_frame = frame_deblur(sample_frame, sig = 2.5, Nit = 17)
+        fig_display  = plt.figure(figsize = (8,5.6))
         ax = fig_display.add_subplot(111)
         ax.imshow(sample_frame, cmap = 'Greys_r')
-        ax.scatter(cblobs[:,1], cblobs[:,0], s = 7)
+        ax.scatter(cblobs[:,1], cblobs[:,0], s = 7, color = 'g')
         ax.axis('off')
-        ax.set_title('# of blobs: '+ str(cblobs.shape[0]))
+        ax.set_title('# of blobs: '+ str(cblobs.shape[0]), fontsize = 16)
+        fig_display.tight_layout()
         fig_display.savefig(fname_stem + '_cells')
+        plt.close(fig_display)
 
 
 
@@ -169,7 +173,7 @@ def main():
     for data_path in folder_list:
         print(data_path)
         pt = pipeline_tstacks(data_path, fname_flags = 'rg')
-        pt.run_pipeline([5,10, 15])
+        pt.run_pipeline([0,5,10])
     #pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
     #pt.run_pipeline([5,10,15,20])
 
