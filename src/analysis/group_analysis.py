@@ -18,7 +18,7 @@ global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
 global_datapath_portable= '/media/sillycat/DanData/'
 FB_resting_folder = 'FB_resting_15min/'
 mask_database = 'mask_name.txt'
-dp_list = ['Jul2017/', 'Aug2018/']
+dp_list = ['Jul2017/', 'Aug2018/homo/', 'Aug2018/het/']
 
 def mask_abbreviation(m_name):
     '''
@@ -53,24 +53,29 @@ class mass_grinder(object):
     This is a class dealing with a group of fish instead of a single fish.
     '''
 
-    def __init__(self, work_path, name_flag = 'lb'):
+    def __init__(self):
         '''
         initialize the class, check the workpath
         '''
         self.n_fish = 0 # the number of fish
-        self.keys = deque()
-        self.grinder_arr = deque()
+        self.keys = deque() # This array stores fish names and acquisition dates
+        self.grinder_arr = deque() # This queue creates a a series of grinder analysers for the fish loaded
+        self.info = deque()
+        self.folder_group = deque() # folder group. helps tracing back the fish groups 
 
-        self.parse_folder(work_path, name_flag)
 
-    def parse_folder(self, work_path, nf = 'lb'):
+    def parse_folder(self, work_path, nf = 'lb', info = None):
         '''
         Parsing the folder. Should contain .npz files
         Warning: this does not wipe off the old data inside the class. One has to manually clean up the class if you want everything reset.
+        info: the extra information of the folder.
         '''
         flist = glob.glob(work_path + '*'+ nf+ '*.npz')
+        basename = os.path.basename(work_path)
         nfl =  len(flist)
         if nfl>0:
+            self.folder_group.append(nfl + self.n_fish) # the new group: where to start
+            sni = str(self.n_fish)
             for fname in flist:
                 fish_grinder = grinder()
                 sta = fish_grinder.parse_data(fname)
@@ -81,6 +86,12 @@ class mass_grinder(object):
                     self.n_fish +=1
                     print("Added fish:", fish_key)
 
+            snf = str(self.n_fish)
+
+            if info is not None:
+                inf_folder = '  '.join([sni, snf, basename, info])
+                self.info.append(inf_folder)
+
 
     def activity_calc(self):
         '''
@@ -88,7 +99,7 @@ class mass_grinder(object):
         '''
         for g in self.grinder_arr:
             g.activity_sorting(sort = False)
-            print("Finished calculating activities of the fish:". g.basename)
+            print("Finished calculating activities of the fish:", g.basename)
 
 
 
@@ -142,14 +153,27 @@ class mass_grinder(object):
         else:
             gm = self.group_mask[n_mask]
 
+        activity_stat = deque()
+        try:
+            NF = len(self.fish_anno)
+        except NameError:
+            print("self.fish_anno is not defined.")
+            return
+
         for mm in gm:
             # iterate over selected masks
-            for fa in self.fish_anno:
+            Fstat_mask = np.zeros((NF, 2))
+            for fa, jj in zip(self.fish_anno, range(NF)):
                 # iterate over annotated fish
                 cind = self.grinder_arr[fa].select_mask(mm)
                 act_m = self.grinder_arr[fa].stat[cind, -1]
 
                 ma_m, sa_m = act_m.mean(), stats.sem(act_m) # mean and std
+                Fstat_mask[jj, 0], Fstat_mask[jj,1] = ma_m, sa_m
+
+            activity_stat.append(Fstat_mask)
+
+        return activity_stat
 
 
 
@@ -166,13 +190,17 @@ class mass_grinder(object):
 def main():
 
 
-    path_Jul2017 = global_datapath_ubn + FB_resting_folder + dp_list[0]
-    path_Aug2018 = global_datapath_ubn + FB_resting_folder + dp_list[1]
-    MG = mass_grinder(path_Jul2017)
-    MG.parse_folder(path_Aug2018)
+    path_WT = global_datapath_ubn + FB_resting_folder + dp_list[0]
+    path_homo = global_datapath_ubn + FB_resting_folder + dp_list[1]
+    path_het = global_datapath_ubn + FB_resting_folder + dp_list[2]
+    MG = mass_grinder()
+    MG.parse_folder(path_WT, info = 'WT_Jul2017')
+    MG.parse_folder(path_homo, info = 'homo_Aug2018')
+    MG.parse_folder(path_het, info = 'het_Aug2018')
     MG.activity_calc()
-    g_mask, m_sum = MG.anatomical_mask_statistics()
-
+    m_sum = MG.mask_coverage_statistics()
+    a_stat = MG.mask_activity_statistics(n_mask = [14, 0])
+    print(a_stat)
     ax = anview.label_scatter(m_sum)
     plt.show()
     mask_mean = m_sum.mean(axis = 1)

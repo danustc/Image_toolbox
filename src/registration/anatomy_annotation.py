@@ -7,7 +7,7 @@ import subprocess
 import time
 import pandas as pd
 import calendar
-import src.preprocessing.coord_transform as coord_trans
+import coord_transform as coord_trans
 import maskdb_parsing as maskdb
 import matplotlib.pyplot as plt
 
@@ -278,7 +278,7 @@ def reg_annotate():
         fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
         label_covered = anatomical_labeling(fine_dest_name)
         label_sum [basename] = label_covered
-    label_path = data_path + 'FB_resting_15min/Jul2017_labels.npz'
+    label_path = data_path + 'FB_resting_15min/Aug2018_rest.npz'
     np.savez(label_path, **label_sum)
 
    # fig_sum = label_summary(label_path, n_range = (0,20), bar_color = 'coral')
