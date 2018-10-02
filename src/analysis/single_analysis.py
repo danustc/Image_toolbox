@@ -21,9 +21,10 @@ class grinder(object):
         self.signal = signal
         self.coord = coord
         self.rev = rev # whether the coordinates are reversed.
-        print("Loaded.")
-        self._get_size_()
-        self.group_mark = -1*np.ones(self.NC) #all the cells are uncategorized
+        if coord is not None:
+            print("Raw data Loaded.")
+            self._get_size_()
+            self.group_mark = -1*np.ones(self.NC) #all the cells are uncategorized
 
         self.stat = None
         self.activity = None
@@ -113,7 +114,7 @@ class grinder(object):
             sig_integ = (cell_signal-background).sum()
             ms[nf] = np.array([background, noi, sig_integ]) # mean and std
             if nf%100 ==0:
-                print("Finished", nf, "cells.")
+                print("Finished calculating activity of ", nf, "cells.")
 
         if sort:
             integ_ind = np.argsort(ms[:,2])[::-1] # descending order
@@ -127,7 +128,7 @@ class grinder(object):
 
     def select_mask(self, n_mask):
         '''
-        return the activity of neurons within a mask only.
+        return the average activity of neurons within a mask only.
         '''
         if self.annotated:
             m_included = (self.keys == n_mask) # check whether the key is included in the mask.
@@ -135,7 +136,6 @@ class grinder(object):
                 ind_mask = np.where(m_included)[0] #This is the index of the mask in self.keys
                 mask_coverage = self.neuron_label[:, ind_mask] # the neuronal labeling of n_mask
                 cell_ind = np.where(mask_coverage)[0] # these are the indices of the cells that belong to mask # n_mask.
-
                 return cell_ind
 
             else:

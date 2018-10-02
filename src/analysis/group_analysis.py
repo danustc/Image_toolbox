@@ -11,6 +11,7 @@ import os
 import glob
 from collections import deque
 from pandas import DataFrame as DF
+from scipy import stats
 import matplotlib.pyplot as plt
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
@@ -87,11 +88,13 @@ class mass_grinder(object):
         '''
         for g in self.grinder_arr:
             g.activity_sorting(sort = False)
+            print("Finished calculating activities of the fish:". g.basename)
 
 
 
-    def anatomical_mask_statistics(self):
+    def mask_coverage_statistics(self):
         '''
+        Update on 10/02/2018: This is really clumsy. How can I improve it?
         Make a statistics for the masks covered in the group.
         Construct a DataFrame with mask name as indices and fish name as keys
         Also, if activity is calculated, calculate the mask average.
@@ -103,6 +106,8 @@ class mass_grinder(object):
             if g.annotated:
                 group_mask = np.union1d(group_mask, g.keys).astype('uint16') # This is naturally sorted
                 nanno.append(ii)
+
+        # group_mask: all the mask that have been covered
 
         ngm = group_mask.size # The total number of mask covered
         nfm = len(nanno)
@@ -118,11 +123,33 @@ class mass_grinder(object):
 
         mname = np.genfromtxt(global_datapath_ubn + mask_database, dtype = 'str', delimiter = '\t') # load the name of masks
         col_names = [mask_abbreviation(mn) for mn in mname[group_mask]]
-        mname[group_mask]
         row_inds = [self.keys[nn] for nn in nanno]
         df_mask = DF(data = mask_summary.T, index = row_inds, columns = col_names)
+        self.group_mask = group_mask # keep this part of information
+        self.fish_anno = nanno
 
-        return group_mask, df_mask
+        return df_mask
+
+
+    def mask_activity_statistics(self, n_mask = None):
+        '''
+        calculate statistics of the masks
+        Question: should I do this fish-wise or group-wise?
+        if n_mask is None: calculate the statistics of all the covered masks; toherwise calculate that for the selected mask only.
+        '''
+        if n_mask is None:
+            gm = self.group_mask
+        else:
+            gm = self.group_mask[n_mask]
+
+        for mm in gm:
+            # iterate over selected masks
+            for fa in self.fish_anno:
+                # iterate over annotated fish
+                cind = self.grinder_arr[fa].select_mask(mm)
+                act_m = self.grinder_arr[fa].stat[cind, -1]
+
+                ma_m, sa_m = act_m.mean(), stats.sem(act_m) # mean and std
 
 
 
