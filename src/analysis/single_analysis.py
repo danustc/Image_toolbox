@@ -27,11 +27,14 @@ class grinder(object):
 
         self.stat = None
         self.activity = None
+        self.annotated = False
         self.dt = dt
 
     def _trim_data_(self, ind_trim):
         self.signal = self.signal[:,ind_trim]
         self.coord = self.coord[ind_trim,:]
+        if self.annotated:
+            self.neuron_label = self.neuron_label[ind_trim, :]
 
     def _get_size_(self):
         '''
@@ -95,7 +98,7 @@ class grinder(object):
         self.coord = self.coord[:,::-1]
         self.rev = not(self.rev)
 
-    def activity_sorting(self, nbin = 40):
+    def activity_sorting(self, nbin = 40, sort = True):
         '''
         Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
         '''
@@ -112,10 +115,14 @@ class grinder(object):
             if nf%100 ==0:
                 print("Finished", nf, "cells.")
 
-        integ_ind = np.argsort(ms[:,2])[::-1] # descending order
-        self._trim_data_(integ_ind) # OK this is not a very elegant way to put it. 
-        self.stat = ms[integ_ind]
-        self.activity = activity_map[:, integ_ind] # sort the activity map as well
+        if sort:
+            integ_ind = np.argsort(ms[:,2])[::-1] # descending order
+            self._trim_data_(integ_ind) # OK this is not a very elegant way to put it. 
+            self.stat = ms[integ_ind]
+            self.activity = activity_map[:, integ_ind] # sort the activity map as well
+        else: # leave it unsorted
+            self.stat = ms
+            self.activity = activity_map
 
 
     def select_mask(self, n_mask):

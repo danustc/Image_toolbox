@@ -35,10 +35,15 @@ def mask_abbreviation(m_name):
                 num_mark = sub_list[-1]
                 sub_abbrev = '-'.join([spart[:3] for spart in sub_list[:-1]])
                 sub_abbrev += num_mark
+            else:
+                sub_abbrev = '-'.join([spart[:3] for spart in sub_list])
 
+            mask_abrv = ''.join([mn_main, sub_abbrev])
 
+        return mask_abrv
 
-
+    else: # only the main name exists
+        return mn_main
 
 
 
@@ -75,14 +80,21 @@ class mass_grinder(object):
                     self.n_fish +=1
                     print("Added fish:", fish_key)
 
-    def select_fish(self, NF, fish_key):
-        pass
+
+    def activity_calc(self):
+        '''
+        calculate the activity levels of all the neurons in each cell.
+        '''
+        for g in self.grinder_arr:
+            g.activity_sorting(sort = False)
+
 
 
     def anatomical_mask_statistics(self):
         '''
         Make a statistics for the masks covered in the group.
         Construct a DataFrame with mask name as indices and fish name as keys
+        Also, if activity is calculated, calculate the mask average.
         '''
         nanno = []
         group_mask = np.array([])
@@ -105,7 +117,8 @@ class mass_grinder(object):
             mask_summary[ik,jj] = kst_fish
 
         mname = np.genfromtxt(global_datapath_ubn + mask_database, dtype = 'str', delimiter = '\t') # load the name of masks
-        col_names = mname[group_mask]
+        col_names = [mask_abbreviation(mn) for mn in mname[group_mask]]
+        mname[group_mask]
         row_inds = [self.keys[nn] for nn in nanno]
         df_mask = DF(data = mask_summary.T, index = row_inds, columns = col_names)
 
@@ -130,6 +143,7 @@ def main():
     path_Aug2018 = global_datapath_ubn + FB_resting_folder + dp_list[1]
     MG = mass_grinder(path_Jul2017)
     MG.parse_folder(path_Aug2018)
+    MG.activity_calc()
     g_mask, m_sum = MG.anatomical_mask_statistics()
 
     ax = anview.label_scatter(m_sum)
