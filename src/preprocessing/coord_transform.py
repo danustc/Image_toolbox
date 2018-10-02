@@ -112,7 +112,7 @@ def sample_from_refstack(stack_ref, sample_range, pxl_ref, pxl_sample,  rotmat, 
             print("----------Finished %d out of %d calculations.------------"%(ii,sx*sy*sz))
 
     sample_value = np.reshape(inter_signal, [sz, sy, sx]) #note that the order of indices in 3D python array.
-    return sample_value
+    return sample_value.astype('uint16')
 
 
 def sample_to_refstack_list(coord_list, sample_range, pxl_sample, pxl_ref, rotmat, rshift):
@@ -158,7 +158,7 @@ def sample_to_refstack(substack, ref_range, pxl_sample, pxl_ref, rotmat, rshift)
         ii+=1
         if ii%10000 == 0:
             print("--------Finished %d out of %d calculations. ------"%(ii, sx*sy*sz))
-    return ref_stack
+    return ref_stack.astype('uint16')
     # [MY, MZ, MX] = np.meshgrid(iy,iz, ix)
 
 

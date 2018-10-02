@@ -26,6 +26,18 @@ def mask_abbreviation(m_name):
     mn_div = m_name.split('-')
     mn_main = mn_div[0][:4]
     mn_sub = mn_div[1]
+    if len(mn_sub)>0: # the secondary part is not empty
+        sub_list = mn_sub.split(' ')
+        if len(sub_list) == 1:
+            mask_abrv = '-'.join([mn_main, sub_list[0][:5]])
+        else: # the sublist has multiple parts
+            if sub_list[-1].isdigit(): # the last part is digit?
+                num_mark = sub_list[-1]
+                sub_abbrev = '-'.join([spart[:3] for spart in sub_list[:-1]])
+                sub_abbrev += num_mark
+
+
+
 
 
 
