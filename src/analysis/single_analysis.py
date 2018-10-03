@@ -141,10 +141,10 @@ class grinder(object):
 
             else:
                 print("The mask", n_mask, "is not covered.")
-                return
+                return []
         else:
             print("The fish has not been annotated yet.")
-            return
+            return []
 
 
     def cutoff_bayesian(self, PH_const = 1., nb = 200, stake = 0.95, activity_range = 0.95, conserve_cutting = False):

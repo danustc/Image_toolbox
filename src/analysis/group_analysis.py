@@ -20,6 +20,7 @@ FB_resting_folder = 'FB_resting_15min/'
 mask_database = 'mask_name.txt'
 dp_list = ['Jul2017/', 'Aug2018/homo/', 'Aug2018/het/']
 
+
 def mask_abbreviation(m_name):
     '''
     Create an abbreviation of the input mask name.
@@ -170,9 +171,10 @@ class mass_grinder(object):
             for mm, jj in zip(gm, range(NG)):
                 # iterate over annotated fish
                 cind = self.grinder_arr[fa].select_mask(mm)
-                act_m = self.grinder_arr[fa].stat[cind, -1]
-                mask_mean[ii, jj] = act_m.mean()
-                mask_sem[ii,jj] = stats.sem(act_m)
+                if len(cind) > 0:
+                    act_m = self.grinder_arr[fa].stat[cind, -1]
+                    mask_mean[ii, jj] = act_m.mean()
+                    mask_sem[ii,jj] = stats.sem(act_m)
 
         double_inds = [fish_names, fish_infos]
         activity_stat = DF(mask_mean, index = double_inds, columns = mask_abvs)
@@ -203,7 +205,7 @@ def main():
     MG.parse_folder(path_het, shared_info = 'het')
     MG.activity_calc()
     m_sum = MG.mask_coverage_statistics()
-    a_stat = MG.mask_activity_statistics(n_mask = [14, 0, 274])
+    a_stat = MG.mask_activity_statistics()
     print(a_stat)
     ax = anview.label_scatter(m_sum)
     plt.show()

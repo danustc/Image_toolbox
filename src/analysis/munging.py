@@ -1,6 +1,6 @@
 '''
 Additional signal munging that can be shared among analysis pipelines
-peak finding, flag_decode
+peak finding, flag_decode, matrix interleaving, etc.
 '''
 
 import sys
@@ -11,6 +11,28 @@ import scipy.fftpack as fftpack
 from scipy import signal
 import src.analysis.clustering as clustering
 from scipy.stats import norm
+
+
+def interleave(mat1, mat2, direction = 'c'):
+    '''
+    interleave two matrices either by row or by columns. default by column.
+    '''
+    Y1, X1 = mat1.shape
+    Y2, X2 = mat2.shape
+    if (Y1!=Y2 or X1!=X2):
+        print("The matrix dimensions do not match.")
+        return
+
+    if direction == 'c':
+        cc = np.c_[mat1.ravel(), mat2.ravel()]
+        inter_mat = cc.reshape((Y1, 2*X1))
+    else:
+        cc = np.c_[mat1.T.ravel(), mat2.T.ravel()]
+        inter_mat = cc.reshape((Y1, 2*X1)).T
+
+    return inter_mat
+
+
 
 def flag_decode(n_flag, n_mask = 294):
     if n_flag < 294:
