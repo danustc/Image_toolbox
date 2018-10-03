@@ -10,6 +10,7 @@ import calendar
 import coord_transform as coord_trans
 import maskdb_parsing as maskdb
 import matplotlib.pyplot as plt
+import tifffile as tf
 
 #-------------------Global variables-----------------
 exu = "cmtk streamxform"
@@ -38,6 +39,34 @@ def edge_cropping(coord_file, edge = 5.0):
 
     edge_data = {'coord': edge_coord, 'signal': edge_signal}
     np.savez(coord_file[:-4]+'_ed', **edge_data)
+
+
+def mask_searching(lab_coord_pxl):
+    '''
+    search for covered masks of a list of coordinates.
+    lab_coord_pxl: coordinates in pixels, ordered in z-y-x
+    '''
+    MD = maskdb.mask_db()
+    n_cells = lab_coord_pxl.shape[0]
+    mask_labels = np.zeros([n_cells, 294])
+    labels_covered = []
+    for n_mask in range(294):
+        mask_labels[:,n_mask], covered = MD.mask_multi_direct_search(n_mask, lab_coord_pxl) # from x,y,z back to z,y,x again
+        if covered:
+            #mask_idx, outline_idx = MD.get_mask(n_mask)
+            name_idx = MD.get_name(n_mask)
+            print(name_idx)
+            labels_covered.append([n_mask, covered])
+
+    print("Finished anatomical identification.")
+
+    mask_valid = np.sum(mask_labels, axis = 0)
+    ind_mask = np.where(mask_valid)[0] # masks that contain at least one cell
+    mask_labels = mask_labels[:, ind_mask]
+    cells_masked = np.sum(mask_labels, axis = 1) # for each cell, sum up the masks to count how many brain regions are annotated
+    ind_cell= np.where(cells_masked)[0] # cells that are tagged at least by one mask label
+
+    return mask_labels, ind_mask, ind_cell
 
 
 def anatomical_labeling(coord_file, arti_clear = True):
@@ -69,28 +98,11 @@ def anatomical_labeling(coord_file, arti_clear = True):
     lab_signal = signal[:, if_outlier] # the corresponding signal matrix has been cleaned of outliers 
     n_cells = lab_coord.shape[0] # This is cleaned of the outlyers.
 
-    mask_labels = np.zeros([n_cells, 294])
-    labels_covered = []
-    labels_to_exclude = [0, 93, 274] # The large-category labels that should be excluded.
-    for n_mask in range(294):
-        mask_labels[:,n_mask], covered  = MD.mask_multi_direct_search(n_mask, np.fliplr(lab_coord)) # from x,y,z back to z,y,x again
-        if covered:
-            #mask_idx, outline_idx = MD.get_mask(n_mask)
-            name_idx = MD.get_name(n_mask)
-            print(name_idx)
-            labels_covered.append([n_mask, covered])
 
-    print("Finished anatomical identification.")
-
-    # cleaning step 2: label each cell with one or more anatomical labels, remove cells that are not labeled by any mask
-    mask_valid = np.sum(mask_labels, axis = 0)
-    ind_mask = np.where(mask_valid)[0] # masks that contain at least one cell
-    mask_labels = mask_labels[:, ind_mask]
-    cells_masked = np.sum(mask_labels, axis = 1) # for each cell, sum up the masks to count how many brain regions are annotated
-    ind_cell= np.where(cells_masked)[0] # cells that are tagged at least by one mask label
+    mask_labels, ind_mask, ind_cell = mask_searching(np.fliplr(lab_coord))
 
     if arti_clear: # do you want to remove unlabeled cells?
-        mask_labels = mask_labels[ind_cell] # clean the mask labels of unmasked cells
+        mask_labels = mask_labels[ind_cell]
         lab_coord = lab_coord[ind_cell] # clean the coordinates of unmasked cells
         lab_signal = lab_signal[:, ind_cell] # clean the signal of unmasked cells 
 
@@ -101,7 +113,6 @@ def anatomical_labeling(coord_file, arti_clear = True):
     labeled_dataset['signal'] = lab_signal
     labeled_dataset['annotation'] = annotation_label
     np.savez(dest_path, **labeled_dataset)
-    return np.array(labels_covered)
 
 
 def dimension_check(key_date, meta_dim, nyear = '17'):
@@ -222,6 +233,9 @@ def label_summary(group_labels, n_range = (20, 100), bar_plot = True, bar_color 
     label_covered = label_count[:,0]
 
     if bar_plot:
+        '''
+        ***** This part needs to be wrapped in some visualization functions.
+        '''
         c_min, c_max = n_range
         in_range = np.logical_and(label_mean < c_max, label_mean > c_min)
         label_plot = label_covered[in_range] # plot the labels inside the selected count range
@@ -239,18 +253,8 @@ def label_summary(group_labels, n_range = (20, 100), bar_plot = True, bar_color 
                 short_name = raw_parts[0][:14]
             name_list.append(short_name)
 
-        fig_sum = plt.figure(figsize = (8, 4.5))
-        ax = fig_sum.add_subplot(111)
-        ax.bar(ind, mean_plot, width = 0.8, yerr = std_plot, color = bar_color)
-        ax.set_xticks(ind)
-        ax.set_xticklabels(name_list, rotation = 35, ha = 'right', fontsize = 12)
-        ax.set_ylabel('Counts', fontsize = 12)
-        fig_sum.tight_layout()
-        MD.shutdown()
-        return fig_sum
-
-    else:
-        return label_mean, label_std
+    MD.shutdown()
+    return label_mean, label_std
 
 
 # ------------------------Main functions for test ----------------------
@@ -276,21 +280,26 @@ def reg_annotate():
 
         reg_list = data_path + 'Good_registrations/Aug2018_rest/' + reglist +  '.list'
         fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
-        label_covered = anatomical_labeling(fine_dest_name)
+        anatomical_labeling(fine_dest_name)
         label_sum [basename] = label_covered
-    label_path = data_path + 'FB_resting_15min/Aug2018_rest.npz'
-    np.savez(label_path, **label_sum)
+    #label_path = data_path + 'FB_resting_15min/Aug2018_rest.npz'
+    #np.savez(label_path, **label_sum)
 
-   # fig_sum = label_summary(label_path, n_range = (0,20), bar_color = 'coral')
-   # fig_sum.savefig('label_summary_0_20')
-   # fig_sum = label_summary(label_path, n_range = (20,100), bar_color = 'turquoise')
-   # fig_sum.savefig('label_summary_20_100')
-   # fig_sum = label_summary(label_path, n_range = (100,500), bar_color = 'violet')
-   # fig_sum.savefig('label_summary_100_500')
-   # fig_sum = label_summary(label_path, n_range = (500,5000), bar_color = 'sienna')
-   # fig_sum.savefig('label_summary_500_5000')
-   # # next 
 
+def crop_annotate():
+    '''
+    a simple annotation.
+    '''
+    mask_stack =  tf.imread('/home/sillycat/Programming/Python/cmtkRegistration/Adam_CB1_mask.tif')
+    ofst = np.array([6,46,190])
+    iz, iy, ix = np.where(mask_stack) # where the pixel values are not zero.
+    ref_coord = np.c_[iz, iy, ix] + ofst-1
+
+    anno_label = mask_searching(ref_coord)
+    print(anno_label[-1])
+    print("Finished anatomical identification.")
+
+# --------------------------------------------------------
 
 def edge():
 

@@ -162,4 +162,17 @@ def sample_to_refstack(substack, ref_range, pxl_sample, pxl_ref, rotmat, rshift)
     # [MY, MZ, MX] = np.meshgrid(iy,iz, ix)
 
 
-# --------------------------------------------------Below are functions for two-photon  
+# --------------------------------------------------Below are functions for two-photon ----------------------------------------------- 
+def crop_recover(coords, offset, ref_range):
+    '''
+    recover the coordinates of images
+    crops: the cropping corner,  ordered in z-y-x, 3x2 array.
+    coords: the z-y-x coordinates
+    Everything in the unit of pixel.
+    '''
+    offset = crops[:,0]-1 # the real offset. The cropping starts from 1 but the array starts from 0.
+
+    ref_coords = coords+offset
+
+    return ref_coords
+
