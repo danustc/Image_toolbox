@@ -18,11 +18,19 @@ data_path="/home/sillycat/Programming/Python/data_test/"
 meta_path = data_path + 'metadata_sheet.csv'
 month_num = {v: k for k,v in enumerate(calendar.month_abbr)}
 
+
 pxl_img = [0.295, 0.295, 1.00]
 pxl_lab = [0.798, 0.798, 2.00]
-origin_shift = [240, 310, 80]
+origin_shift_s0 = [240, 310, 80]
+origin_shift_s1 = [245, 310, 82]
+
+rot_angles = [40.0, 38.0]
+
 ref_range = np.array([138, 621, 1406])
-sample_range = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
+sample_range_s0 = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
+sample_range_s1 = np.array([976, 724, 110])
+
+# ------------------------------ Small functions -----------------------------------
 
 def edge_cropping(coord_file, edge = 5.0):
     rawd = np.load(coord_file)
@@ -69,7 +77,7 @@ def mask_searching(lab_coord_pxl):
     return mask_labels, ind_mask, ind_cell
 
 
-def anatomical_labeling(coord_file, arti_clear = True):
+def anatomical_labeling(coord_file, arti_clear = True, shift_set = 0):
     '''
     transform the coordinate into those in the reference frame, then annotate each cell
     coord_file: the file (reformatted) to be labeledannatomically.
@@ -84,11 +92,20 @@ def anatomical_labeling(coord_file, arti_clear = True):
         data = np.load(coord_file+'.npz')
 
     MD = maskdb.mask_db()
-    rm_yaxis = coord_trans.rotmat_yaxis(40.0) # rotational matrix
+    rm_yaxis = coord_trans.rotmat_yaxis(rot_angles[shift_set]) # rotational matrix, which set of original parameters are you using?
     print(coord_file)
         #coord = np.loadtxt(coord_file)
     coord = data['coord'] # the freshly registered coordinates
     signal = data['signal']
+
+    if shift_set == 0:
+        # OMG, this is such an awkward operation. I hate piling up global variable at the beginning of my program.
+        sample_range = sample_range_s0
+        origin_shift = origin_shift_s0
+    elif shift_set ==1:
+        sample_range = sample_range_s1
+        origin_shift = origin_shift_s1
+
 
     lab_coord = coord_trans.sample_to_refstack_list(coord, sample_range, pxl_img, pxl_lab, rm_yaxis,origin_shift ) # transform to lab coordinate
 
@@ -97,7 +114,6 @@ def anatomical_labeling(coord_file, arti_clear = True):
     lab_coord = lab_coord[if_outlier] # coord has been cleand of outliers
     lab_signal = signal[:, if_outlier] # the corresponding signal matrix has been cleaned of outliers 
     n_cells = lab_coord.shape[0] # This is cleaned of the outlyers.
-
 
     mask_labels, ind_mask, ind_cell = mask_searching(np.fliplr(lab_coord))
 
@@ -113,6 +129,7 @@ def anatomical_labeling(coord_file, arti_clear = True):
     labeled_dataset['signal'] = lab_signal
     labeled_dataset['annotation'] = annotation_label
     np.savez(dest_path, **labeled_dataset)
+
 
 
 def dimension_check(key_date, meta_dim, nyear = '17'):
@@ -157,7 +174,7 @@ def coord_convert_preprocess(fpath, reg_list, origin_x,  order = 'r'):
     parent_path= os.path.dirname(fpath)
     coord = raw_data['coord']
     if order == 'r':
-        coord[:,2] = origin_x*0.295-coord[:,2] # This needs to be validated.
+        coord[:,2] = origin_x*0.295-coord[:,2] #***** This needs to be validated*****.
         coord = coord[:,::-1]
     else:
         coord[:,0] = origin_x*0.295-coord[:,0]
@@ -267,7 +284,7 @@ def reg_annotate():
     meta_dim.set_index('Fish', inplace = True)
     response_list = glob.glob(data_path+'FB_resting_15min/Aug2018/*_dff.npz')
     print(response_list)
-    label_sum = dict()
+
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
 
@@ -275,13 +292,18 @@ def reg_annotate():
         xdim =dimension_check(basename, meta_dim, nyear = '18')
         print(xdim)
         temp_list = basename.split('_')
-        reglist  = '_'.join([temp_list[0], temp_list[-1]])
-        print(reglist)
+        reglist_basename  = '_'.join([temp_list[0], temp_list[-1]])
+        print(reglist_basename)
+        reg_list = glob.glob(data_path + 'Good_registrations/Aug2018_rest/' + reglist_basename +  '*.list')[0] # loosen the condition.
+        set_list = reg_list.split('set')
+        if len(set_list) ==1:
+            sh_set = 0
+        else:
+            sh_set = int(set_list[1][0])
 
-        reg_list = data_path + 'Good_registrations/Aug2018_rest/' + reglist +  '.list'
+
         fine_dest_name = coord_convert_preprocess(response_file,reg_list,int(xdim),order = 'r')
-        anatomical_labeling(fine_dest_name)
-        label_sum [basename] = label_covered
+        anatomical_labeling(fine_dest_name, shift_set = sh_set)
     #label_path = data_path + 'FB_resting_15min/Aug2018_rest.npz'
     #np.savez(label_path, **label_sum)
 

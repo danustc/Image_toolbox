@@ -60,15 +60,14 @@ class mass_grinder(object):
         self.n_fish = 0 # the number of fish
         self.keys = deque() # This array stores fish names and acquisition dates
         self.grinder_arr = deque() # This queue creates a a series of grinder analysers for the fish loaded
-        self.info = deque()
         self.folder_group = deque() # folder group. helps tracing back the fish groups 
 
 
-    def parse_folder(self, work_path, nf = 'lb', info = None):
+    def parse_folder(self, work_path, nf = 'lb', shared_info = None):
         '''
         Parsing the folder. Should contain .npz files
         Warning: this does not wipe off the old data inside the class. One has to manually clean up the class if you want everything reset.
-        info: the extra information of the folder.
+        info: the extra information of the folder, can be genotypes.
         '''
         flist = glob.glob(work_path + '*'+ nf+ '*.npz')
         basename = os.path.basename(work_path)
@@ -78,19 +77,15 @@ class mass_grinder(object):
             sni = str(self.n_fish)
             for fname in flist:
                 fish_grinder = grinder()
-                sta = fish_grinder.parse_data(fname)
+                sta = fish_grinder.parse_data(fname, info = shared_info)
                 if sta:
-                    fish_key = os.path.basename(fname).split('.')[0]
+                    fish_key = fish_grinder.basename
                     self.keys.append(fish_key)
                     self.grinder_arr.append(fish_grinder)
                     self.n_fish +=1
                     print("Added fish:", fish_key)
 
             snf = str(self.n_fish)
-
-            if info is not None:
-                inf_folder = '  '.join([sni, snf, basename, info])
-                self.info.append(inf_folder)
 
 
     def activity_calc(self):
@@ -108,7 +103,6 @@ class mass_grinder(object):
         Update on 10/02/2018: This is really clumsy. How can I improve it?
         Make a statistics for the masks covered in the group.
         Construct a DataFrame with mask name as indices and fish name as keys
-        Also, if activity is calculated, calculate the mask average.
         '''
         nanno = []
         group_mask = np.array([])
@@ -149,29 +143,39 @@ class mass_grinder(object):
         if n_mask is None: calculate the statistics of all the covered masks; toherwise calculate that for the selected mask only.
         '''
         if n_mask is None:
+            # just give me statistics of all the masks covered
             gm = self.group_mask
         else:
-            gm = self.group_mask[n_mask]
+            gm = n_mask
+            # gm = self.group_mask[n_mask]
 
-        activity_stat = deque()
         try:
             NF = len(self.fish_anno)
         except NameError:
             print("self.fish_anno is not defined.")
             return
 
-        for mm in gm:
+        # These will be used as the column indices of the data frame.
+        NG = len(gm)
+        mname = np.genfromtxt(global_datapath_ubn + mask_database, dtype = 'str', delimiter = '\t') # load the name of masks
+        fish_names = [self.keys[nn] for nn in self.fish_anno]
+        fish_infos = [self.grinder_arr[nn].info for nn in self.fish_anno]
+        mask_abvs = [mask_abbreviation(mn) for mn in mname[gm]] # mask abbreviations
+        mask_mean = np.zeros((NF, NG))
+        mask_sem = np.zeros((NF, NG))
+
+
             # iterate over selected masks
-            Fstat_mask = np.zeros((NF, 2))
-            for fa, jj in zip(self.fish_anno, range(NF)):
+        for fa, ii in zip(self.fish_anno, range(NF)):
+            for mm, jj in zip(gm, range(NG)):
                 # iterate over annotated fish
                 cind = self.grinder_arr[fa].select_mask(mm)
                 act_m = self.grinder_arr[fa].stat[cind, -1]
+                mask_mean[ii, jj] = act_m.mean()
+                mask_sem[ii,jj] = stats.sem(act_m)
 
-                ma_m, sa_m = act_m.mean(), stats.sem(act_m) # mean and std
-                Fstat_mask[jj, 0], Fstat_mask[jj,1] = ma_m, sa_m
-
-            activity_stat.append(Fstat_mask)
+        double_inds = [fish_names, fish_infos]
+        activity_stat = DF(mask_mean, index = double_inds, columns = mask_abvs)
 
         return activity_stat
 
@@ -194,12 +198,12 @@ def main():
     path_homo = global_datapath_ubn + FB_resting_folder + dp_list[1]
     path_het = global_datapath_ubn + FB_resting_folder + dp_list[2]
     MG = mass_grinder()
-    MG.parse_folder(path_WT, info = 'WT_Jul2017')
-    MG.parse_folder(path_homo, info = 'homo_Aug2018')
-    MG.parse_folder(path_het, info = 'het_Aug2018')
+    #MG.parse_folder(path_WT, shared_info = 'WT')
+    MG.parse_folder(path_homo, shared_info = 'homo')
+    MG.parse_folder(path_het, shared_info = 'het')
     MG.activity_calc()
     m_sum = MG.mask_coverage_statistics()
-    a_stat = MG.mask_activity_statistics(n_mask = [14, 0])
+    a_stat = MG.mask_activity_statistics(n_mask = [14, 0, 274])
     print(a_stat)
     ax = anview.label_scatter(m_sum)
     plt.show()

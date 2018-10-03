@@ -46,7 +46,7 @@ class grinder(object):
         else:
             self.NT, self.NC = 0, 0
 
-    def parse_data(self, data_file, rev = True):
+    def parse_data(self, data_file, rev = True, info = None):
         basename, fmt = os.path.basename(data_file).split('.')
         self.basename = basename
         if fmt == 'h5':
@@ -87,6 +87,7 @@ class grinder(object):
                 print("Unable to open the file.")
                 return False
 
+        self.info = info
         self.rev = rev
         self._get_size_()
 
