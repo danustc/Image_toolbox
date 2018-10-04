@@ -6,9 +6,23 @@ import numpy as np
 
 from scipy.ndimage.filters import gaussian_filter
 
+
+def coord_cluster(coords, cind_label):
+    '''
+    group coordinates into clusters based on labeling.
+    '''
+    NL = len(cind_label)
+    cc = []
+    for ci in cind_label:
+        cc.append(coords[ci])
+
+    return cc
+
+
 def mutual_information_cloud(cloud_a, cloud_b):
     '''
     calculate mutual information between two clouds.
+    Needs to design this algorithm carefully.
     '''
 
 

@@ -74,21 +74,24 @@ def corr_distribution(corr_mat, nb = 200, uprange = 0.5):
     return hist, be
 
 
-
-def leigen_nclusters(eigen_list, norder = 0):
+def leigen_nclusters(eigen_list, pad = 1.0e-06):
     '''
     determining how many clusters the eigenvalue array suggests by finding the kinks in the eigen value list.
     '''
     eig_diff = np.diff(eigen_list)
-    peaks = argrelextrema(eig_diff, np.greater)[0]+1 # find kinks
 
-    return peaks[norder]
+    relative_diff = eig_diff/(eigen_list[:-1]+pad)
+    peak = np.argmax(relative_diff) + 1
+    #peaks = argrelextrema(relative_diff, np.greater)[0]+1 # find kinks
+
+    return peak
 
 
 def label_assignment(raw_data, n_cl, y_labels, verbose = True):
     '''
     raw_data: NT x NC, NT: # of trials, NC: # of cells
     After spectral clustering, calculate the population and average of each group.
+    Have to double check this function.
     '''
     # Create a distant matrix
     NT, NC = raw_data.shape
@@ -103,16 +106,17 @@ def label_assignment(raw_data, n_cl, y_labels, verbose = True):
 
     print("cluster population:", g_population)
     sort_pop = np.argsort(g_population).astype('int')
-    ind_groups = [ind_groups[sort_pop[ii]] for ii in range(n_cl)]
+    ind_groups = [ind_groups[sort_pop[ii]] for ii in range(n_cl)] # ok, this reorders groups based on population numbers
+
     cl_average = np.zeros([NT, n_cl])
-    for ii in range(n_cl):
-        n_pop = len(ind_groups[ii])
+    for ii, idg in zip(range(n_cl), ind_groups):
+        n_pop = len(idg)
         print("population of group", ii, ":", n_pop)
         # add a check point: if this cluster has one member only, then do not do the average
-        if len(ind_groups[ii])>1:
-            cl_average[:,ii] = raw_data[:, ind_groups[ii]].mean(axis = 1)
+        if n_pop > 1:
+            cl_average[:,ii] = raw_data[:,idg].mean(axis = 1)
         else:
-            cl_average[:,ii] = raw_data[:,ind_groups[ii][0]]
+            cl_average[:,ii] = raw_data[:,idg[0]]
 
     return ind_groups,  cl_average
 
@@ -174,12 +178,15 @@ class Corr_sc(object):
 
         L = laplacian(self.affi_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
         w, v = sc_eigen(L, n_cluster = ncl) # calculate the first 20th eigen values and eigen states
-        peak_position = leigen_nclusters(w, norder = np.arange(5)) # where should I cut off?
+        peak_position = leigen_nclusters(w) # where should I cut off?
         if plotout:
-            fig_plot = plt.figure(figsize = (7,3.5))
+            fig_plot = plt.figure(figsize = (6,3))
             ax = fig_plot.add_subplot(111)
-            ax.plot(w, '-xr')
-            fig_plot.show()
+            ax.plot(np.arange(1, ncl+1), w, '-x')
+            ax.scatter(peak_position, w[peak_position-1], s = 150, facecolors = 'none', edgecolors = 'orange', linewidth = 2)
+            txt = 'Zero eigen-values: '+str(peak_position)
+            ax.text(0, w.mean(),txt, fontsize = 13)
+            #fig_plot.show()
         else:
             fig_plot = None
 

@@ -9,7 +9,7 @@ import numpy as np
 from spectral_clustering import Corr_sc, label_assignment
 import matplotlib.pyplot as plt
 from collections import deque
-from src.visualization import signal_plot
+from src.visualization import cluster_navigation
 
 def smart_partition(NC, n_group, last_big = True):
     arr = np.arange(NC)
@@ -39,7 +39,7 @@ class hrc_sc(object):
         self.signal = raw_signal
 
 
-    def divide_sc(self, threshold = 0.25, mode = 'random', interactive = True):
+    def divide_sc(self, mode = 'random', interactive = False):
         '''
         spectral clustering by groups.
         partitions the whole dataset into several groups, and do spectral clustering on each group
@@ -73,23 +73,23 @@ class hrc_sc(object):
             self.group_partition.append(neuron_ind)
             sg_data = self.signal[:,neuron_ind] # takeout a subgroup of data
             sc_holder.load_data(sg_data)
-            sc_holder.link_evaluate(sca = 1.105)
+            sc_holder.link_evaluate(sca = 1.050)
             sc_holder.affinity()
             self.group_cstat[gg, 0] = sc_holder.thresh
 
-            cluster_peaks, fig_plot = sc_holder.laplacian_evaluation()
-            print("suggested number of clusters:", cluster_peaks)
+            cluster_peak, fig_plot = sc_holder.laplacian_evaluation()
+            print("suggested number of clusters:", cluster_peak)
+
+            fig_plot.show()
 
             if interactive:
-                fig_plot.show()
                 n_cl = int(input("Enter the number of clusters: "))
-                plt.close(fig_plot)
             else:
-                if len(cluster_peaks) == 1:
-                    n_cl = cluster_peaks[0]
-                else:
-                    n_cl = cluster_peaks[1]
-            #ind_groups, cl_average = sc.spec_cluster(sg_data, n_cl)
+                # figure the position of peak
+                n_cl = cluster_peak
+                plt.pause(3)
+
+            plt.close(fig_plot)
             self.group_cstat[gg,1] = n_cl
             sc_holder.clustering(n_cl)
             self.ind_group_pool.append(sc_holder.ind_groups)
@@ -146,11 +146,11 @@ class hrc_sc(object):
         cmat = sc_holder.corr_mat
         plt.imshow(cmat)
         plt.show()
-        sc_holder.link_evaluate(sca = 2.00)
+        sc_holder.link_evaluate(sca = 1.80)
         sc_holder.affinity()
-        cluster_peaks, fig_plot = sc_holder.laplacian_evaluation(ncl = 30)
+        cluster_peak, fig_plot = sc_holder.laplacian_evaluation(ncl = 30)
         fig_plot.show()
-        self.n_supgroup = int(input("Enter the number of clusters: "))
+        self.n_supgroup = cluster_peak
         plt.close(fig_plot)
         sc_holder.clustering(self.n_supgroup)
         cluster_corrgroup = sc_holder.ind_groups
@@ -187,12 +187,5 @@ class hrc_sc(object):
         ind_supgroups, cl_supaverage = label_assignment(self.signal, self.n_supgroup, merged_label)
 
         # This is solely for checking the group populations
-        return merged_label, cl_supaverage, cell_ind
+        return merged_label, cl_supaverage, ind_supgroups
 
-
-
-    def cluster_view(self, background_figure = None):
-        '''
-        view the average of clusters
-        '''
-        signal_plot.compact_dffplot(fsize = (6, 4.))
