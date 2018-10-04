@@ -11,7 +11,7 @@ from df_f import dff_AB
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
 import src.visualization.signal_plot as signal_plot
 import clustering
-global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/homo/'
+global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/'
 
 class grinder(object):
     '''
@@ -299,7 +299,7 @@ def main():
     '''
     some initial munging of the datasets.
     '''
-    data_path = global_datapath_ubn + 'Aug23_2018_B4_ref_lb.npz'
+    data_path = global_datapath_ubn + 'Aug23_2018_B4_ref.npz'
     grinder_core = grinder()
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
