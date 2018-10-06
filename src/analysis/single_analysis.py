@@ -11,6 +11,7 @@ from df_f import dff_AB
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
 import src.visualization.signal_plot as signal_plot
 import clustering
+import matplotlib.pyplot as plt
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/'
 
 class grinder(object):
@@ -147,6 +148,20 @@ class grinder(object):
             return []
 
 
+    def shuffled_activity(self):
+        '''
+        calculate the shuffled activity.
+        '''
+        shuff_sig = self.shuffle_control()
+        activity_control = np.arange(self.NC)
+        for ii in range(self.NC):
+            shuff = shuff_sig[:,ii]
+            id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
+            activity_control[ii] = (shuff-baseline).sum()
+
+        return activity_control
+
+
     def cutoff_bayesian(self, PH_const = 1., nb = 200, stake = 0.95, activity_range = 0.95, conserve_cutting = False):
         '''
         Use Bayesian inference to set the cutoff value that divides active/inactive neurons.
@@ -191,6 +206,7 @@ class grinder(object):
             print("No statistics data.")
             return
         else:
+
             # create a Gaussian distribution
             int_val = self.stat[:,-1]
             hist, be = np.histogram(int_val, bins = nb, density = True, range = (0., activity_range*int_val.max()))
@@ -204,11 +220,16 @@ class grinder(object):
             print("Fit parameters:", mu, sigx)
 
 
-    def shuffle_control(self, n_shuffle = 2000):
+    def shuffle_control(self, n_shuffle = -1):
         '''
         shuffle the first n_shuffle data to create a new dataset.
         '''
-        shuffle_sig = np.copy(self.signal[:,:n_shuffle]) # maybe this copy is not necessary? 
+        if n_shuffle > 0:
+            shuffle_sig = np.copy(self.signal[:,:n_shuffle]) # maybe this copy is not necessary? 
+
+        else:
+            shuffle_sig = np.copy(self.signal)
+        shuffle_sig = np.random.permutation(shuffle_sig) # only shuffles along the 0th dimension, which is convenient for me! :D
         shuffle_sig = np.random.permutation(shuffle_sig) # only shuffles along the 0th dimension, which is convenient for me! :D
         return shuffle_sig
 
@@ -299,7 +320,7 @@ def main():
     '''
     some initial munging of the datasets.
     '''
-    data_path = global_datapath_ubn + 'Aug23_2018_B4_ref.npz'
+    data_path = global_datapath_ubn + 'Aug23_2018_B3_ref.npz'
     grinder_core = grinder()
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()

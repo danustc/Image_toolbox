@@ -99,6 +99,13 @@ class hrc_sc(object):
         self.ncl_total = ncl_total
 
 
+    def group_result_display(self, t_pause = 3):
+        '''
+        display group result temporarily, pause for t_pause seconds and turn off. No saving.
+        '''
+
+
+
     def groupwise_population_labeling(self):
         '''
         create an NCx2 matrix to save each neuron's group number and label number.
@@ -151,6 +158,7 @@ class hrc_sc(object):
         cluster_peak, fig_plot = sc_holder.laplacian_evaluation(ncl = 30)
         fig_plot.show()
         self.n_supgroup = cluster_peak
+        plt.pause(3)
         plt.close(fig_plot)
         sc_holder.clustering(self.n_supgroup)
         cluster_corrgroup = sc_holder.ind_groups

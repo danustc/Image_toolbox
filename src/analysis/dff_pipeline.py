@@ -9,7 +9,6 @@ import glob
 import numpy as np
 import h5py
 from df_f import *
-import spectral as spec
 from munging import coord_edgeclean
 import matplotlib.pyplot as plt
 

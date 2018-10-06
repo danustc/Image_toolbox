@@ -12,7 +12,6 @@ from src.visualization import stat_present, signal_plot
 import src.analysis.munging as munging
 import src.analysis.pca_sorting as pca_sorting
 import src.analysis.ica_sorting as ica_sorting
-import src.analysis.simple_variance as simple_variance
 import src.analysis.clustering as clustering
 import matplotlib.pyplot as plt
 import h5py
@@ -332,8 +331,6 @@ def main():
         # commented by Dan on 03/07
         PL.reorder_data(ind_shuffle = np.arange(1500))
         PL.signal = PL.signal[10:]
-        #crank,_ = simple_variance.simvar_global_sort(PL.signal)
-        #PL.reorder_data(ind_shuffle = crank)
         #fig_sti = signal_plot.dff_rasterplot(PL.signal, n_truncate = ntr)
         #fig_sti.savefig(full_path + '/' + basename + '_sti')
         coord_clustered, signal_clustered = PL.ica_clustering(c_fraction = cf,n_components = n_ica, n_clusters = n_clu)

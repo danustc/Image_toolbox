@@ -96,11 +96,11 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     Z_diff = (Zp-Zn)/np.sqrt(2.)
     Z_sum  = (Zp+Zn)/np.sqrt(2.)
 
-    sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 4, conf_level = 0.8)
+    sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 4, conf_level = 1.0)
     m_diff = np.mean(Z_diff)
     s_diff = np.std(Z_diff)
 
-    diff_range = np.logical_and((Z_diff - m_diff) < 1.2*s_diff, (Z_diff - m_diff) > -0.8*s_diff)
+    diff_range = np.logical_and((Z_diff - m_diff) < 1.2*s_diff, (Z_diff - m_diff) > -0.9*s_diff)
     B_indices = np.logical_and(diff_range, sum_range)
     B_diff = Z_diff[B_indices]
     B_sum = Z_sum[B_indices]

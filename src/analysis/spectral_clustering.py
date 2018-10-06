@@ -147,6 +147,7 @@ class Corr_sc(object):
             self.thresh = sca*wk_link
         else:
             self.thresh = sca*wk_link[-1]
+        print("The threshold:", self.thresh)
 
     def load_data(self, new_data):
         self.data = new_data
@@ -194,7 +195,7 @@ class Corr_sc(object):
 
 
     def clustering(self, n_clu = 5):
-        SC = SpectralClustering(n_clusters = n_clu, affinity = 'precomputed')
+        SC = SpectralClustering(n_clusters = n_clu, affinity = 'precomputed', n_init = 20)
         y_labels = SC.fit_predict(self.affi_mat)
         self.ind_groups, self.cl_average = label_assignment(self.data, n_clu, y_labels)
 

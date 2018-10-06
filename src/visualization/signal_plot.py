@@ -127,7 +127,7 @@ def dff_rasterplot(dff_ordered, dt = 0.5, fw = (7.0, 5.0), tunit = 'm', n_trunca
         fig = plt.figure(figsize = fw)
 
     ax = fig.add_subplot(111)
-    rshow = ax.imshow(dff_ordered[:, :n_display].T, cmap = 'Greens', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
+    rshow = ax.imshow(dff_ordered[:, :n_display].T, cmap = 'seismic', interpolation = 'None', extent = [0., t_max, cell_tick[-1], cell_tick[0]], aspect = 'auto')
     ax.set_xticks(time_tick)
     ax.set_yticks(cell_tick)
     ax.set_yticklabels(cell_tick_label)
