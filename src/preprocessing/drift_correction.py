@@ -75,8 +75,7 @@ def stack_hanning(stack):
     hann_w = signal.hann(NX)
     hann_h = signal.hann(NY)
     hanning_2d = np.outer(hann_h, hann_w)
-    hstack = np.tile(hanning_2d, (NZ,1,1))
-    filtered_stack = stack*hstack
+    filtered_stack = np.tile(hanning_2d, (NZ,1,1))*stack
     return filtered_stack
 
 
@@ -131,14 +130,26 @@ def noise_simulation(NZ, NY, NX, model = 'gauss', mean = 160, sig = 100):
 
 # -------------------------------- Below is a class for drift correction ---------------
 class DC_pipeline(object):
+    '''
+    This is a mini-pipeline for drift corrections
+    '''
     def __init__(self, path):
         self.path = path
+        self.stack_preparation()
 
+    def reload_path(self. new_path):
+        self.path = new_path
+        self.stack_preparation()
 
     def stack_preparation(self):
         cropped_stack = stack_crop(self.path, seek_mode = 'opt')
 
-        hf_stack = stack_hanning(cropped_stack)
+        self.hf_stack = stack_hanning(cropped_stack) # hanning-filtered
+
+    def drift_correct(self, new_path = None):
+        self.shift_coord = correlation.cross_corr_stack_self(self.hf_stack)
+        shift_stack_onfile(self.path, self.shift_coord, new_path)
+
 
 # ---------------------------------------Below is the main function for test.-----------------------------------
 
