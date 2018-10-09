@@ -27,7 +27,6 @@ def stack_crop(raw_stack_path, patch_size = (400,400), seek_mode = 'center'):
     prepare a raw stack for drift alignment
     instead of loading the whole full raw stack, just open its path and seek one slice
     patch_size: (ph, pw), consistent with the convention of Python-array dimensions.
-   
     # return a cropped stack
     '''
     # 1. take the first slice and calculate patch
@@ -91,7 +90,7 @@ def shift_stack(stack, shift_coord):
     return stack
 
 
-def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, srange = (0, 500)):
+def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, srange = (0, 500), sub = False):
     '''
     Open a stack, take the shifted coordinates and correct the stack on file.
     '''
@@ -102,12 +101,24 @@ def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, sra
             shift_coord = shift_coord[srange[0]:srange[1]]
             tif.close()
     else:
-        raw_img = tf.imread(fpath)
+        print("save the whole stack.")
+        with tf.TiffFile(fpath) as tif:
+            raw_img = tif.asarray()
+            tif.close()
 
     n_slice, ny, nx = raw_img.shape
-    for ii in range(n_slice):
-        frame = raw_img[ii]
-        raw_img[ii] = interpolation.shift(frame, shift = shift_coord[ii])
+    if sub:
+        # subpixel correction interpolation needed
+        for ii in range(n_slice):
+            frame = raw_img[ii]
+            raw_img[ii] = interpolation.shift(frame, shift = shift_coord[ii])
+    else:
+        # no subpixel correction needed, directly roll over
+        for ii in range(n_slice):
+            shift = shift_coord[ii]
+            frame = raw_img[ii]
+            frame = np.roll(frame, shift[0], axis = 0)
+            raw_img[ii] = np.roll(frame, shift[1], axis = 1)
 
     if new_path is None:
         tf.imsave(fpath, raw_img)
@@ -143,17 +154,29 @@ class DC_pipeline(object):
         self.dir = opath.dirname(new_path)
         self.stack_preparation()
 
-    def stack_preparation(self):
+    def stack_preparation(self, pad_width = 20):
         cropped_stack = stack_crop(self.path, seek_mode = 'opt')
+        if pad_width > 0:
+            self.hf_stack = np.pad(stack_hanning(cropped_stack), [(0,0), (pad_width,pad_width),(pad_width,pad_width)]) # hanning-filtered
 
-        self.hf_stack = stack_hanning(cropped_stack) # hanning-filtered
-
-    def drift_correct(self, new_path = None):
+    def drift_correct(self, n_pivots = [50, 1700], new_path = None):
         if new_path is None:
             new_path = self.dir + '/dc_' + self.basename
 
-        self.shift_coord = correlation.cross_corr_stack_self(self.hf_stack, pivot_slice = 50)
-        shift_stack_onfile(self.path, self.shift_coord, new_path, partial = False, srange = (0,200))
+        if np.isscalar(n_pivots): # only do one round
+            shift_coord = correlation.cross_corr_stack_self(self.hf_stack, pivot_slice = n_pivots)
+            shift_stack_onfile(self.path, self.shift_coord, new_path, partial = False, srange = (0,200))
+        else:
+            # do multiple rounds of drift correction
+            shift_total = np.zeros([self.hf_stack.shape[0], 2])
+            for pslice = n_pivots:
+                shift_coord = correlation.cross_corr_stack_self(self.hf_stack, pivot_slice = pslice)
+                self.hf_stack = shift_stack(self.hf_stack, shift_coord)
+                shift_total = shift_total + shift_coord
+
+            shift_stack_onfile(self.path, self.shift_coord, new_path, partial = False)
+
+
 
 
 # ---------------------------------------Below is the main function for test.-----------------------------------
