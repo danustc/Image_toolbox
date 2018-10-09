@@ -15,25 +15,26 @@ from PIL import Image, ImageSequence, ImageStat
 import glob
 import tifffile as tf
 
-global_datapath_win  = 'D:/Data/2018-09-24/A1_TS/\\'
+global_datapath_win  = 'D:/Data/2018-09-24/A2_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/Image_labs/'
 global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
 # ----------------- Here are some preparation functions----------------
 
-def stack_crop(raw_stack_path, patch_size = (512,512), seek_mode = 'center'):
+def stack_crop(raw_stack_path, patch_size = (400,400), seek_mode = 'center'):
     '''
     Update on 09/28/2018: Split this into two functions
     prepare a raw stack for drift alignment
     instead of loading the whole full raw stack, just open its path and seek one slice
-    patch_size: (pw, ph), opposite to the convention of Python-array dimensions.
+    patch_size: (ph, pw), consistent with the convention of Python-array dimensions.
+   
     # return a cropped stack
     '''
     # 1. take the first slice and calculate patch
-    raw_dataset = Image.open(raw_stack_path)
-    w, h = raw_dataset.size # width and height
+    raw_dataset = tf.imread(raw_stack_path)
+    n_frames, h, w = raw_dataset.shape# width and height
     print(w,h)
-    pw, ph = patch_size
+    ph, pw = patch_size
 
     if seek_mode == 'center':
         # just crop the center patch from the original image
@@ -42,25 +43,24 @@ def stack_crop(raw_stack_path, patch_size = (512,512), seek_mode = 'center'):
 
     else:
         # find the optimal patch
-        raw_dataset.seek(0)
-        slice_0 = np.asarray(raw_dataset)
+        slice_0 = raw_dataset[0]
         print(slice_0.shape)
-        _, rcs = patch_finding.patch_opt(slice_0)
+        _, rcs = patch_finding.patch_opt(slice_0, stride = 15)
         iupper = rcs[0] # row start
         ileft = rcs[1]  # column start
 
 
     iright = ileft + pw
     ilower = iupper + ph
-    cropped_stack = np.zeros((raw_dataset.n_frames, ph, pw)) # pay attention to the stack size!
+    cropped_stack = np.zeros((n_frames, ph, pw)) # pay attention to the stack size!
 
     crop_canvas = (ileft, iupper, iright, ilower)
-    for ii, page in enumerate(ImageSequence.Iterator(raw_dataset)):
-        cropped_stack[ii] = page.crop(crop_canvas)
+    print(crop_canvas)
+    for ii, page in zip(range(n_frames), raw_dataset):
+        cropped_stack[ii] = page[iupper:ilower][:,ileft:iright]
         if(ii%100 == 0):
             print(ii, '------------------Loaded. ')
 
-    raw_dataset.close() # remember to close the file everytime you open it!
 
     return cropped_stack
 
@@ -137,7 +137,7 @@ class DC_pipeline(object):
             self.path = path
             self.stack_preparation()
 
-    def reload_path(self. new_path):
+    def reload_path(self, new_path):
         self.path = new_path
         self.basename = opath.basename(new_path) # the basename including tif extension
         self.dir = opath.dirname(new_path)
@@ -152,15 +152,16 @@ class DC_pipeline(object):
         if new_path is None:
             new_path = self.dir + '/dc_' + self.basename
 
-        self.shift_coord = correlation.cross_corr_stack_self(self.hf_stack)
-        shift_stack_onfile(self.path, self.shift_coord, new_path)
+        self.shift_coord = correlation.cross_corr_stack_self(self.hf_stack, pivot_slice = 50)
+        shift_stack_onfile(self.path, self.shift_coord, new_path, partial = False, srange = (0,200))
 
 
 # ---------------------------------------Below is the main function for test.-----------------------------------
 
 def main():
     # OK the shift-on-site problem also got solved.
-    folder_list = glob.glob(global_datapath_win+"A*.tif")
+    folder_list = glob.glob(global_datapath_win+"A*18.tif")
+    print(folder_list)
     PL = DC_pipeline()
     for fname in folder_list:
         PL.reload_path(fname) # stack_preparation is also done

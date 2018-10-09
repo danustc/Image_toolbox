@@ -42,7 +42,7 @@ def patch_finding_2d(img, patch_size = (512,512), stride = 20, offset = (0,0), r
     return np.array(patches), r_start, c_start
 
 
-def patch_opt(img, patch_size = (512, 512), stride = 50, offset = (20,20), mode = 'mvar'):
+def patch_opt(img, patch_size = (512, 512), stride = 50, offset = (20,20), mode = 'var'):
     '''
     find the patch with the maximum variance.
     if mode == 'mean':
