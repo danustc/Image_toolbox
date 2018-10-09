@@ -1,8 +1,11 @@
 '''
 New trial of drift correction
 '''
+package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
+sys.path.append(package_path_win)
+import os.path as opath
 import numpy as np
 from scipy.ndimage import interpolation
 from scipy import signal
@@ -11,14 +14,10 @@ import patch_finding
 from PIL import Image, ImageSequence, ImageStat
 import glob
 import tifffile as tf
-import psutil
-from src.visualization import brain_navigation
 
-package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
-global_datapath_win  = 'D:/Data/2018-08-23/B2_TS/\\'
+global_datapath_win  = 'D:/Data/2018-09-24/A1_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/Image_labs/'
 global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
-
 
 # ----------------- Here are some preparation functions----------------
 
@@ -133,12 +132,15 @@ class DC_pipeline(object):
     '''
     This is a mini-pipeline for drift corrections
     '''
-    def __init__(self, path):
-        self.path = path
-        self.stack_preparation()
+    def __init__(self, path = None):
+        if path is not None:
+            self.path = path
+            self.stack_preparation()
 
     def reload_path(self. new_path):
         self.path = new_path
+        self.basename = opath.basename(new_path) # the basename including tif extension
+        self.dir = opath.dirname(new_path)
         self.stack_preparation()
 
     def stack_preparation(self):
@@ -147,6 +149,9 @@ class DC_pipeline(object):
         self.hf_stack = stack_hanning(cropped_stack) # hanning-filtered
 
     def drift_correct(self, new_path = None):
+        if new_path is None:
+            new_path = self.dir + '/dc_' + self.basename
+
         self.shift_coord = correlation.cross_corr_stack_self(self.hf_stack)
         shift_stack_onfile(self.path, self.shift_coord, new_path)
 
@@ -155,12 +160,11 @@ class DC_pipeline(object):
 
 def main():
     # OK the shift-on-site problem also got solved.
-    folder_list = glob.glob(global_datapath_ubn+"*slice.tif")
-    print(folder_list[0])
-    cropped_stack = stack_crop(folder_list[0], seek_mode = 'opt')
-    shift_c = correlation.cross_corr_stack_self(cropped_stack)
-    print(shift_c)
-    shift_stack_onfile(folder_list[0], shift_c, partial = True, srange = (0,3))
+    folder_list = glob.glob(global_datapath_win+"A*.tif")
+    PL = DC_pipeline()
+    for fname in folder_list:
+        PL.reload_path(fname) # stack_preparation is also done
+        PL.drift_correct()
 
 
 if __name__ == '__main__':
