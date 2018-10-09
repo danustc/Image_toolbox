@@ -129,6 +129,16 @@ def noise_simulation(NZ, NY, NX, model = 'gauss', mean = 160, sig = 100):
 
     return noise_stack
 
+# -------------------------------- Below is a class for drift correction ---------------
+class DC_pipeline(object):
+    def __init__(self, path):
+        self.path = path
+
+
+    def stack_preparation(self):
+        cropped_stack = stack_crop(self.path, seek_mode = 'opt')
+
+        hf_stack = stack_hanning(cropped_stack)
 
 # ---------------------------------------Below is the main function for test.-----------------------------------
 
