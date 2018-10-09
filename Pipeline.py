@@ -15,6 +15,7 @@ sys.path.append(package_path_win)
 import src.shared_funcs.tifffunc as tifffunc
 import matplotlib.pyplot as plt
 from src.preprocessing.segmentation import *
+from src.preprocessing.drift_correction import DC_pipeline
 
 data_rootpath_win ='D:/Data/2018-08-23\\'
 data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_A3/'
