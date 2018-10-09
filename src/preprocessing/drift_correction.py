@@ -1,5 +1,5 @@
 '''
-New trial of drift correction
+New trial of drift correction: Hanning filter is used to eliminate non-periodicity artifact.
 '''
 package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
 import sys
