@@ -23,6 +23,7 @@ portable_datapath = '/media/sillycat/DanData/'
 def Coord_read_transform(fn_trans, fn_data):
     '''
     coordinate transform based on the MultiStackReg outputs.
+    Coord: y-x instead of x-y.
     then, resave the data.
     '''
     raw_data = np.load(fn_data)

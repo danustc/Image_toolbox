@@ -1,5 +1,5 @@
 """
-A general class for analysis, which can be overloaded by many modules.
+A general class for single-dataset analysis, which can be overloaded by many modules.
 """
 import numpy as np
 from scipy.stats import norm
@@ -7,33 +7,36 @@ from scipy.signal import savgol_filter
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
-global_datapath = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
-portable_datapath = '/media/sillycat/DanData/'
 from df_f import dff_AB
-import src.algos.spectral_clustering as sc
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
 import src.visualization.signal_plot as signal_plot
 import clustering
 import matplotlib.pyplot as plt
+global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/'
 
 class grinder(object):
     '''
     the general data grinder module, which reads signal, coordinates and do shuffling when necessary.
     '''
-    def __init__(self,coord = None, signal = None, rev = True):
+    def __init__(self,coord = None, signal = None, rev = True, dt = 0.50):
         self.signal = signal
         self.coord = coord
         self.rev = rev # whether the coordinates are reversed.
-        print("Loaded.")
-        self._get_size_()
-        self.group_mark = -1*np.ones(self.NC) #all the cells are uncategorized
+        if coord is not None:
+            print("Raw data Loaded.")
+            self._get_size_()
+            self.group_mark = -1*np.ones(self.NC) #all the cells are uncategorized
 
         self.stat = None
         self.activity = None
+        self.annotated = False
+        self.dt = dt
 
     def _trim_data_(self, ind_trim):
         self.signal = self.signal[:,ind_trim]
         self.coord = self.coord[ind_trim,:]
+        if self.annotated:
+            self.neuron_label = self.neuron_label[ind_trim, :]
 
     def _get_size_(self):
         '''
@@ -44,8 +47,9 @@ class grinder(object):
         else:
             self.NT, self.NC = 0, 0
 
-    def parse_data(self, data_file, rev = True):
-        fmt = os.path.basename(data_file).split('.')[-1]
+    def parse_data(self, data_file, rev = True, info = None):
+        basename, fmt = os.path.basename(data_file).split('.')
+        self.basename = basename
         if fmt == 'h5':
             try:
                 print(data_file)
@@ -56,10 +60,12 @@ class grinder(object):
                     hf.close()
                 except KeyError:
                     print("No signal data stored in the file!")
-                    sys.exit(1)
+                    return False
+
             except OSError:
                 print("Unable to open the file.")
-                sys.exit(1)
+                return False
+
         else:
             try:
                 print(data_file)
@@ -69,13 +75,24 @@ class grinder(object):
                     self.signal = data_pz['signal']
                 except KeyError:
                     print('No signal data stored in the file!')
-                    sys.exit(1)
+                    return False
+                if 'annotation' in data_pz.keys():
+                    self.annotated = True
+                    self.keys = data_pz['annotation'][-1] # the masks that have been covered 
+                    self.neuron_label = data_pz['annotation'][:-1] # the labeling of each neuron
+                    self.key_stat = self.neuron_label.sum(axis = 0) # the total number of neurons in that mask
+                else:
+                    self.annotated = False
+
             except OSError:
                 print("Unable to open the file.")
-                sys.exit(1)
+                return False
 
+        self.info = info
         self.rev = rev
         self._get_size_()
+
+        return True
 
     def rev_coords(self):
         '''
@@ -84,7 +101,7 @@ class grinder(object):
         self.coord = self.coord[:,::-1]
         self.rev = not(self.rev)
 
-    def activity_sorting(self, nbin = 40):
+    def activity_sorting(self, nbin = 40, sort = True):
         '''
         Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
         '''
@@ -94,17 +111,56 @@ class grinder(object):
         sig_integ = np.zeros(NC) # signal integral
         for nf in range(NC):
             cell_signal = self.signal[:,nf]
-            sig_ind, background, noi = dff_AB(cell_signal, gam = 0.05, nbins = nbin)
+            sig_ind, background, noi = dff_AB(cell_signal, gam = 0.02, nbins = nbin)
             activity_map[sig_ind, nf] = True # set the activity map to True
             sig_integ = (cell_signal-background).sum()
             ms[nf] = np.array([background, noi, sig_integ]) # mean and std
             if nf%100 ==0:
-                print("Finished", nf, "cells.")
+                print("Finished calculating activity of ", nf, "cells.")
 
-        integ_ind = np.argsort(ms[:,2])[::-1] # descending order
-        self._trim_data_(integ_ind) # OK this is not a very elegant way to put it. 
-        self.stat = ms[integ_ind]
-        self.activity = activity_map[:, integ_ind] # sort the activity map as well
+        if sort:
+            integ_ind = np.argsort(ms[:,2])[::-1] # descending order
+            self._trim_data_(integ_ind) # OK this is not a very elegant way to put it. 
+            self.stat = ms[integ_ind]
+            self.activity = activity_map[:, integ_ind] # sort the activity map as well
+        else: # leave it unsorted
+            self.stat = ms
+            self.activity = activity_map
+
+
+    def select_mask(self, n_mask):
+        '''
+        return the average activity of neurons within a mask only.
+        '''
+        if self.annotated:
+            m_included = (self.keys == n_mask) # check whether the key is included in the mask.
+            if np.any(m_included):
+                ind_mask = np.where(m_included)[0] #This is the index of the mask in self.keys
+                mask_coverage = self.neuron_label[:, ind_mask] # the neuronal labeling of n_mask
+                cell_ind = np.where(mask_coverage)[0] # these are the indices of the cells that belong to mask # n_mask.
+                return cell_ind
+
+            else:
+                print("The mask", n_mask, "is not covered.")
+                return []
+        else:
+            print("The fish has not been annotated yet.")
+            return []
+
+
+    def shuffled_activity(self):
+        '''
+        calculate the shuffled activity.
+        '''
+        shuff_sig = self.shuffle_control()
+        activity_control = np.arange(self.NC)
+        for ii in range(self.NC):
+            shuff = shuff_sig[:,ii]
+            id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
+            activity_control[ii] = (shuff-baseline).sum()
+
+        return activity_control
+
 
     def cutoff_bayesian(self, PH_const = 1., nb = 200, stake = 0.95, activity_range = 0.95, conserve_cutting = False):
         '''
@@ -144,11 +200,13 @@ class grinder(object):
     def cutoff_simple(self, nb = 200, conf_level = 0.95, activity_range= 0.95):
         '''
         use simple model of gaussian to infer where the cutoff line should be.
+        Warning: This function is far from being complete.
         '''
         if self.stat is None:
             print("No statistics data.")
             return
         else:
+
             # create a Gaussian distribution
             int_val = self.stat[:,-1]
             hist, be = np.histogram(int_val, bins = nb, density = True, range = (0., activity_range*int_val.max()))
@@ -161,6 +219,34 @@ class grinder(object):
 
             print("Fit parameters:", mu, sigx)
 
+
+    def shuffle_control(self, n_shuffle = -1):
+        '''
+        shuffle the first n_shuffle data to create a new dataset.
+        '''
+        if n_shuffle > 0:
+            shuffle_sig = np.copy(self.signal[:,:n_shuffle]) # maybe this copy is not necessary? 
+
+        else:
+            shuffle_sig = np.copy(self.signal)
+        shuffle_sig = np.random.permutation(shuffle_sig) # only shuffles along the 0th dimension, which is convenient for me! :D
+        shuffle_sig = np.random.permutation(shuffle_sig) # only shuffles along the 0th dimension, which is convenient for me! :D
+        return shuffle_sig
+
+
+    def activity_evolution(self, twindow = 300):
+        '''
+        twindow: time window for integrating the signal intensity
+        prerequisite: self.stat is not None.
+        '''
+        signal = self.signal
+        nw = int(twindow//self.dt) # the width of the sliding window in the unit of time stamps
+        w_filter = np.ones(nw)
+        tw_act = np.empty([self.NT-nw+1, self.NC])
+        for ii in range(self.NC):
+            tw_act[:,ii] = np.convolve(signal[:,ii], w_filter, mode = 'valid')
+
+        return tw_act
 
 
     def background_suppress(self, sup_coef = 0.010, shuffle = True):
@@ -215,82 +301,32 @@ class grinder(object):
 
         return norm_signal
 
+    def saveas(self, newpath = None):
+        '''
+        save the dataset as the new file.
+        '''
+        if newpath is None:
+            newpath = global_datapath_ubn + self.basename + '_cleaned'
+        cleaned_dataset = {'coord':self.coord, 'signal':self.signal}
+        np.savez(newpath, **cleaned_dataset)
+
+
     def shutDown(self):
         pass
 
 
-def coregen():
-    date_folder = 'Aug02_2018/'
+
+def main():
+    '''
+    some initial munging of the datasets.
+    '''
+    data_path = global_datapath_ubn + 'Aug23_2018_B3_ref.npz'
     grinder_core = grinder()
-    #data_path = global_datapath+ date_folder+'Aug02_2018_B2_dff.npz'
-    data_path = global_datapath + 'Jul19_2017_A2_dff.npz'
     grinder_core.parse_data(data_path)
     grinder_core.activity_sorting()
-    stake = 0.95
-    PHE, beh, cut_position = grinder_core.cutoff_bayesian(PH_const = 0.6, stake = 0.95, activity_range = 0.30, conserve_cutting = False)
-    print("% of inactive cells:", cut_position[1]*100/grinder_core.NC)
-    plt.plot(beh, PHE)
-    cutoff = cut_position[0]
-    plt.plot(np.array([cutoff, cutoff]), np.array([0, PHE.max()]), '--r', linewidth = 2)
-    plt.xlabel('Activity')
-    plt.ylabel('P(B|E)')
-    plt.show()
-    #grinder_core.background_suppress(sup_coef = 0.0001)
-    N_cut = grinder_core.NC - cut_position[1] # remove cut_position[1] cells
-    th = 0.200
-    signal_test = grinder_core.signal[10:,:N_cut]
-    #fig_all = signal_plot.dff_rasterplot(signal_test, fw = (7.0,4.5))
-    #fig_all.savefig('all_'+str(N_cut))
-    W = sc.corr_afinity(signal_test, thresh = th, kill_diag = False)
-    hist, be = sc.corr_distribution(W)
-    L = sc.laplacian(W)
-    w, v = sc.sc_unnormalized(L, n_cluster = 20)
-    n_clu = 10
-    y_labels = clustering.spec_cluster(signal_test, n_clu, threshold = th)
-    #return grinder_core
-    sig_clusters = np.zeros([1770, n_clu])
-    leg_cluster = []
-    sub_cluster = []
-    for nl in range(n_clu):
-        signal_nl = signal_test[:, y_labels == nl]
-        NT, NC = signal_nl.shape
-        if NC > 500:
-            sub_cluster.append(nl)
-        sig_clusters[:,nl] = signal_nl.mean(axis = 1)
-        fig = signal_plot.dff_rasterplot(signal_nl)
-        fig.savefig('cluster_'+str(nl), dpi = 200)
-        fig.clf()
-        leg_cluster.append('cluster_'+str(nl+1))
-
-
-    fig_mean = signal_plot.compact_dffplot(sig_clusters, dt = 0.5, sc_bar = 0.20, tbar = 2)
-    fig_mean.savefig('cluster_mean', dpi = 200)
-
-
-    nl = sub_cluster[0]
-    sub_population = signal_test[:,y_labels ==nl]
-    W = sc.corr_afinity(signal_test[:,y_labels == nl], thresh = 0.95*th)
-    L = sc.laplacian(W)
-    w, v = sc.sc_unnormalized(L, n_cluster = 20)
-    plt.close('all')
-    plt.plot(w, '-x')
-    plt.show()
-    n_clu = int(input("the # of clusters in the subset:") )
-
-    y_labels = clustering.spec_cluster(sub_population, n_clu, threshold = th)
-    sig_clusters = np.zeros([1770, n_clu])
-    for nl in range(n_clu):
-        signal_nl = sub_population[:, y_labels == nl]
-        NT, NC = signal_nl.shape
-        sig_clusters[:,nl] = signal_nl.mean(axis = 1)
-        fig = signal_plot.dff_rasterplot(signal_nl)
-        fig.savefig('subcluster_'+str(nl), dpi = 200)
-        fig.clf()
-
-
-    fig_mean = signal_plot.compact_dffplot(sig_clusters, dt = 0.5, sc_bar = 0.20, tbar = 2)
-    fig_mean.savefig('sub_mean', dpi = 200)
+    grinder_core.background_suppress(sup_coef = 0.0)
+    grinder_core.saveas()
 
 
 if __name__ == '__main__':
-    coregen()
+    main()

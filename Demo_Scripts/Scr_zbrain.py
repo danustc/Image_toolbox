@@ -9,6 +9,7 @@ import src.preprocessing.stack_operations as stack_operations
 import src.registration.maskdb_parsing as maskdb
 from src.shared_funcs.numeric_funcs import circ_mask_patch, spheri_mask_patch
 #---------------Some global variables--------------------
+
 package_path_win ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/' # for windows
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
 global_datapath_win = 'D:\\/Data/2018-07-19/'

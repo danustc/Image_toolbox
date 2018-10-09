@@ -50,7 +50,7 @@ def blank_refill(raw_frame, cutoff = None, mode = 'min'):
 
         return raw_frame
 
-def build_psf(sig, width=10):
+def build_psf(sig, width = 7):
     xx = np.arange(-width, width+1)
     g = np.exp(-xx**2/(2*sig*sig))
     psf = np.outer(g,g)
@@ -58,11 +58,12 @@ def build_psf(sig, width=10):
     return psf
 
 
-def frame_deblur(raw_frame, sig = 7, Nit = 15, padding = ((10,10), (10,10))):
+def frame_deblur(raw_frame, sig = 4., Nit = 12, padding = ((10,10), (10,10))):
     '''
     raw_frame: a single frame of image
     sig: the width of gaussian filter
     '''
+    print("Initial size:",raw_frame.shape)
     psf = build_psf(sig)
     img = np.pad(raw_frame, padding, mode = 'constant')
     img = blank_refill(img, cutoff=180,  mode = 'peak')
@@ -72,6 +73,7 @@ def frame_deblur(raw_frame, sig = 7, Nit = 15, padding = ((10,10), (10,10))):
     yi, xi = ci
     yf, xf = cf
     recrop = dc_image[yi:-yf, xi:-xf]
+    print("Final size:", recrop.shape)
     return blank_refill(recrop, mode = 'peak')
 
 def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = True, edge_ratio = 3.):
@@ -172,6 +174,7 @@ def stack_blobs(small_stack, diam, sig = 7):
     blobs_stack = []
     for sample_slice in small_stack:
         if sig > 0:
+            print("Deblur the stack first.")
             db_slice = frame_deblur(sample_slice, sig )
             cs_blobs = frame_blobs(db_slice, bsize = diam)
         else:
@@ -244,7 +247,7 @@ class Cell_extract(object):
         self.redund = True
 
 
-    def stack_blobs(self, sig=4, verbose = True):
+    def stack_blobs(self, sig=4., verbose = True):
         """
         process all the frames inside the stack and save the indices of frames containing blobs in self.valid_frames
         Update on 08/16: make the radius of blobs uniform.
@@ -257,6 +260,7 @@ class Cell_extract(object):
             '''
             im_raw = self.stack[n_frame]
             if sig > 0:
+                print("Deblur the frame first.")
                 im0 = frame_deblur(im_raw, sig)
                 cblobs = frame_blobs(im0, self.diam)
             else:

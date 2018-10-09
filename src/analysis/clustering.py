@@ -7,28 +7,11 @@ import numpy as np
 from scipy.cluster.hierarchy import dendrogram, linkage, cophenet
 from scipy.spatial.distance import pdist
 from scipy import stats
-from sklearn.cluster import KMeans, SpectralClustering
 import matplotlib.pyplot as plt
 from collections import deque
 
 Z_dic = {'L':0, 'R':1}
 
-
-def smart_partition(NC, n_group, last_big = True):
-    arr = np.arange(NC)
-    if last_big:
-        g_pop = int(NC//n_group)
-    else:
-        g_pop = int(NC//n_group) + 1
-    cutoff_pos = np.arange(n_group+1) * g_pop
-    cutoff_pos[-1] = NC #reset the last element to NC
-    group_index = []
-    for ii in n_group:
-        ni = cutoff_pos[ii]
-        nf = cutorr_pos[ii+1]
-        group_index.append(arr[ni:nf])
-
-    return group_index
 
 def dis2cluster(dataset, p_levels = None, yield_z = False):
     '''
@@ -127,37 +110,4 @@ def histo_clustering(feature, nbin, bin_cut = None,n_fold = 2, sca = 1.00):
     # to be added: find the cut off.
 
     return merged_hist, mb_centers
-
-
-
-def spec_cluster(raw_data, n_cl = 5, threshold = 0.05):
-    '''
-    raw_data: NT x NC, NT: # of trials, NC: # of cells
-    perform spectral clustering
-    threshold: correlation coefficient lower than the threshold is considered unconnected.
-    '''
-    # Create a distant matrix
-    corr_mat = np.corrcoef(raw_data.T) # create a correlation matrix
-    corr_mat[corr_mat < threshold] = 0.0
-    SC = SpectralClustering(n_clusters = n_cl, affinity = 'precomputed')
-    y_labels = SC.fit_predict(corr_mat)
-    return y_labels
-
-
-def hierachical_sc(raw_data, n_group, threshold = 0.25, mode = 'random'):
-    NT, NC = raw_data.shape
-    arr = np.arange(NC)
-    group_index = smart_partition(NC, n_group, last_big = False) # last smallest
-
-    if mode == 'random':
-        np.random.shuffle(arr)
-
-    elif mode == 'ordered':
-        pass
-
-    for gg in range(n_group): # iterate over n_group
-        sg_data = raw_data[:,group_index[gg]] # takeout a subgroup of data
-        spec_cluster(sg_data,)
-
-    # divide the group  
 

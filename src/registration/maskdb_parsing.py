@@ -66,5 +66,15 @@ class mask_db(object):
 
         return masked, np.array(masked).sum()
 
+    def mask_name_lite(self, fpath):
+        '''
+        make a light version of the mask labels
+        '''
+        with open(fpath, 'w') as f:
+            for iname in range(294):
+                name_str = self.get_name(iname)
+                f.write("%s\n" % name_str)
+        # the file will automatically close.
+
     def shutdown(self):
         self.db.close()
