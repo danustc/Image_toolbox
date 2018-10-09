@@ -17,7 +17,7 @@ global_datapath_ubn  = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/'
 package_path_win  = r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\" # This is for windows
 sys.path.append(package_path)
-global_datapath_win = r"D:\/Data\\"
+global_datapath_win = r"D:\/Data/2018-08-02\\"
 
 # ---------------------Below are small functions for data cleaning -------------
 

@@ -13,7 +13,7 @@ import glob
 from src.preprocessing import affine as Affine
 from src.visualization.brain_navigation import slice_display,stack_display
 from src.preprocessing.red_detect import redund_detect_merge
-global_datapath_win = r"D:\/Data/2018-08-23\\"
+global_datapath_win = r"D:\/Data/2018-08-02\\"
 global_datapath_yes= r"Z:\/Dan/Data_Rock/2018-08-23\\"
 #global_datapath = r"X:\/Zebrafish_ispim/2018-04-16\\"
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
@@ -194,7 +194,7 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 def main():
     #relative_path = 'Nov01_2016_A1/'
     #full_path = global_datapath + relative_path
-    folder_list = glob.glob(global_datapath_yes+'Aug*A3\\')
+    folder_list = glob.glob(global_datapath_win+'Aug*B2\\')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)
