@@ -103,27 +103,19 @@ def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, sra
     else:
         print("save the whole stack.")
         with tf.TiffFile(fpath) as tif:
-            raw_img = tif.asarray().astype('float64')
+            raw_img = tif.asarray()
             tif.close()
 
     n_slice, ny, nx = raw_img.shape
-    if sub:
-        # subpixel correction interpolation needed
-        for ii in range(n_slice):
-            frame = raw_img[ii]
-            raw_img[ii] = interpolation.shift(frame, shift = shift_coord[ii])
-    else:
-        # no subpixel correction needed, directly roll over
-        for ii in range(n_slice):
-            shift = shift_coord[ii]
-            frame = raw_img[ii]
-            frame = np.roll(frame, shift[0], axis = 0)
-            raw_img[ii] = np.roll(frame, shift[1], axis = 1)
+    # subpixel correction interpolation needed
+    for ii in range(n_slice):
+        frame = raw_img[ii]
+        raw_img[ii] = interpolation.shift(frame, shift = shift_coord[ii])
 
     if new_path is None:
-        tf.imsave(fpath, raw_img)
+        tf.imsave(fpath, raw_img.astype('uint16'))
     else:
-        tf.imsave(new_path, raw_img)
+        tf.imsave(new_path, raw_img.astype('uint16'))
 
 
 
