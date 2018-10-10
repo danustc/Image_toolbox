@@ -63,10 +63,20 @@ def pyfftw_container(ny, nx, bwd = False):
     return container
 
 
-def high_pass(img, k_frac = 0.01):
+def high_pass(img_k, k_frac = 0.01):
     '''
+    Assumption: the r-resolution is the same in x and y direction.
     remove the low frequency components around
+    img_k: the Fourier transformed image in k-space, the 0-component at the corner (not shifted)
     '''
+    KY, KX = img_k.shape
+    hky, hkx = int(KY//2), int(KX//2)
+    kspec_y, kspec_x = np.arange(KY) - hky, np.arange(KX) - hkx
+    [MKX, MKY] = np.meshgrid(kspec_x/hkx, kspec_y/hky)
+    hp_indicator = MKX**2 + MKY**2 > (k_frac**2)
+    valid_index = np.where(np.fft.fftshift(hp_indicator))
+    return valid_index
+
 
 def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, container_inv = None, hf = True, hanning_2d = None, up_rate= None):
     '''
