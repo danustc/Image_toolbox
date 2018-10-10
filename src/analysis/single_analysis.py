@@ -148,18 +148,44 @@ class grinder(object):
             return []
 
 
-    def shuffled_activity(self):
+    def shuffled_activity(self, N_times = 1):
         '''
-        calculate the shuffled activity.
+        calculate the shuffled activity: 1 time or N times (NC x N_times array)
         '''
-        shuff_sig = self.shuffle_control()
-        activity_control = np.arange(self.NC)
-        for ii in range(self.NC):
-            shuff = shuff_sig[:,ii]
-            id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
-            activity_control[ii] = (shuff-baseline).sum()
+        if N_times ==1:
+            shuff_sig = self.shuffle_control()
+            activity_control = np.zeros(self.NC)
+            for ii in range(self.NC):
+                shuff = shuff_sig[:,ii]
+                id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
+                activity_control[ii] = (shuff-baseline).sum()
+
+        else:
+            activity_control = np.empty((self.NC, N_times))
+            for ii in range(N_times): # iterate through N_times shuffling
+                shuff_sig = self.shuffle_control()
+                for jj in range(self.NC):
+                    shuff = shuff_sig[:,jj]
+                    id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
+                    activity_control[jj, ii] = (shuff-baseline).sum()
 
         return activity_control
+
+
+    def cutoff_shuffling(self, N_times = 5. conf_level = 2.0):
+        '''
+        Check whether the detected signal is activity or noise.
+        '''
+        if self.stat is None:
+            print("The activity has not been calculated.")
+            return
+
+        a_real = self.stat[:,-1] # the activity of real time traces
+
+        a_control = self.shuffled_activity(N_times)
+        ac_mean, ac_std = a_control.mean(axis = 1), a_control.std(axis = 1)
+        acceptance = a_real > (ac_mean + conf_level*ac_std)
+        return acceptance
 
 
     def cutoff_bayesian(self, PH_const = 1., nb = 200, stake = 0.95, activity_range = 0.95, conserve_cutting = False):
@@ -314,7 +340,7 @@ class grinder(object):
     def shutDown(self):
         pass
 
-
+# ----------------------------------- Here are some test functions. -------------------------------------------
 
 def main():
     '''
