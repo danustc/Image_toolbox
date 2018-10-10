@@ -15,7 +15,7 @@ from PIL import Image, ImageSequence, ImageStat
 import glob
 import tifffile as tf
 
-global_datapath_win  = 'D:/Data/2018-09-24/A2_TS/\\'
+global_datapath_win  = 'D:/Data/2018-09-24/A3_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/Image_labs/'
 global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
@@ -103,7 +103,7 @@ def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, sra
     else:
         print("save the whole stack.")
         with tf.TiffFile(fpath) as tif:
-            raw_img = tif.asarray()
+            raw_img = tif.asarray().astype('float64')
             tif.close()
 
     n_slice, ny, nx = raw_img.shape
@@ -157,7 +157,7 @@ class DC_pipeline(object):
     def stack_preparation(self, pad_width = 20):
         cropped_stack = stack_crop(self.path, seek_mode = 'opt')
         if pad_width > 0:
-            self.hf_stack = np.pad(stack_hanning(cropped_stack), [(0,0), (pad_width,pad_width),(pad_width,pad_width)]) # hanning-filtered
+            self.hf_stack = np.pad(stack_hanning(cropped_stack), [(0,0), (pad_width,pad_width),(pad_width,pad_width)], mode = 'constant') # hanning-filtered
 
     def drift_correct(self, n_pivots = [50, 900, 1700], new_path = None):
         if new_path is None:
@@ -165,16 +165,16 @@ class DC_pipeline(object):
 
         if np.isscalar(n_pivots): # only do one round
             shift_coord = correlation.cross_corr_stack_self(self.hf_stack, pivot_slice = n_pivots)
-            shift_stack_onfile(self.path, self.shift_coord, new_path, partial = False, srange = (0,200))
+            shift_stack_onfile(self.path, shift_coord, new_path, partial = False, srange = (0,200))
         else:
             # do multiple rounds of drift correction
             shift_total = np.zeros([self.hf_stack.shape[0], 2])
-            for pslice = n_pivots:
+            for pslice in n_pivots:
                 shift_coord = correlation.cross_corr_stack_self(self.hf_stack, pivot_slice = pslice)
                 self.hf_stack = shift_stack(self.hf_stack, shift_coord)
                 shift_total = shift_total + shift_coord
 
-            shift_stack_onfile(self.path, self.shift_coord, new_path, partial = False)
+            shift_stack_onfile(self.path, shift_total, new_path, partial = False)
 
 
 
@@ -187,7 +187,7 @@ def main():
     PL = DC_pipeline()
     for fname in folder_list:
         PL.reload_path(fname) # stack_preparation is also done
-        PL.drift_correct()
+        PL.drift_correct(n_pivots = 100)
 
 
 if __name__ == '__main__':
