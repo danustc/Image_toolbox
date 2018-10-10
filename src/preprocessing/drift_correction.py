@@ -8,7 +8,6 @@ sys.path.append(package_path_win)
 import os.path as opath
 import numpy as np
 from scipy.ndimage import interpolation
-from scipy import signal
 import correlation
 import patch_finding
 from PIL import Image, ImageSequence, ImageStat
@@ -60,22 +59,7 @@ def stack_crop(raw_stack_path, patch_size = (400,400), seek_mode = 'center'):
         if(ii%100 == 0):
             print(ii, '------------------Loaded. ')
 
-
     return cropped_stack
-
-
-def stack_hanning(stack):
-    '''
-    Create a hanning filter and apply it on each slice of the stack
-    '''
-    NZ, NY, NX = stack.shape
-    # create a 2d Hanning filter
-    hann_w = signal.hann(NX)
-    hann_h = signal.hann(NY)
-    hanning_2d = np.outer(hann_h, hann_w)
-    filtered_stack = np.tile(hanning_2d, (NZ,1,1))*stack
-    return filtered_stack
-
 
 
 def shift_stack(stack, shift_coord):
@@ -149,7 +133,7 @@ class DC_pipeline(object):
     def stack_preparation(self, pad_width = 20):
         cropped_stack = stack_crop(self.path, seek_mode = 'opt')
         if pad_width > 0:
-            self.hf_stack = np.pad(stack_hanning(cropped_stack), [(0,0), (pad_width,pad_width),(pad_width,pad_width)], mode = 'constant') # hanning-filtered
+            self.hf_stack = np.pad(cropped_stack, [(0,0), (pad_width,pad_width),(pad_width,pad_width)], mode = 'constant') # hanning-filtered
 
     def drift_correct(self, n_pivots = [50, 900, 1700], new_path = None):
         if new_path is None:

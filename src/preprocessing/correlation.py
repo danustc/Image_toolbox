@@ -3,6 +3,7 @@ The core algorithms of cross correlation
 '''
 import pyfftw
 import numpy as np
+from scipy import signal
 
 def _phase_construct_(row_range, col_range, n_denom, forward = True, shift_r = False, shift_c = False ):
     '''
@@ -62,9 +63,12 @@ def pyfftw_container(ny, nx, bwd = False):
     return container
 
 
+def high_pass(img, k_frac = 0.01):
+    '''
+    remove the low frequency components around
+    '''
 
-
-def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, container_inv = None, up_rate= None):
+def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, container_inv = None, hf = True, hanning_2d = None, up_rate= None):
     '''
     calculate cross-correlation based shift between two images
     assumption: the two images are in same size.
@@ -80,8 +84,18 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
     if container_inv is None:
         container_inv = pyfftw_container(N,M, bwd = True)
 
-    container_1(im_1)
-    container_2(im_2)
+    if hf: # apply hanning filter to the images
+        if hanning_2d is None:
+            hann_w = signal.hann(M)
+            hann_h = signal.hann(N)
+            hanning_2d = np.outer(hann_h, hann_w)
+
+        container_1(im_1*hanning_2d)
+        container_2(im_2*hanning_2d)
+    else: # not applying the hanning filter
+        container_1(im_1)
+        container_2(im_2)
+
     ft_1 = container_1.get_output_array()
     ft_2 = container_2.get_output_array()
 
@@ -123,6 +137,9 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
     hy = ny//2
     hx = nx//2
     shift_coord = np.zeros([nz, 2])
+    hann_w = signal.hann(nx)
+    hann_h = signal.hann(ny)
+    hfilter = np.outer(hann_h, hann_w)
 
     container_1 = pyfftw_container(ny, nx)
     container_2 = pyfftw_container(ny, nx)
@@ -133,7 +150,7 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
         ref_frame = pivot_slice
 
     for ii in range(nz):
-        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx)[:2]
+        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx, hf = True, hanning_2d = hfilter)[:2]
         if verbose:
             print("slice ", ii+1, '-->', shy, shx)
         shift_coord[ii] = np.array([-shy, -shx])
