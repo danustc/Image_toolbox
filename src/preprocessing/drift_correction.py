@@ -159,7 +159,7 @@ class DC_pipeline(object):
         if pad_width > 0:
             self.hf_stack = np.pad(stack_hanning(cropped_stack), [(0,0), (pad_width,pad_width),(pad_width,pad_width)]) # hanning-filtered
 
-    def drift_correct(self, n_pivots = [50, 1700], new_path = None):
+    def drift_correct(self, n_pivots = [50, 900, 1700], new_path = None):
         if new_path is None:
             new_path = self.dir + '/dc_' + self.basename
 
@@ -175,7 +175,6 @@ class DC_pipeline(object):
                 shift_total = shift_total + shift_coord
 
             shift_stack_onfile(self.path, self.shift_coord, new_path, partial = False)
-
 
 
 
