@@ -163,7 +163,7 @@ def main():
     PL = DC_pipeline()
     for fname in folder_list:
         PL.reload_path(fname) # stack_preparation is also done
-        PL.drift_correct(n_pivots = [30, 900, 1700])
+        PL.drift_correct(n_pivots = 100)
 
 
 if __name__ == '__main__':
