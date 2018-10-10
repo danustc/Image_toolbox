@@ -20,7 +20,7 @@ global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
 # ----------------- Here are some preparation functions----------------
 
-def stack_crop(raw_stack_path, patch_size = (400,400), seek_mode = 'center'):
+def stack_crop(raw_stack_path, patch_size = (512,512), seek_mode = 'center'):
     '''
     Update on 09/28/2018: Split this into two functions
     prepare a raw stack for drift alignment
