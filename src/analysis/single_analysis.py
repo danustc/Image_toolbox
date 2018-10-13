@@ -9,10 +9,13 @@ sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
 from df_f import dff_AB
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
+from scipy.stats import kruskal, mannwhitneyu # two non-parametric tests
+from scipy.interpolate import interp1d
 import src.visualization.signal_plot as signal_plot
 import clustering
 import matplotlib.pyplot as plt
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/'
+
 
 class grinder(object):
     '''
@@ -101,7 +104,7 @@ class grinder(object):
         self.coord = self.coord[:,::-1]
         self.rev = not(self.rev)
 
-    def activity_sorting(self, nbin = 40, sort = True):
+    def activity_sorting(self, nbin = 40, sort = True, upsampling = 2):
         '''
         Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
         '''
@@ -109,12 +112,21 @@ class grinder(object):
         activity_map = np.zeros([NT, NC], dtype = 'bool')
         ms = np.zeros([NC,3]) # baseline mean, noise, integral
         sig_integ = np.zeros(NC) # signal integral
+        tt = np.arange(NT)
+        tmid = np.arange(upsampling*(NT-1)+1)/upsampling
         for nf in range(NC):
             cell_signal = self.signal[:,nf]
             sig_ind, background, noi = dff_AB(cell_signal, gam = 0.02, nbins = nbin)
             activity_map[sig_ind, nf] = True # set the activity map to True
-            sig_integ = (cell_signal-background).sum()
+            if upsampling ==1:
+                sig_integ = (cell_signal-background).sum()
+            else: # do an upsampling first
+                f = interp1d(tt, cell_signal)
+                cell_interp = f(tmid) # interpolated value
+                sig_integ = (cell_interp-background).sum()/upsampling
+
             ms[nf] = np.array([background, noi, sig_integ]) # mean and std
+
             if nf%100 ==0:
                 print("Finished calculating activity of ", nf, "cells.")
 
@@ -148,17 +160,20 @@ class grinder(object):
             return []
 
 
-    def shuffled_activity(self, N_times = 1):
+    def shuffled_activity(self, N_times = 1, upsampling = 1):
         '''
         calculate the shuffled activity: 1 time or N times (NC x N_times array)
         '''
         if N_times ==1:
-            shuff_sig = self.shuffle_control()
-            activity_control = np.zeros(self.NC)
-            for ii in range(self.NC):
-                shuff = shuff_sig[:,ii]
-                id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
-                activity_control[ii] = (shuff-baseline).sum()
+            shuff_sig = self.shuffle_control() # NT x NC
+            if upsampling ==1:
+                # ****** To be continued
+                shuff_sig_above = (shuff_sig - self.stat[:,0]).sum() # subtract by column, which is convenient! Still NT x NC
+            #for ii in range(self.NC):
+            #    shuff = shuff_sig[:,ii]
+            #    #id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
+            #    baseline = self.stat[ii, 0] # use the original baseline
+            #    activity_control[ii] = (shuff-baseline).sum()
 
         else:
             activity_control = np.empty((self.NC, N_times))
@@ -166,15 +181,17 @@ class grinder(object):
                 shuff_sig = self.shuffle_control()
                 for jj in range(self.NC):
                     shuff = shuff_sig[:,jj]
-                    id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
+                    #id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
+                    baseline = self.stat[jj, 0]
                     activity_control[jj, ii] = (shuff-baseline).sum()
 
         return activity_control
 
 
-    def cutoff_shuffling(self, N_times = 5. conf_level = 2.0):
+    def cutoff_shuffling(self, N_times = 10. conf_level = 0.05, method = 'mwu'):
         '''
         Check whether the detected signal is activity or noise.
+        method: ANOVA (Gaussian distribution assumption); Mann-Whitney-U test (non parametric); Kruskal-Wallis test (non-parametric)
         '''
         if self.stat is None:
             print("The activity has not been calculated.")
@@ -183,8 +200,14 @@ class grinder(object):
         a_real = self.stat[:,-1] # the activity of real time traces
 
         a_control = self.shuffled_activity(N_times)
-        ac_mean, ac_std = a_control.mean(axis = 1), a_control.std(axis = 1)
-        acceptance = a_real > (ac_mean + conf_level*ac_std)
+        '''
+        Now, let's do some expensive but more reliable test
+        '''
+        for cc in range(self.NC):
+            X1 = [a_real[cc]] # test data set 1
+            X2 = a_control[cc]
+        #ac_mean, ac_std = a_control.mean(axis = 1), a_control.std(axis = 1) # The mean and std of the 
+        #acceptance = a_real > (ac_mean + conf_level*ac_std)
         return acceptance
 
 
