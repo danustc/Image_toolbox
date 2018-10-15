@@ -2,19 +2,21 @@
 A general class for single-dataset analysis, which can be overloaded by many modules.
 """
 import numpy as np
-from scipy.stats import norm
 from scipy.signal import savgol_filter
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox')
 import os
-from df_f import dff_AB
+import glob
+from df_f import dff_AB, activity_level
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
-from scipy.stats import kruskal, mannwhitneyu # two non-parametric tests
+from scipy.stats import norm, kruskal, mannwhitneyu # two non-parametric tests
 from scipy.interpolate import interp1d
 import src.visualization.signal_plot as signal_plot
 import clustering
 import matplotlib.pyplot as plt
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/'
+
+
 
 
 class grinder(object):
@@ -76,6 +78,7 @@ class grinder(object):
                 try:
                     self.coord = data_pz['coord']
                     self.signal = data_pz['signal']
+                    self._get_size_()
                 except KeyError:
                     print('No signal data stored in the file!')
                     return False
@@ -104,6 +107,8 @@ class grinder(object):
         self.coord = self.coord[:,::-1]
         self.rev = not(self.rev)
 
+
+
     def activity_sorting(self, nbin = 40, sort = True, upsampling = 2):
         '''
         Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
@@ -116,7 +121,7 @@ class grinder(object):
         tmid = np.arange(upsampling*(NT-1)+1)/upsampling
         for nf in range(NC):
             cell_signal = self.signal[:,nf]
-            sig_ind, background, noi = dff_AB(cell_signal, gam = 0.02, nbins = nbin)
+            sig_ind, background, noi = dff_AB(cell_signal, nbins = nbin)
             activity_map[sig_ind, nf] = True # set the activity map to True
             if upsampling ==1:
                 sig_integ = (cell_signal-background).sum()
@@ -160,7 +165,7 @@ class grinder(object):
             return []
 
 
-    def shuffled_activity(self, N_times = 1, upsampling = 1):
+    def shuffled_activity(self, N_times, upsampling = 2):
         '''
         calculate the shuffled activity: 1 time or N times (NC x N_times array)
         '''
@@ -168,44 +173,67 @@ class grinder(object):
             shuff_sig = self.shuffle_control() # NT x NC
             if upsampling ==1:
                 # ****** To be continued
-                shuff_sig_above = (shuff_sig - self.stat[:,0]).sum() # subtract by column, which is convenient! Still NT x NC
-            #for ii in range(self.NC):
-            #    shuff = shuff_sig[:,ii]
-            #    #id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
-            #    baseline = self.stat[ii, 0] # use the original baseline
-            #    activity_control[ii] = (shuff-baseline).sum()
+                for cc in range(self.NC):
+                    id_peak, baseline, _ = dff_AB(shuff_sig[:,cc] )
+                    activity_control[cc] = (shuff_sig - baseline).sum(axis = 0) # subtract by column, which is convenient! Still NT x NC. the final outcome is an NC-array
+            else: # upsampling rate > 1
+                activity_control = np.zeros(self.NC)
+                tt = np.arange(self.NT)
+                tmid = np.arange(upsampling*(self.NT-1)+1)/upsampling # upsampling tmid
+                for cc in range(self.NC):
+                    f = interp1d(tt, shuff_sig[:,cc]) # interpolate the shuffled signal
+                    id_peak, baseline, _ = dff_AB(shuff_sig[:,cc] )
+                    shuff_interp = f(tmid) # interpolated value of the shuffled signal
+                    activity_control[cc] = (shuff_interp-baseline).sum()/upsampling
 
-        else:
+                #for ii in range(self.NC):
+                #    baseline = self.stat[ii, 0] # use the original baseline
+                #    activity_control[ii] = (shuff-baseline).sum()
+
+        else: # shuffle multiple times
             activity_control = np.empty((self.NC, N_times))
-            for ii in range(N_times): # iterate through N_times shuffling
-                shuff_sig = self.shuffle_control()
-                for jj in range(self.NC):
-                    shuff = shuff_sig[:,jj]
-                    #id_peak, baseline, _ = dff_AB(shuff, gam = 0.02)
-                    baseline = self.stat[jj, 0]
-                    activity_control[jj, ii] = (shuff-baseline).sum()
+            if upsampling ==1:
+                for ii in range(N_times): # iterate through N_times shuffling
+                    shuff_sig = self.shuffle_control()
+                    for cc in range(self.NC):
+                        id_peak, baseline, _ = dff_AB(shuff_sig[:,cc])
+                        activity_control[:, ii] = (shuff_sig[:,cc] - baseline).sum(axis = 0) # subtract by column, which is convenient! Still NT x NC. the final outcome is an NC-array
+            else: # upsampling is non-zero
+                tt = np.arange(self.NT)
+                tmid = np.arange(upsampling*(self.NT-1)+1)/upsampling # upsampling tmid
+                for ii in range(N_times):
+                    shuff_sig = self.shuffle_control()
+                    for cc in range(self.NC):
+                        f = interp1d(tt, shuff_sig[:,cc]) # interpolate the shuffled signal
+                        shuff_interp = f(tmid) # interpolated value of the shuffled signal
+                        id_peak, baseline, _ = dff_AB(shuff_sig[:,cc])
+                        activity_control[cc, ii] = (shuff_interp-baseline).sum()/upsampling
 
         return activity_control
 
 
-    def cutoff_shuffling(self, N_times = 10. conf_level = 0.05, method = 'mwu'):
+    def cutoff_shuffling(self, N_times = 10, conf_level = 3.0):
         '''
         Check whether the detected signal is activity or noise.
-        method: ANOVA (Gaussian distribution assumption); Mann-Whitney-U test (non parametric); Kruskal-Wallis test (non-parametric)
+        since I am just comparing one value with a set of values, there is no statistical test method required.
         '''
         if self.stat is None:
             print("The activity has not been calculated.")
             return
 
         a_real = self.stat[:,-1] # the activity of real time traces
-
-        a_control = self.shuffled_activity(N_times)
+        a_control = self.shuffled_activity(N_times, upsampling = 2)
+        acceptance = np.zeros(self.NC).astype('bool') # whether or not should I accept each cell?
         '''
         Now, let's do some expensive but more reliable test
         '''
         for cc in range(self.NC):
-            X1 = [a_real[cc]] # test data set 1
-            X2 = a_control[cc]
+            X1 = a_real[cc] # test data set 1
+            X2 = a_control[cc] # test data set 2
+            m2, st2 = X2.mean(), X2.std()
+            if X1 > m2 + conf_level*st2:
+                acceptance[cc] = True
+
         #ac_mean, ac_std = a_control.mean(axis = 1), a_control.std(axis = 1) # The mean and std of the 
         #acceptance = a_real > (ac_mean + conf_level*ac_std)
         return acceptance
@@ -245,30 +273,7 @@ class grinder(object):
 
             return PHE, beh, cut_position
 
-
-    def cutoff_simple(self, nb = 200, conf_level = 0.95, activity_range= 0.95):
-        '''
-        use simple model of gaussian to infer where the cutoff line should be.
-        Warning: This function is far from being complete.
-        '''
-        if self.stat is None:
-            print("No statistics data.")
-            return
-        else:
-
-            # create a Gaussian distribution
-            int_val = self.stat[:,-1]
-            hist, be = np.histogram(int_val, bins = nb, density = True, range = (0., activity_range*int_val.max()))
-            PE_hist = savgol_filter(hist, window_length = 5, polyorder = 3)
-            ind_peak = np.argmax(PE_hist)
-            beh = (be[1:] + be[:-1])*0.5 # take the center value of each bin
-            be_bg = beh[:2*ind_peak+1]
-            PE_peak_left = PE_hist[:ind_peak+1]
-            PE_bg = np.concatenate((PE_peak_left, PE_peak_left[::-1][1:]))
-
-            print("Fit parameters:", mu, sigx)
-
-
+    # 10/14/2018: I removed the cutoff_simple function.
     def shuffle_control(self, n_shuffle = -1):
         '''
         shuffle the first n_shuffle data to create a new dataset.
@@ -369,12 +374,14 @@ def main():
     '''
     some initial munging of the datasets.
     '''
-    data_path = global_datapath_ubn + 'Aug23_2018_B3_ref.npz'
+    data_list  = glob.glob(global_datapath_ubn + '/homo/*_ref.npz')
     grinder_core = grinder()
-    grinder_core.parse_data(data_path)
-    grinder_core.activity_sorting()
-    grinder_core.background_suppress(sup_coef = 0.0)
-    grinder_core.saveas()
+
+    for data_path in data_list:
+        grinder_core.parse_data(data_path)
+        grinder_core.activity_sorting()
+        grinder_core.background_suppress(sup_coef = 0.0)
+        grinder_core.saveas()
 
 
 if __name__ == '__main__':

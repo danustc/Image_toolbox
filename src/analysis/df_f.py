@@ -11,6 +11,7 @@ sys.path.append(package_path)
 import numpy as np
 from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit, gaussian1d_fit
 from scipy.signal import exponential, fftconvolve
+from scipy.interpolate import interp1d
 from scipy import stats
 
 def background_suppress(signal, ind_A, ext = 2):
@@ -128,6 +129,25 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     noise_level = np.std(bg_points)
 
     return id_peak, background, noise_level
+
+
+def activity_level(dff_trace, upsampling = 2):
+    '''
+    calculate the activity level of a time trace.
+    '''
+    id_peak, baseline, _ = dff_AB(dff_trace)
+    if upsampling ==1:
+        al = (dff_trace-baseline).sum()
+    else:
+        NT = len(dff_trace)
+        tt = np.arange(NT)
+        tmid = np.arange(upsampling*(NT-1)+1)/upsampling
+        f = interp1d(tt, dff_trace)
+        dff_interp = f(tmid)
+        al = (dff_interp-baseline).sum()/upsampling
+
+    return al
+
 
 
 def dff_expfilt(dff_r, dt, t_width = 2.0, savefilter = False):
