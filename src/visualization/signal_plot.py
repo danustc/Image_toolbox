@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import numpy as np
 
-def dff_AB_plot(dff_data, peak_ind, dt = 0.5, yrange = (-0.2,2.0), fsize = (7,2.5)):
+def dff_AB_plot(dff_data, peak_ind, dt = 0.5, yrange = None, fsize = (7,2.5)):
     '''
     plot a single trace of Delta F/F, then mark the datapoints belonging to signal as red dots.
     peak_ind: index of peaks
@@ -17,10 +17,12 @@ def dff_AB_plot(dff_data, peak_ind, dt = 0.5, yrange = (-0.2,2.0), fsize = (7,2.
     tt = np.arange(NT)*dt
     ax.plot(tt,dff_data, color = 'grey')
     ax.plot(tt[peak_ind], dff_data[peak_ind], '.r')
+    ax.plot([tt[0], tt[-1]], dff_data[~peak_ind].mean()*np.ones(2), '--g', linewidth = 2)
     ax.tick_params(labelsize = 11)
     ax.set_xlabel('time (s)', fontsize = 12)
     ax.set_ylabel(r'$\Delta F/F $', fontsize = 12)
-    ax.set_ylim(yrange)
+    if yrange is not None:
+        ax.set_ylim(yrange)
     fig.tight_layout()
     return fig
 
