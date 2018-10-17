@@ -14,6 +14,20 @@ from scipy.signal import exponential, fftconvolve
 from scipy.interpolate import interp1d
 from scipy import stats
 
+def adjacent_2d_hist(t_trace):
+    '''
+    create a 2-D histogram for adjacent pairs of data points
+    '''
+
+    Zn = t_trace[:-1]
+    Zp = t_trace[1:]
+    Z_diff = (Zp-Zn)/np.sqrt(2.)
+    Z_sum  = (Zp+Zn)/np.sqrt(2.)
+
+    return Z_diff, Z_sum
+
+
+
 def background_suppress(signal, ind_A, ext = 2):
     '''
     set background points to 0.
@@ -92,16 +106,19 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     basecut: set the bottom fraction of datasets as baseline.
     '''
     ND = len(dff_r)
-    Zn = dff_r[:-1]
-    Zp = dff_r[1:]
-    Z_diff = (Zp-Zn)/np.sqrt(2.)
-    Z_sum  = (Zp+Zn)/np.sqrt(2.)
+    #Zn = dff_r[:-1]
+    #Zp = dff_r[1:]
+    #Z_diff = (Zp-Zn)/np.sqrt(2.)
+    #Z_sum  = (Zp+Zn)/np.sqrt(2.)
 
-    sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 4, conf_level = 1.0)
+    Z_diff, Z_sum = adjacent_2d_hist(dff_r)
+    H_diff, H_sum = adjacent_2d_hist(np.random.permutation(dff_r)) # shuffled diff and sum distribution
+
+    sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 12, conf_level = 1.9)
     m_diff = np.mean(Z_diff)
     s_diff = np.std(Z_diff)
 
-    diff_range = np.logical_and((Z_diff - m_diff) < 1.2*s_diff, (Z_diff - m_diff) > -0.9*s_diff)
+    diff_range = np.logical_and((Z_diff - m_diff) < 1.15*s_diff, (Z_diff - m_diff) > -1.0*s_diff) # This is way too random
     B_indices = np.logical_and(diff_range, sum_range)
     B_diff = Z_diff[B_indices]
     B_sum = Z_sum[B_indices]
@@ -131,16 +148,19 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     return id_peak, background, noise_level
 
 
-def activity_level(dff_trace, upsampling = 2):
+def activity_level(dff_trace, baseline = 0, tt = None, upsampling = 2, background_sup = False):
     '''
     calculate the activity level of a time trace.
     '''
-    id_peak, baseline, _ = dff_AB(dff_trace)
+    if background_sup:
+        # background suppression
+        dff_trace[dff_trace < baseline] = 0.
     if upsampling ==1:
         al = (dff_trace-baseline).sum()
     else:
         NT = len(dff_trace)
-        tt = np.arange(NT)
+        if tt is None:
+            tt = np.arange(NT)
         tmid = np.arange(upsampling*(NT-1)+1)/upsampling
         f = interp1d(tt, dff_trace)
         dff_interp = f(tmid)

@@ -9,14 +9,12 @@ import os
 import glob
 from df_f import dff_AB, activity_level
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
-from scipy.stats import norm, kruskal, mannwhitneyu # two non-parametric tests
+from scipy.stats import norm, kruskal # two non-parametric tests
 from scipy.interpolate import interp1d
 import src.visualization.signal_plot as signal_plot
 import clustering
 import matplotlib.pyplot as plt
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/'
-
-
 
 
 class grinder(object):
@@ -109,7 +107,7 @@ class grinder(object):
 
 
 
-    def activity_sorting(self, nbin = 40, sort = True, upsampling = 2):
+    def activity_sorting(self, nbin = 40, sort = True, bg_shuffling = False, upsampling = 2):
         '''
         Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
         '''
@@ -118,17 +116,21 @@ class grinder(object):
         ms = np.zeros([NC,3]) # baseline mean, noise, integral
         sig_integ = np.zeros(NC) # signal integral
         tt = np.arange(NT)
-        tmid = np.arange(upsampling*(NT-1)+1)/upsampling
         for nf in range(NC):
             cell_signal = self.signal[:,nf]
             sig_ind, background, noi = dff_AB(cell_signal, nbins = nbin)
             activity_map[sig_ind, nf] = True # set the activity map to True
+
+            if bg_shuffling: # shuffle the background data points
+                bg_ind = np.arange(NT)[~activity_map[:, nf]]
+                cell_signal[bg_ind] = np.random.permutation(cell_signal[bg_ind])
+
             if upsampling ==1:
                 sig_integ = (cell_signal-background).sum()
             else: # do an upsampling first
-                f = interp1d(tt, cell_signal)
-                cell_interp = f(tmid) # interpolated value
-                sig_integ = (cell_interp-background).sum()/upsampling
+                #f = interp1d(tt, cell_signal)
+                #cell_interp = f(tmid) # interpolated value
+                sig_integ = activity_level(cell_signal, background, tt, upsampling)
 
             ms[nf] = np.array([background, noi, sig_integ]) # mean and std
 
@@ -165,54 +167,41 @@ class grinder(object):
             return []
 
 
-    def shuffled_activity(self, N_times, upsampling = 2):
+    def shuffled_activity(self, N_times, ind_shuf, upsampling = 2):
         '''
         calculate the shuffled activity: 1 time or N times (NC x N_times array)
         '''
+        tt = np.arange(self.NT)
+        NS = len(ind_shuf)
         if N_times ==1:
-            shuff_sig = self.shuffle_control() # NT x NC
-            if upsampling ==1:
-                # ****** To be continued
-                for cc in range(self.NC):
-                    id_peak, baseline, _ = dff_AB(shuff_sig[:,cc] )
-                    activity_control[cc] = (shuff_sig - baseline).sum(axis = 0) # subtract by column, which is convenient! Still NT x NC. the final outcome is an NC-array
-            else: # upsampling rate > 1
-                activity_control = np.zeros(self.NC)
-                tt = np.arange(self.NT)
-                tmid = np.arange(upsampling*(self.NT-1)+1)/upsampling # upsampling tmid
-                for cc in range(self.NC):
-                    f = interp1d(tt, shuff_sig[:,cc]) # interpolate the shuffled signal
-                    id_peak, baseline, _ = dff_AB(shuff_sig[:,cc] )
-                    shuff_interp = f(tmid) # interpolated value of the shuffled signal
-                    activity_control[cc] = (shuff_interp-baseline).sum()/upsampling
+            activity_control = np.zeros(NS)
+            shuff_sig = self.shuffle_control(ind_shuf) # NT x NC
+            '''
+            I need to rewrite the whole section.
+            '''
+            for cc in range(NS):
+                id_peak, baseline, _ = dff_AB(shuff_sig[:,cc] )
+                #baseline = self.stat[cc,0]
+                activity_control[cc] = activity_level(shuff_sig[:,cc], baseline, tt, upsampling)
 
-                #for ii in range(self.NC):
-                #    baseline = self.stat[ii, 0] # use the original baseline
-                #    activity_control[ii] = (shuff-baseline).sum()
+            return activity_control
+
 
         else: # shuffle multiple times
-            activity_control = np.empty((self.NC, N_times))
-            if upsampling ==1:
-                for ii in range(N_times): # iterate through N_times shuffling
-                    shuff_sig = self.shuffle_control()
-                    for cc in range(self.NC):
-                        id_peak, baseline, _ = dff_AB(shuff_sig[:,cc])
-                        activity_control[:, ii] = (shuff_sig[:,cc] - baseline).sum(axis = 0) # subtract by column, which is convenient! Still NT x NC. the final outcome is an NC-array
-            else: # upsampling is non-zero
-                tt = np.arange(self.NT)
-                tmid = np.arange(upsampling*(self.NT-1)+1)/upsampling # upsampling tmid
-                for ii in range(N_times):
-                    shuff_sig = self.shuffle_control()
-                    for cc in range(self.NC):
-                        f = interp1d(tt, shuff_sig[:,cc]) # interpolate the shuffled signal
-                        shuff_interp = f(tmid) # interpolated value of the shuffled signal
-                        id_peak, baseline, _ = dff_AB(shuff_sig[:,cc])
-                        activity_control[cc, ii] = (shuff_interp-baseline).sum()/upsampling
+            activity_control = np.empty((NS, N_times))
+            baseline_sums = np.zeros_like(activity_control)
+            for ii in range(N_times): # iterate through N_times shuffling
+                shuff_sig = self.shuffle_control()
+                for cc in range(NS):
+                    id_peak, baseline, _ = dff_AB(shuff_sig[:,cc])
+                    #baseline = self.stat[cc,0]
+                    #baseline_sums[cc, ii] = baseline
+                    activity_control[cc, ii] = activity_level(shuff_sig[:,cc], baseline, tt, upsampling)
 
-        return activity_control
+            return activity_control, baseline_sums
 
 
-    def cutoff_shuffling(self, N_times = 10, conf_level = 3.0):
+    def cutoff_shuffling(self, N_times = 10, conf_level = 3.0, a_thresh = 6.0):
         '''
         Check whether the detected signal is activity or noise.
         since I am just comparing one value with a set of values, there is no statistical test method required.
@@ -222,7 +211,9 @@ class grinder(object):
             return
 
         a_real = self.stat[:,-1] # the activity of real time traces
-        a_control = self.shuffled_activity(N_times, upsampling = 2)
+        #b_real = self.stat[:,0]
+        a_control, b_sums = self.shuffled_activity(N_times, upsampling = 2)
+        #bmean, bstd = b_sums.mean(axis = 1), b_sums.std(axis = 1)
         acceptance = np.zeros(self.NC).astype('bool') # whether or not should I accept each cell?
         '''
         Now, let's do some expensive but more reliable test
@@ -230,9 +221,24 @@ class grinder(object):
         for cc in range(self.NC):
             X1 = a_real[cc] # test data set 1
             X2 = a_control[cc] # test data set 2
-            m2, st2 = X2.mean(), X2.std()
-            if X1 > m2 + conf_level*st2:
+            #Y1 = b_real[cc]
+            mx, stx = X2.mean(), X2.std()
+            #my, sty = bmean[cc], bstd[cc]
+
+            #if X1 > m2 + conf_level*st2 or X1 > a_thresh:
+            if X1 > a_thresh:
+                print("accept cell ", cc)
                 acceptance[cc] = True
+            #elif X1 > mx + conf_level*stx and Y1 < my -conf_level*sty:
+            elif X1 > mx + conf_level*stx:
+                print("accept cell ", cc)
+                print(X1, mx, stx)
+                print("-------------------------------")
+                acceptance[cc] = True
+
+            else:
+                print("reject cell ", cc)
+                print(X1, mx, stx)
 
         #ac_mean, ac_std = a_control.mean(axis = 1), a_control.std(axis = 1) # The mean and std of the 
         #acceptance = a_real > (ac_mean + conf_level*ac_std)
@@ -274,16 +280,16 @@ class grinder(object):
             return PHE, beh, cut_position
 
     # 10/14/2018: I removed the cutoff_simple function.
-    def shuffle_control(self, n_shuffle = -1):
+    def shuffle_control(self, ind_shuffle = None):
         '''
         shuffle the first n_shuffle data to create a new dataset.
         '''
-        if n_shuffle > 0:
-            shuffle_sig = np.copy(self.signal[:,:n_shuffle]) # maybe this copy is not necessary? 
+        if ind_shuffle is None:
+            shuffle_sig = np.copy(self.signal) # maybe this copy is not necessary? 
 
         else:
-            shuffle_sig = np.copy(self.signal)
-        shuffle_sig = np.random.permutation(shuffle_sig) # only shuffles along the 0th dimension, which is convenient for me! :D
+            shuffle_sig = np.copy(self.signal[:,ind_shuffle])
+
         shuffle_sig = np.random.permutation(shuffle_sig) # only shuffles along the 0th dimension, which is convenient for me! :D
         return shuffle_sig
 
@@ -379,9 +385,23 @@ def main():
 
     for data_path in data_list:
         grinder_core.parse_data(data_path)
-        grinder_core.activity_sorting()
-        grinder_core.background_suppress(sup_coef = 0.0)
-        grinder_core.saveas()
+        grinder_core.activity_sorting(upsampling = 2)
+        #acceptance = grinder_core.cutoff_shuffling(N_times = 5, a_thresh = 12.0)
+        #print(acceptance.sum(), grinder_core.NC)
+        #ind = np.arange(grinder_core.NC)[eacceptance]
+        #ind_comp = np.arange(grinder_core.NC)[~acceptance]
+        ind = [0,3000]
+        ind_comp = [5000, 6400]
+        #print("The last accepted:", ind[-1])
+        #print("The first rejected:", ind_comp[1])
+        fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind[-1]], peak_ind = grinder_core.activity[:,ind[-1]])
+        plt.show()
+        fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind_comp[0]], peak_ind = grinder_core.activity[:,ind_comp[0]])
+        plt.show()
+        plt.plot(grinder_core.stat[:,-1])
+        plt.show()
+        #grinder_core.background_suppress(sup_coef = 0.0)
+        #grinder_core.saveas()
 
 
 if __name__ == '__main__':
