@@ -195,13 +195,13 @@ class grinder(object):
                 for cc in range(NS):
                     id_peak, baseline, _ = dff_AB(shuff_sig[:,cc])
                     #baseline = self.stat[cc,0]
-                    #baseline_sums[cc, ii] = baseline
+                    baseline_sums[cc, ii] = baseline
                     activity_control[cc, ii] = activity_level(shuff_sig[:,cc], baseline, tt, upsampling)
 
             return activity_control, baseline_sums
 
 
-    def cutoff_shuffling(self, N_times = 10, conf_level = 3.0, a_thresh = 6.0):
+    def cutoff_shuffling(self, N_times = 10, conf_level = 3.0, a_thresh = 10.0):
         '''
         Check whether the detected signal is activity or noise.
         since I am just comparing one value with a set of values, there is no statistical test method required.
@@ -211,33 +211,34 @@ class grinder(object):
             return
 
         a_real = self.stat[:,-1] # the activity of real time traces
-        #b_real = self.stat[:,0]
-        a_control, b_sums = self.shuffled_activity(N_times, upsampling = 2)
-        #bmean, bstd = b_sums.mean(axis = 1), b_sums.std(axis = 1)
+        b_real = self.stat[:,0]
+        NS = np.where(a_real < a_thresh)[0][0]
+        print("The cutoff position:", NS)
+        a_control, b_sums = self.shuffled_activity(N_times, np.arange(NS, self.NC), upsampling = 2)
+        amean, astd = a_control.mean(axis = 1), a_control.std(axis = 1)
+        bmean, bstd = b_sums.mean(axis = 1), b_sums.std(axis = 1)
         acceptance = np.zeros(self.NC).astype('bool') # whether or not should I accept each cell?
+        acceptance[:NS] = True
+
         '''
         Now, let's do some expensive but more reliable test
         '''
-        for cc in range(self.NC):
-            X1 = a_real[cc] # test data set 1
-            X2 = a_control[cc] # test data set 2
-            #Y1 = b_real[cc]
-            mx, stx = X2.mean(), X2.std()
-            #my, sty = bmean[cc], bstd[cc]
+        for cc in range(self.NC-NS):
+            X1 = a_real[cc+NS] # test data set 1
+            Y1 = b_real[cc+NS]
+            mx, stx = amean[cc], astd[cc]
+            my, sty = bmean[cc], bstd[cc]
 
             #if X1 > m2 + conf_level*st2 or X1 > a_thresh:
-            if X1 > a_thresh:
-                print("accept cell ", cc)
-                acceptance[cc] = True
-            #elif X1 > mx + conf_level*stx and Y1 < my -conf_level*sty:
-            elif X1 > mx + conf_level*stx:
-                print("accept cell ", cc)
-                print(X1, mx, stx)
+            if X1 > mx + conf_level*stx and Y1 < my -conf_level*sty:
+                print("accept cell ", cc+NS)
+                print("activity: ", X1, mx, stx)
+                print("baseline: ",  Y1, my, sty)
                 print("-------------------------------")
                 acceptance[cc] = True
 
             else:
-                print("reject cell ", cc)
+                print("reject cell ", cc+NS)
                 print(X1, mx, stx)
 
         #ac_mean, ac_std = a_control.mean(axis = 1), a_control.std(axis = 1) # The mean and std of the 
@@ -385,15 +386,13 @@ def main():
 
     for data_path in data_list:
         grinder_core.parse_data(data_path)
-        grinder_core.activity_sorting(upsampling = 2)
-        #acceptance = grinder_core.cutoff_shuffling(N_times = 5, a_thresh = 12.0)
-        #print(acceptance.sum(), grinder_core.NC)
-        #ind = np.arange(grinder_core.NC)[eacceptance]
-        #ind_comp = np.arange(grinder_core.NC)[~acceptance]
-        ind = [0,3000]
-        ind_comp = [5000, 6400]
-        #print("The last accepted:", ind[-1])
-        #print("The first rejected:", ind_comp[1])
+        grinder_core.activity_sorting(bg_shuffling = False, upsampling = 2)
+        acceptance = grinder_core.cutoff_shuffling(N_times = 10, conf_level=5, a_thresh = 8.0)
+        print(acceptance.sum(), grinder_core.NC)
+        ind = np.arange(grinder_core.NC)[acceptance]
+        ind_comp = np.arange(grinder_core.NC)[~acceptance]
+        print("The last accepted:", ind[-1])
+        print("The first rejected:", ind_comp[1])
         fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind[-1]], peak_ind = grinder_core.activity[:,ind[-1]])
         plt.show()
         fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind_comp[0]], peak_ind = grinder_core.activity[:,ind_comp[0]])
