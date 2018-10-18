@@ -188,8 +188,8 @@ class grinder(object):
                 print("No continuous peak is detected.")
                 mwu[nf, 1] = 1.
 
-        #acceptance = np.logical_and(mwu[:,1] < alpha, kru[:,1] < alpha)
-        acceptance = mwu[:,1] < alpha
+        acceptance = np.logical_and(mwu[:,1] < alpha, kru[:,1] < alpha)
+        #acceptance = mwu[:,1] < alpha
 
         return acceptance
 
