@@ -106,24 +106,21 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     basecut: set the bottom fraction of datasets as baseline.
     '''
     ND = len(dff_r)
-    #Zn = dff_r[:-1]
-    #Zp = dff_r[1:]
-    #Z_diff = (Zp-Zn)/np.sqrt(2.)
-    #Z_sum  = (Zp+Zn)/np.sqrt(2.)
 
     Z_diff, Z_sum = adjacent_2d_hist(dff_r)
-    H_diff, H_sum = adjacent_2d_hist(np.random.permutation(dff_r)) # shuffled diff and sum distribution
 
     sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 12, conf_level = 1.9)
     m_diff = np.mean(Z_diff)
     s_diff = np.std(Z_diff)
 
-    diff_range = np.logical_and((Z_diff - m_diff) < 1.15*s_diff, (Z_diff - m_diff) > -1.0*s_diff) # This is way too random
+    diff_range = np.logical_and((Z_diff - m_diff) < 1.1*s_diff, (Z_diff - m_diff) > -0.90*s_diff) # This is way too random
     B_indices = np.logical_and(diff_range, sum_range)
     B_diff = Z_diff[B_indices]
     B_sum = Z_sum[B_indices]
     md,sd = stats.norm.fit(B_diff)
     ms,ss = stats.norm.fit(B_sum) # ms is the recognized noise level
+
+
 
     dmin, dmax, smin, smax = Z_diff.min(), Z_diff.max(), Z_sum.min(), Z_sum.max()
     del_diff, del_sum = (dmax-dmin)/(nbins-1), (smax-smin)/(nbins-1)
@@ -131,20 +128,29 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     rv = stats.multivariate_normal(mean = [md, ms], cov = [[sd**2, 0.], [0., ss**2]]) # normal distribution for zero-correlation
     PZB = rv.pdf(np.dstack((Z_diff,Z_sum))) # the distribution of B: dual-variate Gaussian
 
+
+    #h1, _, _ = np.histogram2d(B_diff, B_sum, bins = nbins, range = [[dmin-del_diff*0.5, dmax+del_diff*0.5],[smin-del_sum*0.5, smax+del_sum*0.5]])
+    #B_dist = h1/h1.sum()
+
+
     Z_dist = h2/h2.sum() # normalized distribution
     ind_zn = np.searchsorted(ne, Z_diff)-1 #indices of %Zn in the histogram 
     ind_zp = np.searchsorted(pe, Z_sum)-1 #indices of Zn+1 in the histogram
     PZ = Z_dist[ind_zn, ind_zp] # the probability of data transitions
+    #PZB = B_dist[ind_zn, ind_zp] # a dest added by Dan on 10/17/18
     PBZ = PZB/(PZ+0.001) # Bayesian theory, the activity posterior probability 
     beta = gam/(1.+gam)
-    id_A = np.where(np.logical_and(PBZ<beta, (Z_sum-ms)>-ss))[0] # add more constraint: the sum must be larger than -1 std
+    id_A = np.where(np.logical_and(PBZ<beta, Z_sum>m_sum-0.2*s_sum))[0] # add more constraint: the sum must be larger than -1 std
+    #whether_A = np.logical_and(PBZ<beta, (Z_sum-ms)>-ss) # add more constraint: the sum must be larger than -1 std
     id_peak = np.union1d(id_A, id_A+1)
     peak_mask = np.ones(ND, dtype=bool)
     peak_mask[id_peak] = False
     bg_points = dff_r[peak_mask]
     background = np.mean(bg_points)
-    noise_level = np.std(bg_points)
+    #id_peak = np.intersect1d(id_peak, np.where(dff_r > background_test)[0])
+    #bg_points = dff_r[id_peak]
 
+    noise_level = np.std(bg_points)
     return id_peak, background, noise_level
 
 

@@ -9,13 +9,21 @@ import os
 import glob
 from df_f import dff_AB, activity_level
 from src.shared_funcs.numeric_funcs import gaussian1d_fit
-from scipy.stats import norm, kruskal # two non-parametric tests
+from scipy.stats import norm, kruskal, mannwhitneyu# two non-parametric tests
 from scipy.interpolate import interp1d
 import src.visualization.signal_plot as signal_plot
 import clustering
 import matplotlib.pyplot as plt
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/'
 
+def bool2str(bool_arr):
+    '''
+    convert a boolean array into a 0-1 string.
+    '''
+    int_arr = bool_arr.astype('uint8')
+    str_arr = ''.join([str(ii) for ii in int_arr])
+
+    return str_arr
 
 class grinder(object):
     '''
@@ -147,6 +155,44 @@ class grinder(object):
             self.activity = activity_map
 
 
+
+    def acceptance_directcompare(self, cont_min = 5, alpha = 0.001):
+        '''
+        directly compare two groups of data
+        '''
+        if self.activity is None:
+            print("the activity map is not calculated.")
+            return
+
+        activity, signal = self.activity, self.signal
+        mwu = np.zeros([self.NC, 2]) # mann-whitney U test result
+        kru = np.zeros([self.NC, 2]) # kruskal test result
+        for nf in range(self.NC):
+            act_map = activity[:,nf]
+            baseline = self.stat[nf, 0]
+            s = bool2str(act_map)
+            cont_s = s.split('0')
+
+            len_cont = np.array([len(ct) for ct in cont_s])
+
+
+            if len_cont.max() > cont_min:
+                cell_sig = signal[:,nf]
+                X1 = cell_sig[act_map]
+                X2 = cell_sig[cell_sig > baseline]
+                #X2 = cell_sig
+                mwu[nf] = mannwhitneyu(X1, X2, alternative = 'greater')
+                kru[nf] = kruskal(X1, X2)
+            else:
+                print("neuron %d : fail"%nf)
+                print("No continuous peak is detected.")
+                mwu[nf, 1] = 1.
+
+        #acceptance = np.logical_and(mwu[:,1] < alpha, kru[:,1] < alpha)
+        acceptance = mwu[:,1] < alpha
+
+        return acceptance
+
     def select_mask(self, n_mask):
         '''
         return the average activity of neurons within a mask only.
@@ -191,7 +237,7 @@ class grinder(object):
             activity_control = np.empty((NS, N_times))
             baseline_sums = np.zeros_like(activity_control)
             for ii in range(N_times): # iterate through N_times shuffling
-                shuff_sig = self.shuffle_control()
+                shuff_sig = self.shuffle_control(ind_shuf)
                 for cc in range(NS):
                     id_peak, baseline, _ = dff_AB(shuff_sig[:,cc])
                     #baseline = self.stat[cc,0]
@@ -235,52 +281,19 @@ class grinder(object):
                 print("activity: ", X1, mx, stx)
                 print("baseline: ",  Y1, my, sty)
                 print("-------------------------------")
-                acceptance[cc] = True
+                acceptance[cc+NS] = True
 
             else:
                 print("reject cell ", cc+NS)
-                print(X1, mx, stx)
+                print("activity:", X1, mx, stx)
 
         #ac_mean, ac_std = a_control.mean(axis = 1), a_control.std(axis = 1) # The mean and std of the 
         #acceptance = a_real > (ac_mean + conf_level*ac_std)
         return acceptance
 
 
-    def cutoff_bayesian(self, PH_const = 1., nb = 200, stake = 0.95, activity_range = 0.95, conserve_cutting = False):
-        '''
-        Use Bayesian inference to set the cutoff value that divides active/inactive neurons.
-        if PHE > stake, then we believe that H happens
-        '''
-        if self.stat is None:
-            print("No statistics data.")
-            return
-        else:
-            int_val = self.stat[:,-1]
-            hist, be = np.histogram(int_val, bins = nb, density = True, range = (0., activity_range*int_val.max()))
-            PE_hist = savgol_filter(hist, window_length = 5, polyorder = 3)
-            ind_peak = np.argmax(PE_hist)
-            beh = (be[1:] + be[:-1])*0.5 # take the center value of each bin
-            mu = beh[ind_peak] # The center of Gaussian distribution
-            hsig = beh[ind_peak] - beh[0] # the half-sigma of the Gaussian distribution
-            PEH = norm.pdf(beh, loc = mu, scale = hsig)
-            PHE = PEH * PH_const/(PE_hist+0.001)#arg_be
-            PHE[PHE>1.] = 1.
-            if conserve_cutting:
-                # conservative cutting
-                beh_cut = np.where(PHE < stake)[0][0] # where to cut in the probability density function x-axis
-            else:
-                # aggressive cutting
-                beh_cut = np.where(PHE > stake)[0][-1]+1 # where to cut in the probability density function x-axis
-            activity_cut = beh[beh_cut] # if a cell's activity falls below activity cut,
-            print("cut_off activity:", beh_cut, activity_cut)
-            num_cut = (int_val< activity_cut).sum() # How many cells have activity levels falling below the activity cut?
-            print("rejected cells:", num_cut)
-            self.n_cut = num_cut
-            cut_position = np.array([activity_cut, num_cut])
-
-            return PHE, beh, cut_position
-
-    # 10/14/2018: I removed the cutoff_simple function.
+        # 10/14/2018: I removed the cutoff_simple function.
+        # 10/17/2018: I removed the cutoff_Bayesian function.
     def shuffle_control(self, ind_shuffle = None):
         '''
         shuffle the first n_shuffle data to create a new dataset.
@@ -387,17 +400,26 @@ def main():
     for data_path in data_list:
         grinder_core.parse_data(data_path)
         grinder_core.activity_sorting(bg_shuffling = False, upsampling = 2)
-        acceptance = grinder_core.cutoff_shuffling(N_times = 10, conf_level=5, a_thresh = 8.0)
-        print(acceptance.sum(), grinder_core.NC)
+        acceptance = grinder_core.acceptance_directcompare()
+        print(acceptance.sum(), " neurons accepted.")
+
+
+        #acceptance = grinder_core.cutoff_shuffling(N_times = 15, conf_level=4.0, a_thresh = 10.0)
+        #print(acceptance.sum(), grinder_core.NC)
         ind = np.arange(grinder_core.NC)[acceptance]
         ind_comp = np.arange(grinder_core.NC)[~acceptance]
         print("The last accepted:", ind[-1])
-        print("The first rejected:", ind_comp[1])
+        print("The first rejected:", ind_comp[0])
+        sig_la = grinder_core.signal[:,ind[-1]]
+        act_la = grinder_core.activity[:,ind[-1]]
+        SA = sig_la[act_la]
+        SB = sig_la[~act_la]
+        #ss, pp = mannwhitneyu(SA, SB, alternative = 'greater')
+        ss, pp = kruskal(SA, SB)
+        print("mwu:", ss, pp)
         fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind[-1]], peak_ind = grinder_core.activity[:,ind[-1]])
         plt.show()
         fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind_comp[0]], peak_ind = grinder_core.activity[:,ind_comp[0]])
-        plt.show()
-        plt.plot(grinder_core.stat[:,-1])
         plt.show()
         #grinder_core.background_suppress(sup_coef = 0.0)
         #grinder_core.saveas()
