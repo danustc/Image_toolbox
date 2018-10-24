@@ -13,7 +13,7 @@ from src.shared_funcs.numeric_funcs import smooth_lpf, gaussian2d_fit, gaussian1
 from scipy.signal import exponential, fftconvolve
 from scipy.interpolate import interp1d
 from scipy import stats
-
+import matplotlib.pyplot as plt
 def adjacent_2d_hist(t_trace):
     '''
     create a 2-D histogram for adjacent pairs of data points
@@ -109,17 +109,17 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
 
     Z_diff, Z_sum = adjacent_2d_hist(dff_r)
 
-    sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 12, conf_level = 1.9)
+    sum_range, m_sum, s_sum = hillcrop_base_finding(Z_sum , niter = 25, conf_level = 1.5)
     m_diff = np.mean(Z_diff)
     s_diff = np.std(Z_diff)
 
-    diff_range = np.logical_and((Z_diff - m_diff) < 1.1*s_diff, (Z_diff - m_diff) > -0.90*s_diff) # This is way too random
+    diff_range = np.logical_and((Z_diff - m_diff) < 1.0*s_diff, (Z_diff - m_diff) > -0.65*s_diff) # This is way too random
+    #diff_range = np.logical_and((Z_diff - av_diff) < s_diff, (Z_diff - av_diff) > s_diff) # This is way too random
     B_indices = np.logical_and(diff_range, sum_range)
     B_diff = Z_diff[B_indices]
     B_sum = Z_sum[B_indices]
     md,sd = stats.norm.fit(B_diff)
     ms,ss = stats.norm.fit(B_sum) # ms is the recognized noise level
-
 
 
     dmin, dmax, smin, smax = Z_diff.min(), Z_diff.max(), Z_sum.min(), Z_sum.max()
@@ -137,7 +137,7 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     ind_zn = np.searchsorted(ne, Z_diff)-1 #indices of %Zn in the histogram 
     ind_zp = np.searchsorted(pe, Z_sum)-1 #indices of Zn+1 in the histogram
     PZ = Z_dist[ind_zn, ind_zp] # the probability of data transitions
-    #PZB = B_dist[ind_zn, ind_zp] # a dest added by Dan on 10/17/18
+    #PZB = B_dist[ind_zn, ind_zp] # a test added by Dan on 10/17/18
     PBZ = PZB/(PZ+0.001) # Bayesian theory, the activity posterior probability 
     beta = gam/(1.+gam)
     id_A = np.where(np.logical_and(PBZ<beta, Z_sum>m_sum-0.2*s_sum))[0] # add more constraint: the sum must be larger than -1 std

@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 import src.visualization.signal_plot as signal_plot
 import clustering
 import matplotlib.pyplot as plt
-global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Aug2018/'
+global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
 
 def bool2str(bool_arr):
     '''
@@ -115,7 +115,7 @@ class grinder(object):
 
 
 
-    def activity_sorting(self, nbin = 40, sort = True, bg_shuffling = False, upsampling = 2):
+    def activity_sorting(self, nbin = 40, sort = True, bg_shuffling = False, upsampling = 1):
         '''
         Inference of the datapoints belonging to peaks and calculate level and standard deviation of the background.
         '''
@@ -156,7 +156,7 @@ class grinder(object):
 
 
 
-    def acceptance_directcompare(self, cont_min = 5, alpha = 0.001):
+    def acceptance_directcompare(self, cont_min = 4, alpha = 0.001):
         '''
         directly compare two groups of data
         '''
@@ -175,11 +175,11 @@ class grinder(object):
 
             len_cont = np.array([len(ct) for ct in cont_s])
 
-
             if len_cont.max() > cont_min:
                 cell_sig = signal[:,nf]
-                X1 = cell_sig[act_map]
-                X2 = cell_sig[cell_sig > baseline]
+                X1 = cell_sig[act_map]-baseline
+                #X2 = cell_sig[cell_sig > baseline]
+                X2 = cell_sig[~act_map]
                 #X2 = cell_sig
                 mwu[nf] = mannwhitneyu(X1, X2, alternative = 'greater')
                 kru[nf] = kruskal(X1, X2)
@@ -187,9 +187,10 @@ class grinder(object):
                 print("neuron %d : fail"%nf)
                 print("No continuous peak is detected.")
                 mwu[nf, 1] = 1.
+                kru[nf, 1] = 1.
 
         acceptance = np.logical_and(mwu[:,1] < alpha, kru[:,1] < alpha)
-        #acceptance = mwu[:,1] < alpha
+        #acceptance = kru[:,1] < alpha
 
         return acceptance
 
@@ -334,7 +335,10 @@ class grinder(object):
             cell_signal = signal[:,nf]
             sig_A = cell_signal[act] # the signal data points
             sig_B = cell_signal[~act] # the background data points
-            SNR = sig_A.mean()/sig_B.std() # the definition of SNR in images
+            if len(sig_A) > 0:
+                SNR = sig_A.mean()/sig_B.std() # the definition of SNR in images
+            else:
+                SNR = 0.
             sfac = 1.-np.exp(-sup_coef*SNR**2)
             print("SNR:", SNR, "suppress fraction:", sfac)
             self.signal[~act, nf] *= sfac # suppress the background
@@ -394,35 +398,28 @@ def main():
     '''
     some initial munging of the datasets.
     '''
-    data_list  = glob.glob(global_datapath_ubn + '/homo/*_ref.npz')
+    data_list  = glob.glob(global_datapath_ubn + '/*_ref_lb.npz')
     grinder_core = grinder()
 
     for data_path in data_list:
         grinder_core.parse_data(data_path)
-        grinder_core.activity_sorting(bg_shuffling = False, upsampling = 2)
+        grinder_core.activity_sorting(bg_shuffling = False, upsampling = 1)
         acceptance = grinder_core.acceptance_directcompare()
         print(acceptance.sum(), " neurons accepted.")
 
 
-        #acceptance = grinder_core.cutoff_shuffling(N_times = 15, conf_level=4.0, a_thresh = 10.0)
-        #print(acceptance.sum(), grinder_core.NC)
         ind = np.arange(grinder_core.NC)[acceptance]
         ind_comp = np.arange(grinder_core.NC)[~acceptance]
         print("The last accepted:", ind[-1])
         print("The first rejected:", ind_comp[0])
         sig_la = grinder_core.signal[:,ind[-1]]
         act_la = grinder_core.activity[:,ind[-1]]
-        SA = sig_la[act_la]
-        SB = sig_la[~act_la]
-        #ss, pp = mannwhitneyu(SA, SB, alternative = 'greater')
-        ss, pp = kruskal(SA, SB)
-        print("mwu:", ss, pp)
         fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind[-1]], peak_ind = grinder_core.activity[:,ind[-1]])
         plt.show()
         fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind_comp[0]], peak_ind = grinder_core.activity[:,ind_comp[0]])
         plt.show()
-        #grinder_core.background_suppress(sup_coef = 0.0)
-        #grinder_core.saveas()
+        grinder_core.background_suppress(sup_coef = 0.0)
+        grinder_core.saveas()
 
 
 if __name__ == '__main__':
