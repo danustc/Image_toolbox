@@ -87,7 +87,7 @@ class hrc_sc(object):
             else:
                 # figure the position of peak
                 n_cl = cluster_peak
-                plt.pause(3)
+                plt.pause(1)
 
             plt.close(fig_plot)
             self.group_cstat[gg,1] = n_cl
@@ -153,12 +153,14 @@ class hrc_sc(object):
         cmat = sc_holder.corr_mat
         plt.imshow(cmat)
         plt.show()
+        plt.pause(1)
+        plt.close()
         sc_holder.link_evaluate(sca = 1.80)
         sc_holder.affinity()
         cluster_peak, fig_plot = sc_holder.laplacian_evaluation(ncl = 30)
         fig_plot.show()
         self.n_supgroup = cluster_peak
-        plt.pause(3)
+        plt.pause(1)
         plt.close(fig_plot)
         sc_holder.clustering(self.n_supgroup)
         cluster_corrgroup = sc_holder.ind_groups

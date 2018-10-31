@@ -113,7 +113,7 @@ def dff_AB(dff_r, gam = 0.05, nbins = 40):
     m_diff = np.mean(Z_diff)
     s_diff = np.std(Z_diff)
 
-    diff_range = np.logical_and((Z_diff - m_diff) < 1.0*s_diff, (Z_diff - m_diff) > -0.65*s_diff) # This is way too random
+    diff_range = np.logical_and((Z_diff - m_diff) < 0.8*s_diff, (Z_diff - m_diff) > -0.5*s_diff) # This is way too random
     #diff_range = np.logical_and((Z_diff - av_diff) < s_diff, (Z_diff - av_diff) > s_diff) # This is way too random
     B_indices = np.logical_and(diff_range, sum_range)
     B_diff = Z_diff[B_indices]

@@ -47,6 +47,10 @@ def sc_eigen(L, n_cluster = 20):
     return w, v
 
 
+
+
+
+
 def weakest_connection(corr_mat):
     '''
     check if any individuals are disconnected with anybody else.
@@ -177,7 +181,7 @@ class Corr_sc(object):
 
     def laplacian_evaluation(self, plotout = True, ncl = 25):
 
-        L = laplacian(self.affi_mat, mode = 'sym') # use the random-walk normalized Laplacian instead of unnormalized version.   
+        L = laplacian(self.affi_mat, mode = 'rw') # use the random-walk normalized Laplacian instead of unnormalized version.   
         w, v = sc_eigen(L, n_cluster = ncl) # calculate the first 20th eigen values and eigen states
         peak_position = leigen_nclusters(w) # where should I cut off?
         if plotout:

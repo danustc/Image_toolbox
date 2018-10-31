@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 import src.visualization.signal_plot as signal_plot
 import clustering
 import matplotlib.pyplot as plt
-global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/'
+global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/FB_resting_15min/Jul2017/Annotated/'
 
 def bool2str(bool_arr):
     '''
@@ -90,6 +90,7 @@ class grinder(object):
                     return False
                 if 'annotation' in data_pz.keys():
                     self.annotated = True
+                    print("The dataset is annotated.")
                     self.keys = data_pz['annotation'][-1] # the masks that have been covered 
                     self.neuron_label = data_pz['annotation'][:-1] # the labeling of each neuron
                     self.key_stat = self.neuron_label.sum(axis = 0) # the total number of neurons in that mask
@@ -142,8 +143,8 @@ class grinder(object):
 
             ms[nf] = np.array([background, noi, sig_integ]) # mean and std
 
-            if nf%100 ==0:
-                print("Finished calculating activity of ", nf, "cells.")
+            #if nf%100 ==0:
+                #print("Finished calculating activity of ", nf, "cells.")
 
         if sort:
             integ_ind = np.argsort(ms[:,2])[::-1] # descending order
@@ -167,6 +168,7 @@ class grinder(object):
         activity, signal = self.activity, self.signal
         mwu = np.zeros([self.NC, 2]) # mann-whitney U test result
         kru = np.zeros([self.NC, 2]) # kruskal test result
+        print("# of neurons:", self.NC)
         for nf in range(self.NC):
             act_map = activity[:,nf]
             baseline = self.stat[nf, 0]
@@ -177,10 +179,10 @@ class grinder(object):
 
             if len_cont.max() > cont_min:
                 cell_sig = signal[:,nf]
-                X1 = cell_sig[act_map]-baseline
+                X1 = cell_sig[act_map] - baseline
                 #X2 = cell_sig[cell_sig > baseline]
-                X2 = cell_sig[~act_map]
-                #X2 = cell_sig
+                #X2 = cell_sig[~act_map]
+                X2 = cell_sig
                 mwu[nf] = mannwhitneyu(X1, X2, alternative = 'greater')
                 kru[nf] = kruskal(X1, X2)
             else:
@@ -324,7 +326,7 @@ class grinder(object):
         return tw_act
 
 
-    def background_suppress(self, sup_coef = 0.010, shuffle = True):
+    def background_suppress(self, sup_coef = 0.010, shuffle = True, verbose = False):
         '''
         suppress background. Information needed: activity map
         '''
@@ -340,7 +342,8 @@ class grinder(object):
             else:
                 SNR = 0.
             sfac = 1.-np.exp(-sup_coef*SNR**2)
-            print("SNR:", SNR, "suppress fraction:", sfac)
+            if verbose:
+                print("SNR:", SNR, "suppress fraction:", sfac)
             self.signal[~act, nf] *= sfac # suppress the background
             if shuffle:
                 '''
@@ -385,7 +388,7 @@ class grinder(object):
         '''
         if newpath is None:
             newpath = global_datapath_ubn + self.basename + '_cleaned'
-        cleaned_dataset = {'coord':self.coord, 'signal':self.signal}
+        cleaned_dataset = {'coord':self.coord, 'signal':self.signal, 'annotation':self.neuron_label, 'masks':self.keys}
         np.savez(newpath, **cleaned_dataset)
 
 
@@ -398,7 +401,7 @@ def main():
     '''
     some initial munging of the datasets.
     '''
-    data_list  = glob.glob(global_datapath_ubn + '/*_ref_lb.npz')
+    data_list  = glob.glob(global_datapath_ubn + '*_ref_lb.npz')
     grinder_core = grinder()
 
     for data_path in data_list:
@@ -407,18 +410,10 @@ def main():
         acceptance = grinder_core.acceptance_directcompare()
         print(acceptance.sum(), " neurons accepted.")
 
-
         ind = np.arange(grinder_core.NC)[acceptance]
         ind_comp = np.arange(grinder_core.NC)[~acceptance]
-        print("The last accepted:", ind[-1])
-        print("The first rejected:", ind_comp[0])
-        sig_la = grinder_core.signal[:,ind[-1]]
-        act_la = grinder_core.activity[:,ind[-1]]
-        fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind[-1]], peak_ind = grinder_core.activity[:,ind[-1]])
-        plt.show()
-        fig = signal_plot.dff_AB_plot(grinder_core.signal[:,ind_comp[0]], peak_ind = grinder_core.activity[:,ind_comp[0]])
-        plt.show()
         grinder_core.background_suppress(sup_coef = 0.0)
+        #grinder_core._trim_data_(acceptance)
         grinder_core.saveas()
 
 
