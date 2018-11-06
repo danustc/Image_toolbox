@@ -102,6 +102,7 @@ class pipeline_tstacks(object):
     def process(self, verbose = True):
         '''
         suppose the sampling has been done, and current file has been processed.
+        after the sampling and extraction of blobs has been done, calculate F values in each blob through time.
         If size_th > 500 GB, load stepwize
         '''
         cblobs = self.cblobs

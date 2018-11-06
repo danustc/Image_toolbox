@@ -122,10 +122,23 @@ def frame_reextract(raw_frame, coords):
     return real_sig
 
 
-def stack_reextract(raw_stack, coords):
+def stack_reextract(raw_stack, rois):
+    '''
+    A new version of the function. Instead of recalculating the ROI patches each time, Let's calculate it only once.
+    '''
+
+
+
+def stack_reextract_old(raw_stack, coords):
     '''
     Assume that the coordinates of the cells have been specified, extract all the cells stackwise
+    This is way too slow. Updated on 11/06/2018.
     '''
+    crs = coords[:, :2]
+    dr = coords[:,2].min() #Take the mininum of the radius
+
+    indm = circ_mask_patch((ny, nx), crs, dr)
+
     n_cells = len(coords)
     nz, ny, nx = raw_stack.shape
     real_sig = np.zeros((nz, n_cells))
@@ -265,7 +278,7 @@ class Cell_extract(object):
                 cblobs = frame_blobs(im0, self.diam)
             else:
                 cblobs = frame_blobs(im_raw, self.diam)
-            signal_int = frame_reextract(im_raw)
+            signal_int = frame_reextract(im_raw, cblobs)
             n_blobs = cblobs.shape[0]
             if n_blobs > 0:
                 data_slice = np.zeros((n_blobs, 5))
@@ -293,43 +306,8 @@ class Cell_extract(object):
                 n_end += val.shape[0]
                 d_compression[n_start:n_end] = val[:,[2,0,1]]
                 n_start = n_end
-
         return d_compression
 
-
-
-    def extract_sampling(self, nsamples, mode = 'm', sig = 4, red_reduct = 5):
-        '''
-        nsamples: indice of slices that are selected for cell extraction
-        mode:   m --- mean of the selected slices, then extract cells from the single slice
-                a --- extract cells from all the slices and do the redundance removal
-                sig:if true, subtract background.
-                the core part is rewrapped into an independent function.
-        '''
-        single_slice = False
-        ext_stack= self.stack[nsamples] # copy a few slices and do background subtraction so that more blobs can be extracted.
-        n_ext = len(nsamples)
-        if(mode == 'm'):
-            mean_slice = np.mean(ext_stack,axis = 0)
-            single_slice = True
-            # subtract the background
-        if single_slice:
-            if(sig > 0):
-                db_slice = frame_deblur(mean_slice, sig)
-                cblobs = frame_blobs(db_slice,self.diam)
-            else:
-                cblobs = frame_blobs(mean_slice, self.diam)
-        else: # if not single slice
-            blobs_sample = stack_blobs(ext_stack, self.diam, sig)
-
-            # redundance reduction
-            if (red_reduct > 0):
-            # do the redundancy removal on the list
-                cblobs = stack_redundreduct(blobs_sample, red_reduct)
-            else:
-                return blobs_sample
-
-        return cblobs
 
     def save_data_list(self, dph):
         """
@@ -374,17 +352,3 @@ class Cell_extract(object):
         self.data_list.clear()
         # ----- reload the im_stack
 
-
-def main():
-    '''
-    The main function for testing the cell extraction code.
-    '''
-    tstack = read_tiff(tf_path+TS_stack).astype('float64')
-    CEt = Cell_extract(tstack, diam = 7)
-    CEt.stack_blobs()
-    CEt.save_data_list(tf_path + 'ref_ext')
-    d_compression = CEt.zd_bloblist_compression()
-    np.save(tf_path+"compressed", d_compression)
-
-if __name__ == '__main__':
-    main()
