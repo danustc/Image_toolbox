@@ -15,16 +15,11 @@ sys.path.append(package_path_win)
 import src.shared_funcs.tifffunc as tifffunc
 import matplotlib.pyplot as plt
 from src.preprocessing.segmentation import *
-from src.preprocessing.drift_correction import DC_pipeline
+#from src.preprocessing.drift_correction import DC_pipeline
 
-<<<<<<< HEAD
-data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A4\\'
+data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_B1\\'
+data_rootpath_yst ='Z:/Dan/Data_Rock/2018-08-02/Aug02_2018_B1\\'
 data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_A2/\\'
-=======
-data_rootpath_win ='D:/Data/2018-08-23\\'
-data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_A3/'
-#data_rootpath_portable ='/media/sillycat/DanData/'
->>>>>>> 03f1e70636a33a64686d7458172c48034d5353ff
 #folder_list = glob.glob(data_rootpath+"/B3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -69,7 +64,7 @@ class pipeline_tstacks(object):
         Load the nfileth data file.
         size_th: threshold of the data file. Unit: MB.
         '''
-        fname = self.raw_list[nfile]
+        fname = self.raw_list[nfile]; print(fname)
         stack_size, stack_shape, self.tif_handle = tifffunc.tiff_describe(fname, handle_open = True)
         if(stack_size > size_th):
             self.stepload = True
@@ -99,7 +94,7 @@ class pipeline_tstacks(object):
         '''
         sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
-        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 4.5)
+        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 5)
         self.cblobs = stack_redundreduct(blobs_sample, th = 5) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
@@ -141,7 +136,7 @@ class pipeline_tstacks(object):
         self.tif_handle = None
         self.process_log[self.current_file] = 3
 
-        sample_frame = frame_deblur(sample_frame, sig = 2.5, Nit = 17)
+        sample_frame = frame_deblur(sample_frame, sig = 5, Nit = 15)
         fig_display  = plt.figure(figsize = (8,5.6))
         ax = fig_display.add_subplot(111)
         ax.imshow(sample_frame, cmap = 'Greys_r')
@@ -174,12 +169,12 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_win+"/A4_TS/\\")
+    folder_list = glob.glob(data_rootpath_yst+"/B1_TS/\\")
     #folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:
         print(data_path)
         pt = pipeline_tstacks(data_path, fname_flags = 'rg')
-        pt.run_pipeline([0,5,10])
+        pt.run_pipeline([20,50,100, 200])
     #pt = pipeline_tstacks(data_path2, fname_flags = 'ZP')
     #pt.run_pipeline([5,10,15,20])
 
