@@ -77,7 +77,7 @@ def mask_searching(lab_coord_pxl):
     return mask_labels, ind_mask, ind_cell
 
 
-def anatomical_labeling(coord_file, arti_clear = True, shift_set = 0):
+def anatomical_labeling(coord_file, arti_clear = True, shift_set = 0, save_rawcoord = True):
     '''
     transform the coordinate into those in the reference frame, then annotate each cell
     coord_file: the file (reformatted) to be labeledannatomically.
@@ -112,14 +112,18 @@ def anatomical_labeling(coord_file, arti_clear = True, shift_set = 0):
     # cleaning step 1: check coordinates out of the Z-range
     if_outlier = lab_coord[:,2] < 137 # check if the z coordinate is out of range
     lab_coord = lab_coord[if_outlier] # coord has been cleand of outliers
+    coord = coord[if_outlier]  # also keep the original coordinate indices consistent
+
+
     lab_signal = signal[:, if_outlier] # the corresponding signal matrix has been cleaned of outliers 
     n_cells = lab_coord.shape[0] # This is cleaned of the outlyers.
 
-    mask_labels, ind_mask, ind_cell = mask_searching(np.fliplr(lab_coord))
+    mask_labels, ind_mask, ind_cell = mask_searching(np.fliplr(lab_coord)) # x-y-z to z-y-x
 
     if arti_clear: # do you want to remove unlabeled cells?
         mask_labels = mask_labels[ind_cell]
         lab_coord = lab_coord[ind_cell] # clean the coordinates of unmasked cells
+        coord = coord[ind_cell]
         lab_signal = lab_signal[:, ind_cell] # clean the signal of unmasked cells 
 
     annotation_label = np.row_stack((mask_labels, ind_mask)) # This part of information needs to be saved 
@@ -128,6 +132,8 @@ def anatomical_labeling(coord_file, arti_clear = True, shift_set = 0):
     labeled_dataset['coord'] = lab_coord
     labeled_dataset['signal'] = lab_signal
     labeled_dataset['annotation'] = annotation_label
+    if save_rawcoord:
+        labeled_dataset['raw_coord'] = coord
     np.savez(dest_path, **labeled_dataset)
 
 
@@ -282,19 +288,19 @@ def reg_annotate():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_path+'FB_resting_15min/Aug2018/*_dff.npz')
+    response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_dff.npz')
     print(response_list)
 
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
 
         print("Fish:", basename)
-        xdim =dimension_check(basename, meta_dim, nyear = '18')
+        xdim =dimension_check(basename, meta_dim, nyear = '17')
         print(xdim)
         temp_list = basename.split('_')
-        reglist_basename  = '_'.join([temp_list[0], temp_list[-1]])
+        reglist_basename  = ''.join([temp_list[0], temp_list[-1]])
         print(reglist_basename)
-        reg_list = glob.glob(data_path + 'Good_registrations/Aug2018_rest/' + reglist_basename +  '*.list')[0] # loosen the condition.
+        reg_list = glob.glob(data_path + 'Good_registrations/Jul2017_rest/' + reglist_basename +  '*.list')[0] # loosen the condition.
         set_list = reg_list.split('set')
         if len(set_list) ==1:
             sh_set = 0
