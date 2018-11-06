@@ -50,7 +50,7 @@ def blank_refill(raw_frame, cutoff = None, mode = 'min'):
 
         return raw_frame
 
-def build_psf(sig, width = 7):
+def build_psf(sig, width = 10):
     xx = np.arange(-width, width+1)
     g = np.exp(-xx**2/(2*sig*sig))
     psf = np.outer(g,g)
@@ -58,7 +58,7 @@ def build_psf(sig, width = 7):
     return psf
 
 
-def frame_deblur(raw_frame, sig = 4., Nit = 12, padding = ((10,10), (10,10))):
+def frame_deblur(raw_frame, sig = 4., Nit = 15, padding = ((10,10), (10,10))):
     '''
     raw_frame: a single frame of image
     sig: the width of gaussian filter
@@ -166,7 +166,7 @@ def stack_redundreduct(blob_stack, th= 4):
     return data_merge
 
 
-def stack_blobs(small_stack, diam, sig = 7):
+def stack_blobs(small_stack, diam, sig = 4.5):
     '''
     just extract all the blobs from a small stack and return as a list after background subtraction
     btolerance is always considered 2
