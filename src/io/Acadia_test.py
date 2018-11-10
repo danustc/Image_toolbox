@@ -7,7 +7,7 @@ import numpy as np
 from datareader import DaxReader
 import matplotlib.pyplot as plt
 from skimage.feature import blob_log
-
+from sklearn.metrics import pairwise_distances
 
 def psfstack_survey(stack, thresh = 1500):
     '''
@@ -43,21 +43,29 @@ def psf_finder(stack, dominant_z, px = 100, wl = 700, patch_size = 48):
     total_rest = np.logical_and(lower_rest, upper_rest)
     centers = centers[total_rest]
 
+    ind_accept = psf_isolation(centers, 30)
+    centers = centers[ind_accept]
+
+
     psf_collection = []
     for cc in centers:
         psf_patch = stack[:, cc[0]-hps:cc[0]+hps, cc[1]-hps:cc[1]+hps]
         psf_collection.append(psf_patch)
 
-    return psf_collection
+    return psf_collection, centers
 
 
 def psf_isolation(coord_list, iso_thresh):
     '''
     Select coordinates that are well separated from one another.
     '''
+    NC = coord_list.shape[0] # number of psfs
+    dist_mat = pairwise_distances(coord_list, metric = 'euclidean')
+    dist_mat = dist_mat + np.eye(NC)*256
+    dmin = dist_mat.min(axis = 0)
+    ind_accept = np.where(dmin > iso_thresh)[0] # even the min distance is above the threshold
 
-
-
+    return ind_accept
 
 
 def main():
@@ -74,10 +82,11 @@ def main():
     stack = np.array(stack)
     zz, dom_z = psfstack_survey(stack)
 
-    psf_collection = psf_finder(stack, dom_z)
+    psf_collection, centers = psf_finder(stack, dom_z)
     print("# of psfs:",len(psf_collection))
-    plt.imshow(psf_collection[0][dom_z])
-    plt.show()
+    for psf in psf_collection:
+        plt.imshow(psf[dom_z])
+        plt.show()
 
 if __name__ == '__main__':
     main()
