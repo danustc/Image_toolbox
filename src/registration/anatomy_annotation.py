@@ -77,7 +77,7 @@ def mask_searching(lab_coord_pxl):
     return mask_labels, ind_mask, ind_cell
 
 
-def anatomical_labeling(coord_file, arti_clear = True, shift_set = 0, save_rawcoord = True):
+def anatomical_labeling(coord_file, arti_clear = False, shift_set = 0, save_rawcoord = True):
     '''
     transform the coordinate into those in the reference frame, then annotate each cell
     coord_file: the file (reformatted) to be labeledannatomically.
@@ -111,6 +111,9 @@ def anatomical_labeling(coord_file, arti_clear = True, shift_set = 0, save_rawco
 
     # cleaning step 1: check coordinates out of the Z-range
     if_outlier = lab_coord[:,2] < 137 # check if the z coordinate is out of range
+
+    print("# of cells:", len(if_outlier), "# of valid cells:", if_outlier.sum())
+
     lab_coord = lab_coord[if_outlier] # coord has been cleand of outliers
     coord = coord[if_outlier]  # also keep the original coordinate indices consistent
 
@@ -198,11 +201,11 @@ def coord_convert_preprocess(fpath, reg_list, origin_x,  order = 'r'):
     if os.path.isdir(reg_list):
         np.savetxt(source_name, coord, fmt = '%12.5f')# save the coordinate in the x,y,z order.  
         registered_coord_convert(reg_list, source_name, dest_name, inv = True)
-        time.sleep(6) # wait until the file is saved
+        time.sleep(7) # wait until the file is saved
         f = open(dest_name, 'r')
         time.sleep(4)
         raw_coord = f.readlines()
-        time.sleep(5)
+        time.sleep(6)
         nline = len(raw_coord)
         f.close()
         fine_coord = []
@@ -288,19 +291,19 @@ def reg_annotate():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_path+'FB_resting_15min/Jul2017/*_dff.npz')
+    response_list = glob.glob(data_path+'FB_resting_15min/Aug2018/*_dff.npz')
     print(response_list)
 
     for response_file in response_list:
         basename ='_'.join( os.path.basename(response_file).split('.')[0].split('_')[:-1])
 
         print("Fish:", basename)
-        xdim =dimension_check(basename, meta_dim, nyear = '17')
+        xdim =dimension_check(basename, meta_dim, nyear = '18')
         print(xdim)
         temp_list = basename.split('_')
-        reglist_basename  = ''.join([temp_list[0], temp_list[-1]])
+        reglist_basename  = '_'.join([temp_list[0], temp_list[-1]])
         print(reglist_basename)
-        reg_list = glob.glob(data_path + 'Good_registrations/Jul2017_rest/' + reglist_basename +  '*.list')[0] # loosen the condition.
+        reg_list = glob.glob(data_path + 'Good_registrations/Aug2018_rest/' + reglist_basename +  '*.list')[0] # loosen the condition.
         set_list = reg_list.split('set')
         if len(set_list) ==1:
             sh_set = 0

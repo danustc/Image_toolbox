@@ -8,8 +8,9 @@ from datareader import DaxReader
 import matplotlib.pyplot as plt
 from skimage.feature import blob_log
 from sklearn.metrics import pairwise_distances
+import tifffile as tf
 
-def psfstack_survey(stack, thresh = 1500):
+def psfstack_survey(stack, thresh = 150):
     '''
     evaluate the number of PSFs in the image stack.
     thresh: pixel intensity threshold
@@ -35,9 +36,8 @@ def psf_finder(stack, dominant_z, px = 100, wl = 700, patch_size = 48):
     dominant_slice = stack[dominant_z]
     min_sig = 0.61*wl/px #theoretical diffraction-limited psf size at focus
     max_sig = 1.5* min_sig # this is kinda random
-    blobs = blob_log(dominant_slice, min_sigma = min_sig, max_sigma = max_sig, threshold = 100 )
+    blobs = blob_log(dominant_slice, min_sigma = min_sig, max_sigma = max_sig, threshold = 40 )
     centers = blobs[:,:2] # blob_centers
-    print(centers)
     lower_rest = np.logical_and(centers[:,0] > hps, centers[:,1] > hps)
     upper_rest = np.logical_and(centers[:,0] < NY - hps, centers[:,1] < NX-hps)
     total_rest = np.logical_and(lower_rest, upper_rest)
@@ -45,6 +45,7 @@ def psf_finder(stack, dominant_z, px = 100, wl = 700, patch_size = 48):
 
     ind_accept = psf_isolation(centers, 30)
     centers = centers[ind_accept]
+    print(centers)
 
 
     psf_collection = []
@@ -67,9 +68,24 @@ def psf_isolation(coord_list, iso_thresh):
 
     return ind_accept
 
+def zcoef():
+    fpath = '2018-11-14/Z_coef_1114_tune1.npy'
+    zcoef =  np.load(global_datapath + fpath)
+    zm = zcoef.mean(axis = 0)
+    zs = zcoef.std(axis = 0)
+    fig = plt.figure(figsize = (5,3))
+    ax = fig.add_subplot(111)
+    ax.bar(np.arange(4,12)+1, zm[4:], yerr = zs[4:])
+    ax.set_ylim([-0.03, 0.01])
+    ax.tick_params(labelsize = 14)
+    fig.savefig('bar_mod1')
+
+
+
+
 
 def main():
-    fpath = '2018-11-02/RL150_0001.dax'
+    fpath = '2018-11-14/TL150_tune_0001.dax'
     DM = DaxReader(global_datapath + fpath)
     print(DM.image_height)
     print(DM.image_width)
@@ -81,12 +97,23 @@ def main():
 
     stack = np.array(stack)
     zz, dom_z = psfstack_survey(stack)
-
+    tf.imsave('imstack.tif', stack.astype('uint16'))
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.imshow(stack[dom_z])
     psf_collection, centers = psf_finder(stack, dom_z)
+    ax.scatter(centers[:,1], centers[:,0], s = 150, facecolors = 'none',edgecolors = 'yellow', linewidth = 2 )
+    ax.axis('off')
+    plt.tight_layout()
+    fig.savefig('PSF_extract')
     print("# of psfs:",len(psf_collection))
+    ii = 0
     for psf in psf_collection:
-        plt.imshow(psf[dom_z])
-        plt.show()
+        print(centers[ii])
+        ax.imshow(psf[:, 23, :], cmap = 'Greys_r', extent = [-0.088*24, 0.088*24, -3, 3])
+        ax.axis('off')
+        fig.savefig('psf_xz'+str(ii)+'tune1')
+        ii+=1
 
 if __name__ == '__main__':
     main()
