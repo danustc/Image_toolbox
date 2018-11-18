@@ -11,7 +11,7 @@ from src.shared_funcs.tifffunc import read_tiff
 from src.preprocessing.red_detect import redund_detect_merge
 from skimage import filters, restoration
 from skimage.feature import blob_log
-from src.shared_funcs.numeric_funcs import circ_mask_patch
+from src.shared_funcs.numeric_funcs import circ_mask_origin, circ_mask_patch_group, circ_mask_patch
 
 
 OL_blob = 0.8
@@ -58,7 +58,7 @@ def build_psf(sig, width = 10):
     return psf
 
 
-def frame_deblur(raw_frame, sig = 4., Nit = 15, padding = ((10,10), (10,10))):
+def frame_deblur(raw_frame, sig = 4., Nit = 21, padding = ((10,10), (10,10))):
     '''
     raw_frame: a single frame of image
     sig: the width of gaussian filter
@@ -83,7 +83,8 @@ def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = Tr
     '''
     # now, let's calculate threshold
     NY, NX = filled_frame.shape
-    th = (np.mean(filled_frame) - np.std(filled_frame))/7.
+    #th = (np.mean(filled_frame) - np.std(filled_frame))/7. # This is not quite reliable
+    th = 35.0
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
@@ -95,7 +96,7 @@ def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = Tr
     cblobs = cblobs[valid_ind] # remove those edge blobs --- added by Dan on 08/11/2018.
 
     if verbose:
-        print("threshold:", th)
+        #print("threshold:", th)
         print("# of blobs:", cblobs.shape[0])
     return cblobs
 
@@ -122,11 +123,18 @@ def frame_reextract(raw_frame, coords):
     return real_sig
 
 
-def stack_reextract(raw_stack, rois):
+def stack_reextract(raw_stack, coords):
     '''
     A new version of the function. Instead of recalculating the ROI patches each time, Let's calculate it only once.
+    rois: a list of coordinates
     '''
+    crs = coords[:,:2]
+    dr = coords[:,2].min() #Take the mininum of the radius
+    nz, ny, nx = raw_stack.shape
+    YC, XC = circ_mask_patch_group(crs, dr)
+    real_sig = raw_stack[:, YC.astype('int'), XC.astype('int')].mean(axis = 2)
 
+    return real_sig
 
 
 def stack_reextract_old(raw_stack, coords):
@@ -137,14 +145,12 @@ def stack_reextract_old(raw_stack, coords):
     crs = coords[:, :2]
     dr = coords[:,2].min() #Take the mininum of the radius
 
-    indm = circ_mask_patch((ny, nx), crs, dr)
-
     n_cells = len(coords)
     nz, ny, nx = raw_stack.shape
     real_sig = np.zeros((nz, n_cells))
     for nc in range(n_cells):
         cr = coords[nc,:2]
-        dr = coords[nc,2]-1
+        #dr = coords[nc,2]-1
         indm = circ_mask_patch((ny,nx), cr, dr)
         real_sig[:,nc] = np.mean(raw_stack[:, indm[0],indm[1]], axis = 1)
 
@@ -226,8 +232,8 @@ def stack_signal_propagate(stack, blob_lists):
     OMG... This so badly written.
     blob_lists: it contains 3 columns: y, x, dr.
     '''
-    n_blobs = len(blob_lists)# merging extracted cells in several frames
         # ----- end else, n_frame is an array instead of a slice number
+    #train_signal = stack_reextract_old(stack, blob_lists) # updated on 07/07/2017
     train_signal = stack_reextract(stack, blob_lists) # updated on 07/07/2017
 
     '''

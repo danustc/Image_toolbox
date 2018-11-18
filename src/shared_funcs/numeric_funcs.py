@@ -131,6 +131,19 @@ def circ_mask(n_size, cr, dr):
     return ind_mask # instead of returning a huge boolean matrix, just return a few indices
 # -------------done with circ_mask
 
+def circ_mask_origin(dr):
+    '''
+    centered mask
+    '''
+    NR = int(dr)+1
+    rr = np.arange(-NR, NR)
+    xg, yg = np.meshgrid(rr,rr)
+    mask = yg*yg + xg*xg <= dr*dr
+    y_mask = yg[mask]
+    x_mask = xg[mask]
+    return y_mask, x_mask # these are not indices but positions w.r.t. 0
+
+
 
 def circ_mask_patch(frame_size, cr, dr):
     """
@@ -162,14 +175,18 @@ def circ_mask_patch(frame_size, cr, dr):
 
     # end of circ_mask
 
-def circ_mask_patch_group(frame_size, crs, dr):
+def circ_mask_patch_group(crs, dr):
     '''
     return a list of patch indices
+    The frame size is not considered, so this method is kinda risky
     '''
-    ind_mask_y = None
-    ind_mask_x = None
+    NC = len(crs)
+    y_mask, x_mask = circ_mask_origin(dr)
+    # each column is a blob's coordinate
+    y_centers = np.tile(y_mask, (NC,1)).T + crs[:,0]
+    x_centers = np.tile(x_mask, (NC,1)).T + crs[:,1]
 
-    return ind_mask_y, ind_mask_x
+    return y_centers.T, x_centers.T
 
 
 
