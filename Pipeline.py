@@ -5,7 +5,7 @@ Although the low-frequency background is subtracted, cell extraction is still pe
 This is the windows version. Don't mix it with the linux version!
 """
 package_path_win ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
-package_path_ubn='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
+package_path_ubn='/home/sillycat/Programming/Python/Image_toolbox/src/'
 
 import os
 import sys
@@ -17,10 +17,10 @@ import matplotlib.pyplot as plt
 from src.preprocessing.segmentation import *
 #from src.preprocessing.drift_correction import DC_pipeline
 
-data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_B1\\'
-data_rootpath_yst ='Z:/Dan/Data_Rock/2018-08-02/Aug02_2018_B1\\'
-data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_A2/'
-#folder_list = glob.glob(data_rootpath+"/B3_TS\\")
+data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A3\\'
+data_rootpath_yst ='Z:/Dan/Data_Rock/2018-08-02/Aug02_2018_A3\\'
+data_rootpath_portable ='/media/sillycat/DanData/Jul26_2017_A3/'
+#folder_list = glob.glob(data_rootpath+"/A3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
 
 class pipeline_tstacks(object):
@@ -186,7 +186,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_portable+"A2_TS/")
+    folder_list = glob.glob(data_rootpath_portable+"A3_TS/")
     #folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:
         print(data_path)
