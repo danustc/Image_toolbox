@@ -11,7 +11,7 @@ from src.shared_funcs.tifffunc import read_tiff
 from src.preprocessing.red_detect import redund_detect_merge
 from skimage import filters, restoration
 from skimage.feature import blob_log
-from src.shared_funcs.numeric_funcs import circ_mask_patch
+from src.shared_funcs.numeric_funcs import circ_mask_origin, circ_mask_patch_group, circ_mask_patch
 
 
 OL_blob = 0.8
@@ -58,7 +58,7 @@ def build_psf(sig, width = 10):
     return psf
 
 
-def frame_deblur(raw_frame, sig = 4., Nit = 15, padding = ((10,10), (10,10))):
+def frame_deblur(raw_frame, sig = 4., Nit = 21, padding = ((10,10), (10,10))):
     '''
     raw_frame: a single frame of image
     sig: the width of gaussian filter
@@ -83,7 +83,8 @@ def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = Tr
     '''
     # now, let's calculate threshold
     NY, NX = filled_frame.shape
-    th = (np.mean(filled_frame) - np.std(filled_frame))/7.
+    #th = (np.mean(filled_frame) - np.std(filled_frame))/7. # This is not quite reliable
+    th = 35.0
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
@@ -95,7 +96,7 @@ def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = Tr
     cblobs = cblobs[valid_ind] # remove those edge blobs --- added by Dan on 08/11/2018.
 
     if verbose:
-        print("threshold:", th)
+        #print("threshold:", th)
         print("# of blobs:", cblobs.shape[0])
     return cblobs
 
@@ -124,14 +125,32 @@ def frame_reextract(raw_frame, coords):
 
 def stack_reextract(raw_stack, coords):
     '''
-    Assume that the coordinates of the cells have been specified, extract all the cells stackwise
+    A new version of the function. Instead of recalculating the ROI patches each time, Let's calculate it only once.
+    rois: a list of coordinates
     '''
+    crs = coords[:,:2]
+    dr = coords[:,2].min() #Take the mininum of the radius
+    nz, ny, nx = raw_stack.shape
+    YC, XC = circ_mask_patch_group(crs, dr)
+    real_sig = raw_stack[:, YC.astype('int'), XC.astype('int')].mean(axis = 2)
+
+    return real_sig
+
+
+def stack_reextract_old(raw_stack, coords):
+    '''
+    Assume that the coordinates of the cells have been specified, extract all the cells stackwise
+    This is way too slow. Updated on 11/06/2018.
+    '''
+    crs = coords[:, :2]
+    dr = coords[:,2].min() #Take the mininum of the radius
+
     n_cells = len(coords)
     nz, ny, nx = raw_stack.shape
     real_sig = np.zeros((nz, n_cells))
     for nc in range(n_cells):
         cr = coords[nc,:2]
-        dr = coords[nc,2]-1
+        #dr = coords[nc,2]-1
         indm = circ_mask_patch((ny,nx), cr, dr)
         real_sig[:,nc] = np.mean(raw_stack[:, indm[0],indm[1]], axis = 1)
 
@@ -213,8 +232,8 @@ def stack_signal_propagate(stack, blob_lists):
     OMG... This so badly written.
     blob_lists: it contains 3 columns: y, x, dr.
     '''
-    n_blobs = len(blob_lists)# merging extracted cells in several frames
         # ----- end else, n_frame is an array instead of a slice number
+    #train_signal = stack_reextract_old(stack, blob_lists) # updated on 07/07/2017
     train_signal = stack_reextract(stack, blob_lists) # updated on 07/07/2017
 
     '''
@@ -265,7 +284,7 @@ class Cell_extract(object):
                 cblobs = frame_blobs(im0, self.diam)
             else:
                 cblobs = frame_blobs(im_raw, self.diam)
-            signal_int = frame_reextract(im_raw)
+            signal_int = frame_reextract(im_raw, cblobs)
             n_blobs = cblobs.shape[0]
             if n_blobs > 0:
                 data_slice = np.zeros((n_blobs, 5))
@@ -293,43 +312,8 @@ class Cell_extract(object):
                 n_end += val.shape[0]
                 d_compression[n_start:n_end] = val[:,[2,0,1]]
                 n_start = n_end
-
         return d_compression
 
-
-
-    def extract_sampling(self, nsamples, mode = 'm', sig = 4, red_reduct = 5):
-        '''
-        nsamples: indice of slices that are selected for cell extraction
-        mode:   m --- mean of the selected slices, then extract cells from the single slice
-                a --- extract cells from all the slices and do the redundance removal
-                sig:if true, subtract background.
-                the core part is rewrapped into an independent function.
-        '''
-        single_slice = False
-        ext_stack= self.stack[nsamples] # copy a few slices and do background subtraction so that more blobs can be extracted.
-        n_ext = len(nsamples)
-        if(mode == 'm'):
-            mean_slice = np.mean(ext_stack,axis = 0)
-            single_slice = True
-            # subtract the background
-        if single_slice:
-            if(sig > 0):
-                db_slice = frame_deblur(mean_slice, sig)
-                cblobs = frame_blobs(db_slice,self.diam)
-            else:
-                cblobs = frame_blobs(mean_slice, self.diam)
-        else: # if not single slice
-            blobs_sample = stack_blobs(ext_stack, self.diam, sig)
-
-            # redundance reduction
-            if (red_reduct > 0):
-            # do the redundancy removal on the list
-                cblobs = stack_redundreduct(blobs_sample, red_reduct)
-            else:
-                return blobs_sample
-
-        return cblobs
 
     def save_data_list(self, dph):
         """
@@ -374,17 +358,3 @@ class Cell_extract(object):
         self.data_list.clear()
         # ----- reload the im_stack
 
-
-def main():
-    '''
-    The main function for testing the cell extraction code.
-    '''
-    tstack = read_tiff(tf_path+TS_stack).astype('float64')
-    CEt = Cell_extract(tstack, diam = 7)
-    CEt.stack_blobs()
-    CEt.save_data_list(tf_path + 'ref_ext')
-    d_compression = CEt.zd_bloblist_compression()
-    np.save(tf_path+"compressed", d_compression)
-
-if __name__ == '__main__':
-    main()

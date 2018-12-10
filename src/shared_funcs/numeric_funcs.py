@@ -3,7 +3,7 @@ Created by Dan on 08/15/16
 This file contains several small functions shared among all the classes.
 This one has Numerical functions. For graphic functions, see graph_funcs.py
 Adapted from Scipy cookbook.
-Last update: 11/05/16
+Last update: 11/06/2018
 '''
 
 import numpy as np
@@ -131,13 +131,26 @@ def circ_mask(n_size, cr, dr):
     return ind_mask # instead of returning a huge boolean matrix, just return a few indices
 # -------------done with circ_mask
 
+def circ_mask_origin(dr):
+    '''
+    centered mask
+    '''
+    NR = int(dr)+1
+    rr = np.arange(-NR, NR)
+    xg, yg = np.meshgrid(rr,rr)
+    mask = yg*yg + xg*xg <= dr*dr
+    y_mask = yg[mask]
+    x_mask = xg[mask]
+    return y_mask, x_mask # these are not indices but positions w.r.t. 0
+
+
 
 def circ_mask_patch(frame_size, cr, dr):
     """
     pass the test for 10x10, 120x 120 arrays.
-    but failed for
     To find the mask of a small patch on a big frame.
     frame_size: ny, nx
+    cr: center of the blob, unit in pixel
     patch_size: scalar, at least 2* dr
     OK finally this is debugged.
     """
@@ -155,11 +168,27 @@ def circ_mask_patch(frame_size, cr, dr):
         mx = ind_patch[1] + c_lbound[1]
         msel_1 = np.logical_and(my >=0, mx>=0)
         msel_2 = np.logical_and(my< frame_size[0], mx < frame_size[1])
+        # within bound check
         msel = np.logical_and(msel_1, msel_2)
         ind_mask = (my[msel],mx[msel])
         return ind_mask
 
     # end of circ_mask
+
+def circ_mask_patch_group(crs, dr):
+    '''
+    return a list of patch indices
+    The frame size is not considered, so this method is kinda risky
+    '''
+    NC = len(crs)
+    y_mask, x_mask = circ_mask_origin(dr)
+    # each column is a blob's coordinate
+    y_centers = np.tile(y_mask, (NC,1)).T + crs[:,0]
+    x_centers = np.tile(x_mask, (NC,1)).T + crs[:,1]
+
+    return y_centers.T, x_centers.T
+
+
 
 def spheri_mask_patch(frame_size, cr, dr, pxl):
     '''
