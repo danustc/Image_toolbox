@@ -4,12 +4,13 @@ Last update: 11/17/2018, dramatically speed up! This is fantastic.
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
 This is the windows version. Don't mix it with the linux version!
 """
-package_path_win ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
+package_path_win ='/c/Users/Dan/Programs/Image_toolbox/src/'
 package_path_ubn='/home/sillycat/Programming/Python/Image_toolbox/src/'
 
 import os
 import sys
 import glob
+import time
 import numpy as np
 from PIL import Image as pilimage
 sys.path.append(package_path_ubn)
@@ -18,7 +19,7 @@ from src.preprocessing.segmentation import *
 #from src.preprocessing.drift_correction import DC_pipeline
 
 data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A3\\'
-data_rootpath_yst ='Z:/Dan/Data_Rock/2018-08-02/Aug02_2018_A3\\'
+data_rootpath_yst ='D:/Dan/Data_Rock/Sep24_2018_A3\\'
 data_rootpath_portable ='/media/sillycat/DanData/Jul26_2017_A3/'
 #folder_list = glob.glob(data_rootpath+"/A3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
@@ -56,10 +57,9 @@ class pipeline_tstacks(object):
                             3 --- extracted
                             -1 --- error
             '''
-            #self.CE_dpt = Cell_extract(im_stack = None, diam = cdiam) # the default diameter of the blob: 9
         return
 
-    def load_file(self, nfile, size_th = 600, verbose = True):
+    def load_file(self, nfile, size_th = 300, verbose = True):
         '''
         Load the nfileth data file.
         size_th: threshold of the data file. Unit: MB.
@@ -99,7 +99,8 @@ class pipeline_tstacks(object):
         for ns in nsamples:
             self.im.seek(ns)
             sample_stack.append(np.array(self.im))
-
+       
+        time.sleep(1)
         sample_stack = np.array(sample_stack)
 
         #sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
@@ -124,11 +125,14 @@ class pipeline_tstacks(object):
             for n_step in range(self.n_groups):
                 sf = self.stack_cut[n_step+1]
                 substack = []
-                for ii in np.arange(si, sf):
+                for ii in range(si, sf):
                     self.im.seek(ii)
+                    print(ii)
                     substack.append(np.array(self.im))
 
+                time.sleep(2)
                 substack = np.array(substack)
+                np.save('test_'+str(n_step), substack)
                 sub_time_series = stack_signal_propagate(substack, cblobs) # return
                 signal_series.append(sub_time_series)
                 si = sf
@@ -186,7 +190,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_portable+"A3_TS/")
+    folder_list = glob.glob(data_rootpath_yst+"A3_TS/")
     #folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:
         print(data_path)
