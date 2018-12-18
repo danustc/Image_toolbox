@@ -2,6 +2,7 @@
 This is a small module for finding patches in a 2d array (i.e., an image)
 '''
 import numpy as np
+
 from sklearn.feature_extraction.image import extract_patches_2d
 
 def stride_division(nl, n_pat, nstep, offset = 0):

@@ -3,11 +3,13 @@ cross align between a ZD stack and a group of TS stacks.
 last update: 07/07/2017
 '''
 
+package_path_ubn='/home/sillycat/Programming/Python/Image_toolbox/'
 package_path_win =r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\"
 import os
 import sys
 #sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 sys.path.append(package_path_win)
+sys.path.append(package_path_ubn)
 import numpy as np
 import glob
 from src.preprocessing import affine as Affine
@@ -192,15 +194,15 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 
 # ---------------------------Below is the testing function ---------------------
 def main():
-    #relative_path = 'Nov01_2016_A1/'
     #full_path = global_datapath + relative_path
-    folder_list = glob.glob(global_datapath_win+'Aug*A4\\')
+    #folder_list = glob.glob(global_datapath_win+'Aug*A4\\')
+    folder_list = glob.glob(portable_datapath+'Jul26/')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)
         afc_merge, fluo_merge = cross_align_folder(folder)
         compiled_data = data_integrate(afc_merge, fluo_merge)
-        np.savez(global_datapath_win + folder_date+'_merged', **compiled_data)
+        np.savez(portable_datapath + folder_date+'_merged', **compiled_data)
 
 if __name__ == '__main__':
     main()
