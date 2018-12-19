@@ -4,14 +4,11 @@ Cell extraction based on the blobs_log in skimage package
 Last update: 08/11/2018
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 """
-import sys
-sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-from src.shared_funcs.tifffunc import read_tiff
-from src.preprocessing.red_detect import redund_detect_merge
+from itbx.preprocessing.red_detect import redund_detect_merge
 from skimage import filters, restoration
 from skimage.feature import blob_log
-from src.shared_funcs.numeric_funcs import circ_mask_origin, circ_mask_patch_group, circ_mask_patch
+from itbx.shared_funcs.numeric_funcs import circ_mask_origin, circ_mask_patch_group, circ_mask_patch
 
 
 OL_blob = 0.8

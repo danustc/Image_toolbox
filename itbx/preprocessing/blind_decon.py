@@ -6,4 +6,3 @@ import matplotlib.pyplot as plt
 import pyfftw
 
 
-def fft_image()

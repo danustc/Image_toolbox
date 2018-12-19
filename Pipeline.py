@@ -15,7 +15,7 @@ import numpy as np
 from PIL import Image as pilimage
 sys.path.append(package_path_ubn)
 import matplotlib.pyplot as plt
-from src.preprocessing.segmentation import *
+from itbx.preprocessing.segmentation import *
 #from src.preprocessing.drift_correction import DC_pipeline
 
 data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A3\\'
@@ -99,7 +99,6 @@ class pipeline_tstacks(object):
         for ns in nsamples:
             self.im.seek(ns)
             sample_stack.append(np.array(self.im))
-       
         time.sleep(1)
         sample_stack = np.array(sample_stack)
 
