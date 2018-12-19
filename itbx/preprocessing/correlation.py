@@ -4,7 +4,7 @@ The core algorithms of cross correlation
 import pyfftw
 import numpy as np
 from scipy import signal
-from itbx.preprocessing import band_pass_dumb as bpd
+from itbx.preprocessing.image_filters import band_pass_dumb as bpd
 
 
 
