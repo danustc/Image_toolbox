@@ -11,7 +11,7 @@ import glob
 import tifffile as tf
 
 global_datapath_yst = 'D:/Dan/Data_Rock/\\'
-global_datapath_win  = 'D:/Data/2018-09-24/A3_TS/\\'
+global_datapath_win  = 'E:/2018-10-11/A1_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/Image_labs/'
 global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
@@ -155,7 +155,7 @@ class DC_pipeline(object):
 
 def main():
     # OK the shift-on-site problem also got solved.
-    folder_list = glob.glob(global_datapath_yst+"A*18.tif")
+    folder_list = glob.glob(global_datapath_win+  'A*.tif')
     print(folder_list)
     PL = DC_pipeline()
     for fname in folder_list:
