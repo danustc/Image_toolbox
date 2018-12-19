@@ -6,8 +6,6 @@ import numpy as np
 from scipy import signal
 from itbx.preprocessing.image_filters import band_pass_dumb as bpd
 
-
-
 def _phase_construct_(row_range, col_range, n_denom, forward = True, shift_r = False, shift_c = False ):
     '''
     row_range, col_range: the pixel range in rows and cols. If has two elements, then taken as the lower and upper bound; otherwise, taken as range(N).
