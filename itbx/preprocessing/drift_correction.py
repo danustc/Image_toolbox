@@ -1,19 +1,16 @@
 '''
 New trial of drift correction: Hanning filter is used to eliminate non-periodicity artifact.
 '''
-package_path_win  ='/c/Users/Admin/Documents/GitHub/Image_toolbox/src/'
-import sys
-sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
-sys.path.append(package_path_win)
 import os.path as opath
 import numpy as np
 from scipy.ndimage import interpolation
-import correlation
+from itbx.preprocessing import correlation
 import patch_finding
 from PIL import Image, ImageSequence, ImageStat
 import glob
 import tifffile as tf
 
+global_datapath_yst = 'D:/Dan/Data_Rock/\\'
 global_datapath_win  = 'D:/Data/2018-09-24/A3_TS/\\'
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/Image_labs/'
 global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
@@ -158,7 +155,7 @@ class DC_pipeline(object):
 
 def main():
     # OK the shift-on-site problem also got solved.
-    folder_list = glob.glob(global_datapath_win+"A*18.tif")
+    folder_list = glob.glob(global_datapath_yst+"A*18.tif")
     print(folder_list)
     PL = DC_pipeline()
     for fname in folder_list:

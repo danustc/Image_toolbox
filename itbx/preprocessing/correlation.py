@@ -4,6 +4,7 @@ The core algorithms of cross correlation
 import pyfftw
 import numpy as np
 from scipy import signal
+from itbx.preprocessing import band_pass_dumb as bpd
 
 
 
@@ -64,19 +65,6 @@ def ift_image(imf):
     return np.abs(img)
 
 
-
-def bpf_image(frame, p_low, p_high):
-    '''
-    create a bandpass filter
-    '''
-    ft_img = fft_image(frame, abs_only = False)
-    NY, NX = frame.shape
-    YL, YH = int(NY*p_low), int(NY*p_high)
-    XL, XH = int(NX*p_low), int(NX*p_high)
-    
-
-
-
 def pyfftw_container(ny, nx, bwd = False):
     '''
     construct a fftw container to perform fftw.
@@ -105,7 +93,7 @@ def high_pass(img_k, k_frac = 0.01):
     return valid_index
 
 
-def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, container_inv = None, hf = True, hanning_2d = None, up_rate= None):
+def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, container_inv = None, filter_freq = 'bp', filter_pattern = None, up_rate= None):
     '''
     calculate cross-correlation based shift between two images
     assumption: the two images are in same size.
@@ -121,15 +109,22 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
     if container_inv is None:
         container_inv = pyfftw_container(N,M, bwd = True)
 
-    if hf: # apply hanning filter to the images
-        if hanning_2d is None:
+    if filt_freq == 'han': # apply filter in the frequency domain to the images
+        if filter_pattern is None:
             hann_w = signal.hann(M)
             hann_h = signal.hann(N)
-            hanning_2d = np.outer(hann_h, hann_w)
+            filter_pattern = np.outer(hann_h, hann_w)
 
-        container_1(im_1*hanning_2d)
-        container_2(im_2*hanning_2d)
-    else: # not applying the hanning filter
+        container_1(im_1*filter_pattern)
+        container_2(im_2*filter_pattern)
+    elif filt_freq == 'bp': # not applying the hanning filter
+        if filter_pattern is None:
+            filter_pattern = bpd(N, M)
+
+        container_1(im_1*bpf)
+        container_2(im_2*bpf)
+    else:
+
         container_1(im_1)
         container_2(im_2)
 
@@ -187,7 +182,7 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
         ref_frame = pivot_slice
 
     for ii in range(nz):
-        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx, hf = True, hanning_2d = hfilter)[:2]
+        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx, hf = True, filter_pattern = hfilter)[:2]
         if verbose:
             print("slice ", ii+1, '-->', shy, shx)
         shift_coord[ii] = np.array([-shy, -shx])
