@@ -17,7 +17,7 @@ global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
 # ----------------- Here are some preparation functions----------------
 
-def stack_crop(raw_stack_path, patch_size = (512,512), seek_mode = 'center'):
+def stack_crop(raw_stack_path, patch_size = (512,600), seek_mode = 'center'):
     '''
     Update on 09/28/2018: Split this into two functions
     prepare a raw stack for drift alignment
@@ -85,13 +85,14 @@ def shift_stack_onfile(fpath, shift_coord, new_path = None, partial = False, sra
         print("save the whole stack.")
         with tf.TiffFile(fpath) as tif:
             raw_img = tif.asarray()
-            tif.close()
 
     n_slice, ny, nx = raw_img.shape
     # subpixel correction interpolation needed
     for ii in range(n_slice):
         frame = raw_img[ii]
-        raw_img[ii] = interpolation.shift(frame, shift = shift_coord[ii])
+        raw_img[ii] = interpolation.shift(frame, shift = shift_coord[ii], order = 0)
+        if (ii%100 == 0):
+            print("Finished ", ii, "slices.")
 
     if new_path is None:
         tf.imsave(fpath, raw_img.astype('uint16'))

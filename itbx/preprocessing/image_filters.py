@@ -4,7 +4,7 @@ A collection of image tools on the Fourier domain.
 import numpy as np
 
 
-def band_pass_dumb(NY, NX, k_low = 0.01, k_high = 0.50):
+def band_pass_dumb(NY, NX, k_low = 0.005, k_high = 0.50):
     '''
     the dumbest band pass filter.
     '''

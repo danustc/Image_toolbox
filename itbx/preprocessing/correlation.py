@@ -4,9 +4,7 @@ The core algorithms of cross correlation
 import pyfftw
 import numpy as np
 from scipy import signal
-from itbx.preprocessing import band_pass_dumb as bpd
-
-
+from itbx.preprocessing.image_filters import band_pass_dumb as bpd
 
 def _phase_construct_(row_range, col_range, n_denom, forward = True, shift_r = False, shift_c = False ):
     '''
@@ -109,7 +107,7 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
     if container_inv is None:
         container_inv = pyfftw_container(N,M, bwd = True)
 
-    if filt_freq == 'han': # apply filter in the frequency domain to the images
+    if filter_freq == 'han': # apply filter in the frequency domain to the images
         if filter_pattern is None:
             hann_w = signal.hann(M)
             hann_h = signal.hann(N)
@@ -117,19 +115,18 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
 
         container_1(im_1*filter_pattern)
         container_2(im_2*filter_pattern)
-    elif filt_freq == 'bp': # not applying the hanning filter
-        if filter_pattern is None:
-            filter_pattern = bpd(N, M)
-
-        container_1(im_1*bpf)
-        container_2(im_2*bpf)
     else:
-
         container_1(im_1)
         container_2(im_2)
 
     ft_1 = container_1.get_output_array()
     ft_2 = container_2.get_output_array()
+    if filter_freq == 'bp':
+        if filter_pattern is None:
+            filter_pattern = np.fft.fftshift(bpd(N, M))
+        
+        ft_1 = ft_1* filter_pattern
+        ft_2 = ft_2* filter_pattern
 
     F_prod = np.conj(ft_1)*ft_2
     phase_spec = F_prod/np.absolute(F_prod) # phase_spec
@@ -182,7 +179,7 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
         ref_frame = pivot_slice
 
     for ii in range(nz):
-        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx, filter_freq = bp, filter_pattern = hfilter)[:2]
+        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx, filter_freq = 'bp', filter_pattern = hfilter)[:2]
         if verbose:
             print("slice ", ii+1, '-->', shy, shx)
         shift_coord[ii] = np.array([-shy, -shx])
