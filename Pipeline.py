@@ -5,7 +5,6 @@ Although the low-frequency background is subtracted, cell extraction is still pe
 This is the windows version. Don't mix it with the linux version!
 """
 package_path_win ='/c/Users/Dan/Programs/Image_toolbox/src/'
-package_path_ubn='/home/sillycat/Programming/Python/Image_toolbox/src/'
 
 import os
 import sys
@@ -13,10 +12,8 @@ import glob
 import time
 import numpy as np
 from PIL import Image as pilimage
-sys.path.append(package_path_ubn)
 import matplotlib.pyplot as plt
 from itbx.preprocessing.segmentation import *
-#from src.preprocessing.drift_correction import DC_pipeline
 
 data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A3\\'
 data_rootpath_yst ='D:/Dan/Data_Rock/Sep24_2018_A3\\'
