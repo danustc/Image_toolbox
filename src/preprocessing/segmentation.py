@@ -7,7 +7,6 @@ The class is supposed to have nothing to do with file name issue. I need to addr
 import sys
 sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
-from src.shared_funcs.tifffunc import read_tiff
 from src.preprocessing.red_detect import redund_detect_merge
 from skimage import filters, restoration
 from skimage.feature import blob_log
@@ -130,7 +129,7 @@ def stack_reextract(raw_stack, coords):
     '''
     crs = coords[:,:2]
     dr = coords[:,2].min() #Take the mininum of the radius
-    nz, ny, nx = raw_stack.shape
+    #nz, ny, nx = raw_stack.shape
     YC, XC = circ_mask_patch_group(crs, dr)
     real_sig = raw_stack[:, YC.astype('int'), XC.astype('int')].mean(axis = 2)
 
