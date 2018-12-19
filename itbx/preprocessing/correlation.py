@@ -124,7 +124,7 @@ def cross_corr_shift_frame(im_1, im_2, container_1 = None, container_2 = None, c
     if filter_freq == 'bp':
         if filter_pattern is None:
             filter_pattern = np.fft.fftshift(bpd(N, M))
-        
+
         ft_1 = ft_1* filter_pattern
         ft_2 = ft_2* filter_pattern
 
@@ -168,7 +168,8 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
     shift_coord = np.zeros([nz, 2])
     hann_w = signal.hann(nx)
     hann_h = signal.hann(ny)
-    hfilter = np.outer(hann_h, hann_w)
+    #hfilter = np.outer(hann_h, hann_w)
+    bpf = np.fft.fftshift(bpd(ny,nx))
 
     container_1 = pyfftw_container(ny, nx)
     container_2 = pyfftw_container(ny, nx)
@@ -179,7 +180,7 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
         ref_frame = pivot_slice
 
     for ii in range(nz):
-        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx, filter_freq = 'bp', filter_pattern = hfilter)[:2]
+        shy, shx  = cross_corr_shift_frame(ref_frame, stack[ii], container_1, container_2, container_invx, filter_freq = 'bp', filter_pattern = bpf)[:2]
         if verbose:
             print("slice ", ii+1, '-->', shy, shx)
         shift_coord[ii] = np.array([-shy, -shx])
