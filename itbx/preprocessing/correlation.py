@@ -51,6 +51,19 @@ def fft_image(img, abs_only = True):
     else:
         return ft_img
 
+def ift_image(imf):
+    '''
+    inversely Fourier transform the images
+    '''
+    NY,NX = imf.shape
+    ct = pyfftw_container(NY, NX, bwd = True)
+    imf = np.fft.fftshift(imf) # shift the imf first
+    ct(imf)
+    img = ct.get_output_array()
+
+    return np.abs(img)
+
+
 
 def bpf_image(frame, p_low, p_high):
     '''
@@ -186,5 +199,4 @@ def cross_corr_stack_self(stack, adj_ref = False, verbose = True, pivot_slice = 
             stack[ii+1] = shifted_frame
 
     return shift_coord # Hmmmm, this is much nicer.
-
 

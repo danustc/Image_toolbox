@@ -3,7 +3,8 @@ import glob
 import matplotlib.pyplot as plt
 from PIL import Image
 from scipy.signal import argrelextrema
-from correlation import fft_image
+from correlation import fft_image,ift_image
+from itbx.preprocessing import image_filters
 
 def binning_cutoffs(frame_size, n_frames = 3, grid_size = 10):
     '''
@@ -143,9 +144,12 @@ def main():
     ax2.imshow(pc_range, cmap = 'Greens_r')
     plt.show()
     plt.close()
-
-    ft_frame = fft_image(frame)
-    plt.imshow(np.log(ft_frame))
+    NY, NX = frame.shape
+    ft_frame = fft_image(frame, abs_only = False)
+    mask = image_filters.band_pass_dumb(NY, NX, 0.005, 0.50)
+    imf = ft_frame*mask
+    img = ift_image(imf)
+    plt.imshow(img, cmap = 'Greys_r')
     plt.show()
     pim.close()
 
