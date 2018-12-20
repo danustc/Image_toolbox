@@ -10,7 +10,6 @@ package_path_ubn='/home/sillycat/Programming/Python/Image_toolbox/src/'
 import os
 import sys
 import glob
-import time
 import numpy as np
 from PIL import Image as pilimage
 import tifffile as tf
@@ -20,7 +19,7 @@ from src.preprocessing.segmentation import *
 #from src.preprocessing.drift_correction import DC_pipeline
 
 data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A3\\'
-data_rootpath_yst ='D:/Dan/Data_Rock/Sep24_2018_B3\\'
+data_rootpath_yst ='D:/Dan/Data_Rock/2018-08-23/Aug23_2018_B5\\'
 data_rootpath_portable ='/media/sillycat/DanData/Jul26_2017_A3/'
 #folder_list = glob.glob(data_rootpath+"/A3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
@@ -191,7 +190,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_yst+"B3_TS/")
+    folder_list = glob.glob(data_rootpath_yst+"B5_TS/")
     #folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:
         print(data_path)
