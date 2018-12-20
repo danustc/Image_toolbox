@@ -146,10 +146,11 @@ def main():
     plt.close()
     NY, NX = frame.shape
     ft_frame = fft_image(frame, abs_only = False)
-    mask = image_filters.band_pass_dumb(NY, NX, 0.005, 0.50)
+    mask = image_filters.band_pass_dumb(NY, NX, 0.015, 0.50)
     imf = ft_frame*mask
     img = ift_image(imf)
-    plt.imshow(img, cmap = 'Greys_r')
+    plt.imshow(np.abs(img), cmap = 'Greys_r')
+    #plt.plot(np.abs(imf[int(NY/2)]) )
     plt.show()
     pim.close()
 

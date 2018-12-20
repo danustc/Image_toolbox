@@ -4,8 +4,6 @@ Last update: 11/17/2018, dramatically speed up! This is fantastic.
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
 This is the windows version. Don't mix it with the linux version!
 """
-package_path_win ='/c/Users/Dan/Programs/Image_toolbox/src/'
-
 import os
 import sys
 import glob
