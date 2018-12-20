@@ -33,7 +33,7 @@ class pipeline_tstacks(object):
     3. Report progress.
     '''
 
-    def __init__(self, work_folder, fname_flags = '_ZP_', cdiam = 9):
+    def __init__(self, work_folder, fname_flags = '_ZP_', cdiam = 8.5):
         '''
         work_folder: the folder that contains all the .tif files
         '''
@@ -108,7 +108,7 @@ class pipeline_tstacks(object):
 
         #sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
-        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 5)
+        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 5.5)
         self.cblobs = stack_redundreduct(blobs_sample, th = 5) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
@@ -157,7 +157,7 @@ class pipeline_tstacks(object):
         self.im.close()
         self.process_log[self.current_file] = 3
 
-        sample_frame = frame_deblur(sample_frame, sig = 5, Nit = 21)
+        sample_frame = frame_deblur(sample_frame, sig = 5.5, Nit = 21)
         fig_display  = plt.figure(figsize = (8,5.6))
         ax = fig_display.add_subplot(111)
         ax.imshow(sample_frame, cmap = 'Greys_r')
