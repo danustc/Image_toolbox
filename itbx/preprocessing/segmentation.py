@@ -5,11 +5,7 @@ Last update: 08/11/2018
 The class is supposed to have nothing to do with file name issue. I need to address it out of the class.
 """
 import numpy as np
-<<<<<<< HEAD:src/preprocessing/segmentation.py
-from src.preprocessing.red_detect import redund_detect_merge
-=======
 from itbx.preprocessing.red_detect import redund_detect_merge
->>>>>>> 79b591d8370715e60560b3536c216a30ee0cf126:itbx/preprocessing/segmentation.py
 from skimage import filters, restoration
 from skimage.feature import blob_log
 from itbx.shared_funcs.numeric_funcs import circ_mask_origin, circ_mask_patch_group, circ_mask_patch
@@ -85,7 +81,7 @@ def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = Tr
     # now, let's calculate threshold
     NY, NX = filled_frame.shape
     #th = (np.mean(filled_frame) - np.std(filled_frame))/7. # This is not quite reliable
-    th = 35.0
+    th = 32.0
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)

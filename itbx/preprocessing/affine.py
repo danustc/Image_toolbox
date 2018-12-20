@@ -3,11 +3,8 @@ This file loads the affine transformation output (2 triangle coordinates) and ge
 The function trans_reading reads the triangle coordinates.
 Last update: 04/25/2017
 '''
-import sys
-sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import numpy as np
 import numpy.linalg as linalg
-import src.preprocessing.stack_operations as st_op
 
 global_datapath = '/home/sillycat/Programming/Python/Image_toolbox/data_test/' # this is the global path to the test data sets.
 # --------  small functions for inner transformation ------------------

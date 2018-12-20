@@ -3,19 +3,14 @@ cross align between a ZD stack and a group of TS stacks.
 last update: 07/07/2017
 '''
 
-package_path_ubn='/home/sillycat/Programming/Python/Image_toolbox/'
-package_path_win =r"C:\Users/Admin/Documents/GitHub/Image_toolbox\\"
 import os
-import sys
 #sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
-sys.path.append(package_path_win)
-sys.path.append(package_path_ubn)
 import numpy as np
 import glob
-from src.preprocessing import affine as Affine
-from src.preprocessing.red_detect import redund_detect_merge
+from itbx.preprocessing import affine as Affine
+from itbx.preprocessing.red_detect import redund_detect_merge
 global_datapath_win = r"D:\/Data/2018-08-02\\"
-global_datapath_yes= r"Z:\/Dan/Data_Rock/2018-08-02\\"
+global_datapath_yst= "D:\/Dan/Data_Rock/2018-08-02\\"
 #global_datapath = r"X:\/Zebrafish_ispim/2018-04-16\\"
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/'
@@ -195,18 +190,14 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 # ---------------------------Below is the testing function ---------------------
 def main():
     #full_path = global_datapath + relative_path
-<<<<<<< HEAD:src/preprocessing/crossalign_pipeline.py
-    folder_list = glob.glob(global_datapath_win+'Aug*A3\\')
-=======
+    folder_list = glob.glob(global_datapath_yst+'Aug*/\\')
     #folder_list = glob.glob(global_datapath_win+'Aug*A4\\')
-    folder_list = glob.glob(portable_datapath+'Jul26/')
->>>>>>> 79b591d8370715e60560b3536c216a30ee0cf126:itbx/preprocessing/crossalign_pipeline.py
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)
         afc_merge, fluo_merge = cross_align_folder(folder)
         compiled_data = data_integrate(afc_merge, fluo_merge)
-        np.savez(portable_datapath + folder_date+'_merged', **compiled_data)
+        np.savez(global_datapath_yst + folder_date+'_merged', **compiled_data)
 
 if __name__ == '__main__':
     main()
