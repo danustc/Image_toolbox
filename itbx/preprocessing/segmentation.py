@@ -81,7 +81,7 @@ def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = Tr
     # now, let's calculate threshold
     NY, NX = filled_frame.shape
     #th = (np.mean(filled_frame) - np.std(filled_frame))/7. # This is not quite reliable
-    th = 35.0
+    th = 32.0
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
@@ -127,7 +127,7 @@ def stack_reextract(raw_stack, coords):
     '''
     crs = coords[:,:2]
     dr = coords[:,2].min() #Take the mininum of the radius
-    nz, ny, nx = raw_stack.shape
+    #nz, ny, nx = raw_stack.shape
     YC, XC = circ_mask_patch_group(crs, dr)
     real_sig = raw_stack[:, YC.astype('int'), XC.astype('int')].mean(axis = 2)
 
