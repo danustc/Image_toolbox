@@ -1,6 +1,6 @@
 """
 Created by Dan on 08/15/2016, a test of data processing pipeline
-Last update: 11/17/2018, dramatically speed up! This is fantastic.
+Last update: 12/24/2018, add "fake cells" into the dataset.
 Although the low-frequency background is subtracted, cell extraction is still performed on the uncorrected image. This may help eliminating artifacts.
 This is the windows version. Don't mix it with the linux version!
 """
@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image as pilimage
 import matplotlib.pyplot as plt
 from itbx.preprocessing.segmentation import *
+import itbx.preprocessing.background_estimation as back_es
 
 data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A3\\'
 data_rootpath_yst ='D:/Dan/Data_Rock/Sep24_2018_A3\\'

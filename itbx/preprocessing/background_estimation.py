@@ -1,10 +1,24 @@
 import numpy as np
 import glob
+import os.path as opath
 import matplotlib.pyplot as plt
 from PIL import Image
 from scipy.signal import argrelextrema
 from correlation import fft_image,ift_image
 from itbx.preprocessing import image_filters
+
+
+def _voxel_recover_(vr, vc, grid_size = 10):
+    '''
+    a simple function that recoveres the center of voxels in the original image
+    '''
+    hg = int(grid_size //2)
+    cr = vr*grid_size + hg
+    cc = vc*grid_size + hg
+    return cr,  cc
+
+
+
 
 def binning_cutoffs(frame_size, n_frames = 3, grid_size = 10):
     '''
@@ -91,8 +105,7 @@ def _diff_peaks_(hist):
     return peaks[0], valleys[0]
 
 
-
-def background_found(pim, grid_size, nslice = 3):
+def background_found(pim, nslice = 3):
     '''
     input: a PIL.Image handle, grid size (unit of pixels)
     '''
@@ -121,38 +134,35 @@ def background_found(pim, grid_size, nslice = 3):
 
 
 
+
+
+
 def main():
     data_path = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
     plist = glob.glob(data_path + 'rg*.tif')
     pname = plist[10]
     print(pname)
+    pdir = opath.dirname(pname)
+    pbase = opath.basename(pname)
     pim = Image.open(pname)
     frame = np.array(pim)
-    PR, PC = binning_cutoffs(frame.shape)
+    PR, PC = binning_cutoffs(frame.shape, grid_size = 10)
     pcbins = frame_binning(frame,PR, PC)
 
     print(frame.shape)
-    vb = background_found(pim, 10, nslice = 5)
+    vb = background_found(pim, nslice = 5)
     print(vb)
     pc_range = np.logical_and(pcbins > vb[0], pcbins < vb[1])
-    rr, cc = np.where(pc_range)
+    vr, vc = np.where(pc_range)
+    cr, cc = _voxel_recover_(vr, vc, grid_size = 10)
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    ax1.imshow(pcbins, cmap = 'Greys_r')
-    ax1.scatter(cc,rr, color = 'r', s = 1)
+    ax1.imshow(frame, cmap = 'Greys_r')
+    ax1.scatter(cc,cr, color = 'r', s = 1)
     ax2.imshow(pc_range, cmap = 'Greens_r')
+
     plt.show()
-    plt.close()
-    NY, NX = frame.shape
-    ft_frame = fft_image(frame, abs_only = False)
-    mask = image_filters.band_pass_dumb(NY, NX, 0.015, 0.50)
-    imf = ft_frame*mask
-    img = ift_image(imf)
-    plt.imshow(np.abs(img), cmap = 'Greys_r')
-    #plt.plot(np.abs(imf[int(NY/2)]) )
-    plt.show()
-    pim.close()
 
 if __name__ == '__main__':
     main()
