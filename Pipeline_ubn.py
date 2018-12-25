@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 from itbx.preprocessing.segmentation import *
 import itbx.preprocessing.background_estimation as back_es
 
-data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A3\\'
-data_rootpath_yst ='D:/Dan/Data_Rock/Sep24_2018_A3\\'
-data_rootpath_portable ='/media/sillycat/DanData/Jul26_2017_A3/'
-#folder_list = glob.glob(data_rootpath+"/A3_TS\\")
+data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_B5\\'
+data_rootpath_yst ='D:/Dan/Data_Rock/Sep24_2018_B5\\'
+data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_B5/'
+#folder_list = glob.glob(data_rootpath+"/B5_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
 
 class pipeline_tstacks(object):
@@ -105,7 +105,7 @@ class pipeline_tstacks(object):
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
 
-    def process(self, verbose = True):
+    def process(self, verbose = True, add_fake = True):
         '''
         suppose the sampling has been done, and current file has been processed.
         after the sampling and extraction of blobs has been done, calculate F values in each blob through time.
@@ -113,6 +113,17 @@ class pipeline_tstacks(object):
         '''
         cblobs = self.cblobs
         fname_stem = os.path.splitext(self.raw_list[self.current_file])[0]
+        if add_fake:
+            fake_series = [] # create an empty list, which should be merged later
+            frame = np.array(self.im)
+            PR, PC = back_es.binning_cutoffs(frame.shape, grid_size = 10)
+            pcbins = back_es.frame_binning(frame, PR, PC)
+            vb = back_es.background_found(self.im, nslice = 5)
+            print(vb)
+            pc_range = np.logical_and(pcbins > vb[0], pcbins < vb[1])
+            vr, vc = np.where(pc_range)
+            cr, cc = back_es._voxel_recover_(vr, vc, grid_size = 10)
+            fblobs = np.c_[cr, cc]
         # stepload or one-time load?
         if(self.stepload):
             signal_series = [] # create an empty list, which should be merged later
@@ -122,20 +133,24 @@ class pipeline_tstacks(object):
                 substack = []
                 for ii in range(si, sf):
                     self.im.seek(ii)
-                    print(ii)
                     substack.append(np.array(self.im))
 
                 time.sleep(2)
                 substack = np.array(substack)
-                np.save('test_'+str(n_step), substack)
-                sub_time_series = stack_signal_propagate(substack, cblobs) # return
+                sub_time_series = stack_reextract(substack, cblobs) # return
                 signal_series.append(sub_time_series)
+                if add_fake:
+                    sub_fake_series = stack_reextract(substack, fblobs, dr = 5)
+                    fake_series.append(sub_fake_series)
                 si = sf
+
                 if verbose:
                     print("Processed step ", n_step)
             # now, let's concatenate the substacks in the list and compile it into a new dataset 
             sample_frame = substack[0]
             ts_signal = np.concatenate(tuple(signal_series), axis = 0)
+            if add_fake:
+                ts_fake = np.concatenate(tuple(fake_series), axis = 0)
 
         else: # one-time load
             raw_stack = []
@@ -145,10 +160,13 @@ class pipeline_tstacks(object):
 
             raw_stack = np.array(raw_stack)
             #sample_frame = raw_stack[0]
-            ts_signal = stack_signal_propagate(raw_stack, cblobs)
+            ts_signal = stack_reextract(raw_stack, cblobs)
 
         self.ts_dataset = position_signal_compile(cblobs, ts_signal)
         np.savez(fname_stem, **self.ts_dataset)
+        if add_fake:
+            self.fk_dataset = position_signal_compile(fblobs, ts_fake)
+            np.savez(fname_stem+'_fk', **self.fk_dataset)
         self.im.close()
         self.process_log[self.current_file] = 3
 
@@ -165,7 +183,7 @@ class pipeline_tstacks(object):
 
 
 
-    def run_pipeline(self, n_samples, verbose = True):
+    def run_pipeline(self, n_samples, verbose = True, add_fake = True):
         '''
         run the pipeline
         '''
@@ -179,13 +197,14 @@ class pipeline_tstacks(object):
             if verbose:
                 print("Current file:", self.current_file)
             self.sampling(n_samples)
-            self.process()
+            self.process(verbose, add_fake)
+
 
     # should I also define an exit function? 
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_yst+"A3_TS/")
+    folder_list = glob.glob(data_rootpath_portable+"B5_TS/")
     #folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:
         print(data_path)

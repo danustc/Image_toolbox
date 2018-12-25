@@ -1,6 +1,4 @@
 import os
-import sys
-sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import glob
 import numpy as np
 import subprocess
@@ -86,10 +84,10 @@ def anatomical_labeling(coord_file, arti_clear = False, shift_set = 0, save_rawc
     '''
     print(coord_file)
     if coord_file[-4] == '.':
-        dest_path = coord_file.split('.')[0]+'_lb'
+        dest_path = coord_file.split('.')[0]+'_fk' # changed by Dan on 12/25 to save fake cells
         data = np.load(coord_file)
     else:
-        dest_path = coord_file+'_lb'
+        dest_path = coord_file+'_fk'
         data = np.load(coord_file+'.npz')
 
     MD = maskdb.mask_db()
@@ -292,7 +290,7 @@ def reg_annotate():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_rootpath_portable+'Jul*dff.npz')
+    response_list = glob.glob(data_rootpath_portable+'Jul*fkdff.npz')
     print(response_list)
 
     for response_file in response_list:

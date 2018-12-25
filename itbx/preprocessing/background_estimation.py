@@ -4,7 +4,6 @@ import os.path as opath
 import matplotlib.pyplot as plt
 from PIL import Image
 from scipy.signal import argrelextrema
-from correlation import fft_image,ift_image
 from itbx.preprocessing import image_filters
 
 
@@ -118,8 +117,6 @@ def background_found(pim, nslice = 3):
     mrange = np.max(sub_stack.flatten()*0.6)
 
     hist, be = np.histogram(sub_stack, bins = 100, range = (100, mrange)) # create a intensity distribution of histogram
-    plt.bar(be[:-1], hist, width = 15)
-    plt.show()
     pp, vv = _diff_peaks_(hist)
     ivp = np.searchsorted(pp, vv)
     print(ivp)
@@ -155,6 +152,8 @@ def main():
     pc_range = np.logical_and(pcbins > vb[0], pcbins < vb[1])
     vr, vc = np.where(pc_range)
     cr, cc = _voxel_recover_(vr, vc, grid_size = 10)
+    cblobs = np.c_[cr,cc]
+    print(cblobs.shape)
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)

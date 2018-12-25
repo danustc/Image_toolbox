@@ -1,9 +1,7 @@
-import sys
-sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 import h5py
 import numpy as np
 import os
-import src.shared_funcs.numeric_funcs as numfunc
+import itbx.shared_funcs.numeric_funcs as numfunc
 
 
 db_path = '/home/sillycat/Programming/Python/cmtkRegistration/MaskDatabase.mat'

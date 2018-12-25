@@ -120,13 +120,14 @@ def frame_reextract(raw_frame, coords):
     return real_sig
 
 
-def stack_reextract(raw_stack, coords):
+def stack_reextract(raw_stack, coords, dr = None):
     '''
     A new version of the function. Instead of recalculating the ROI patches each time, Let's calculate it only once.
     rois: a list of coordinates
     '''
-    crs = coords[:,:2]
-    dr = coords[:,2].min() #Take the mininum of the radius
+    crs = coords[:,[0,1]]
+    if dr is None:
+        dr = coords[:,2].min() #Take the mininum of the radius
     #nz, ny, nx = raw_stack.shape
     YC, XC = circ_mask_patch_group(crs, dr)
     real_sig = raw_stack[:, YC.astype('int'), XC.astype('int')].mean(axis = 2)
@@ -223,24 +224,6 @@ def position_signal_compile(coords, signals):
     blob_time_stack['xy'] = coords
     blob_time_stack['data'] = signals
     return blob_time_stack
-
-def stack_signal_propagate(stack, blob_lists):
-    '''
-    OMG... This so badly written.
-    blob_lists: it contains 3 columns: y, x, dr.
-    '''
-        # ----- end else, n_frame is an array instead of a slice number
-    #train_signal = stack_reextract_old(stack, blob_lists) # updated on 07/07/2017
-    train_signal = stack_reextract(stack, blob_lists) # updated on 07/07/2017
-
-    '''
-    for z_frame in range(self.n_slice):
-        z_signal = frame_reextract(stack[z_frame], blob_lists)
-        train_signal[z_frame, :] = z_signal
-    '''
-    return train_signal
-# done with stack_signal_propagate
-
 
 #-----------------------------------------------------------------------------------
 class Cell_extract(object):
