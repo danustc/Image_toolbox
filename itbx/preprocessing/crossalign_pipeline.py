@@ -10,7 +10,7 @@ import glob
 from itbx.preprocessing import affine as Affine
 from itbx.preprocessing.red_detect import redund_detect_merge
 global_datapath_win = r"D:\/Data/2018-08-02\\"
-global_datapath_yst= "D:\/Dan/Data_Rock/2018-08-23\\"
+global_datapath_yst= "D:\/Dan/Data_Rock/\\"
 #global_datapath = r"X:\/Zebrafish_ispim/2018-04-16\\"
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/'
@@ -190,7 +190,7 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 # ---------------------------Below is the testing function ---------------------
 def main():
     #full_path = global_datapath + relative_path
-    folder_list = glob.glob(global_datapath_yst+'Aug*/\\')
+    folder_list = glob.glob(global_datapath_yst+'Sep*/\\')
     #folder_list = glob.glob(global_datapath_win+'Aug*A4\\')
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))

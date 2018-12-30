@@ -19,7 +19,7 @@ from itbx.preprocessing.segmentation import *
 #from src.preprocessing.drift_correction import DC_pipeline
 
 data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_A3\\'
-data_rootpath_yst ='D:/Dan/Data_Rock/2018-08-02/Aug02_2018_B3\\'
+data_rootpath_yst ='D:/Dan/Data_Rock/Sep24_2018_B2/\\'
 data_rootpath_portable ='/media/sillycat/DanData/Jul26_2017_A3/'
 #folder_list = glob.glob(data_rootpath+"/A3_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
@@ -108,7 +108,7 @@ class pipeline_tstacks(object):
 
         #sample_stack = self.tif_handle.asarray()[nsamples] # this step is pretty time consuming
 
-        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 5.5)
+        blobs_sample = stack_blobs(sample_stack, self.cdiam, sig = 5.0)
         self.cblobs = stack_redundreduct(blobs_sample, th = 5) # redundancy removed substack, saves the y,x coordinates of the extracted blobs
         if verbose:
             print("Done with sampling! Number of blobs:", self.cblobs.shape[0])
@@ -157,7 +157,7 @@ class pipeline_tstacks(object):
         self.im.close()
         self.process_log[self.current_file] = 3
 
-        sample_frame = frame_deblur(sample_frame, sig = 5.5, Nit = 21)
+        sample_frame = frame_deblur(sample_frame, sig = 5.0, Nit = 21)
         fig_display  = plt.figure(figsize = (8,5.6))
         ax = fig_display.add_subplot(111)
         ax.imshow(sample_frame, cmap = 'Greys_r')
@@ -190,7 +190,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_yst+"B3_TS/")
+    folder_list = glob.glob(data_rootpath_yst+"B2_TS/")
     #folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:
         print(data_path)
