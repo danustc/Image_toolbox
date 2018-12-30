@@ -1,6 +1,5 @@
 import h5py
 import numpy as np
-import os
 import itbx.shared_funcs.numeric_funcs as numfunc
 
 

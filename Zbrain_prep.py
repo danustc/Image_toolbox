@@ -1,19 +1,15 @@
-import sys
-package_path_win ='/c/Users/Admin/Documents/GitHub/Image_toolbox/' # for windows
-sys.path.append(package_path_win)
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import glob
 import tifffile as tf
-import src.registration.coord_transform as coord_trans
-import src.preprocessing.stack_operations as stack_operations
-import src.registration.maskdb_parsing as maskdb
-from src.shared_funcs.numeric_funcs import circ_mask_patch, spheri_mask_patch
+import itbx.registration.coord_transform as coord_trans
+import itbx.registration.maskdb_parsing as maskdb
+from itbx.shared_funcs.numeric_funcs import circ_mask_patch, spheri_mask_patch
 #---------------Some global variables--------------------
 
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
-global_datapath_win = 'D:\\/Data/2018-12-03/'
+global_datapath_win = 'E:\\/2018-10-11/'
 #sys.path.append('/home/sillycat/Programming/Python/Image_toolbox/')
 portable_datapath = '/media/sillycat/DanData/'
 regist_path = '/home/sillycat/Programming/Python/Image_toolbox/cmtkRegistration/'
@@ -24,7 +20,7 @@ def scr_padding():
     '''
     pad all the ZD stacks with zeros and resave
     '''
-    ZD_list = glob.glob(global_datapath_win+'Dec*/*ZD*.tif') # This is for ubuntu
+    ZD_list = glob.glob(global_datapath_win+'Oct*/*ZD*.tif') # This is for ubuntu
     #ZD_list = glob.glob(global_datapath+'Jun*/*ZD*.tif') # This is for windows 
     print(ZD_list)
     for ZD_file in ZD_list:

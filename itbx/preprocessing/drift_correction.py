@@ -17,7 +17,7 @@ global_datapath_ptb = '/media/sillycat/DanData/Jul19_2017_A2/A2_TS/'
 
 # ----------------- Here are some preparation functions----------------
 
-def stack_crop(raw_stack_path, patch_size = (512,600), seek_mode = 'center'):
+def stack_crop(raw_stack_path, patch_size = (512,640), seek_mode = 'center'):
     '''
     Update on 09/28/2018: Split this into two functions
     prepare a raw stack for drift alignment
@@ -28,7 +28,6 @@ def stack_crop(raw_stack_path, patch_size = (512,600), seek_mode = 'center'):
     # 1. take the first slice and calculate patch
     raw_dataset = tf.imread(raw_stack_path)
     n_frames, h, w = raw_dataset.shape# width and height
-    print(w,h)
     ph, pw = patch_size
 
     if seek_mode == 'center':
@@ -39,7 +38,6 @@ def stack_crop(raw_stack_path, patch_size = (512,600), seek_mode = 'center'):
     else:
         # find the optimal patch
         slice_0 = raw_dataset[0]
-        print(slice_0.shape)
         _, rcs = patch_finding.patch_opt(slice_0, stride = 15)
         iupper = rcs[0] # row start
         ileft = rcs[1]  # column start
@@ -129,7 +127,8 @@ class DC_pipeline(object):
         self.stack_preparation()
 
     def stack_preparation(self, pad_width = 20):
-        cropped_stack = stack_crop(self.path, seek_mode = 'opt')
+        cropped_stack = stack_crop(self.path, seek_mode = 'center')
+        print(cropped_stack.shape)
         if pad_width > 0:
             self.hf_stack = np.pad(cropped_stack, [(0,0), (pad_width,pad_width),(pad_width,pad_width)], mode = 'constant') # hanning-filtered
 
@@ -156,7 +155,7 @@ class DC_pipeline(object):
 
 def main():
     # OK the shift-on-site problem also got solved.
-    folder_list = glob.glob(global_datapath_win+  'A*.tif')
+    folder_list = glob.glob(global_datapath_win+  'A*21.tif')
     print(folder_list)
     PL = DC_pipeline()
     for fname in folder_list:

@@ -9,7 +9,7 @@ import glob
 from itbx.preprocessing import affine as Affine
 from itbx.preprocessing.red_detect import redund_detect_merge
 global_datapath_win = r"D:\/Data/2018-08-02\\"
-global_datapath_yes= r"Z:\/Dan/Data_Rock/2018-08-23\\"
+global_datapath_yst= "D:\/Dan/Data_Rock/\\"
 #global_datapath = r"X:\/Zebrafish_ispim/2018-04-16\\"
 global_datapath_ubn = '/home/sillycat/Programming/Python/data_test/'
 portable_datapath = '/media/sillycat/DanData/'
@@ -189,14 +189,22 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 # ---------------------------Below is the testing function ---------------------
 def main():
     #full_path = global_datapath + relative_path
+    folder_list = glob.glob(global_datapath_yst+'Sep*/\\')
     #folder_list = glob.glob(global_datapath_win+'Aug*A4\\')
+<<<<<<< HEAD
     folder_list = glob.glob(portable_datapath+'Jul*/')
+=======
+>>>>>>> 87687bc426e4362185056b43baed68dee6c7358c
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)
         afc_merge, fluo_merge = cross_align_folder(folder)
         compiled_data = data_integrate(afc_merge, fluo_merge)
+<<<<<<< HEAD
         np.savez(portable_datapath + folder_date+'_fake', **compiled_data)
+=======
+        np.savez(global_datapath_yst + folder_date+'_merged', **compiled_data)
+>>>>>>> 87687bc426e4362185056b43baed68dee6c7358c
 
 if __name__ == '__main__':
     main()
