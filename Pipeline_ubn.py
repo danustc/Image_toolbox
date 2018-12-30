@@ -124,6 +124,7 @@ class pipeline_tstacks(object):
             vr, vc = np.where(pc_range)
             cr, cc = back_es._voxel_recover_(vr, vc, grid_size = 10)
             fblobs = np.c_[cr, cc]
+            fblobs = fblobs[:,::5] # added by Dan
         # stepload or one-time load?
         if(self.stepload):
             signal_series = [] # create an empty list, which should be merged later
@@ -204,6 +205,7 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
+    folder_list = glob.glob(data_rootpath_portable+"Jul/")
     folder_list = glob.glob(data_rootpath_portable+"B5_TS/")
     #folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:

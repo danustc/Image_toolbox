@@ -103,7 +103,6 @@ class pipeline_tstacks(object):
 #        for ns in nsamples:
 #            self.im.seek(ns)
 #            sample_stack.append(np.array(self.im))
-       
 #        time.sleep(1)
 #        sample_stack = np.array(sample_stack)
 
