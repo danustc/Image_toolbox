@@ -16,7 +16,7 @@ import itbx.preprocessing.background_estimation as back_es
 
 data_rootpath_win ='D:/Data/2018-08-02/Aug02_2018_B5\\'
 data_rootpath_yst ='D:/Dan/Data_Rock/Sep24_2018_B5\\'
-data_rootpath_portable ='/media/sillycat/DanData/Jul19_2017_B5/'
+data_rootpath_portable ='/media/sillycat/DanData/'
 #folder_list = glob.glob(data_rootpath+"/B5_TS\\")
 # -----------------------------------------Big classes-------------------------------------------------
 
@@ -118,13 +118,14 @@ class pipeline_tstacks(object):
             frame = np.array(self.im)
             PR, PC = back_es.binning_cutoffs(frame.shape, grid_size = 10)
             pcbins = back_es.frame_binning(frame, PR, PC)
-            vb = back_es.background_found(self.im, nslice = 5)
+            vb = back_es.background_found(self.im, nslice = 3)
             print(vb)
             pc_range = np.logical_and(pcbins > vb[0], pcbins < vb[1])
             vr, vc = np.where(pc_range)
             cr, cc = back_es._voxel_recover_(vr, vc, grid_size = 10)
             fblobs = np.c_[cr, cc]
-            fblobs = fblobs[:,::5] # added by Dan
+            fblobs = fblobs[::5] # added by Dan
+            print(fblobs.shape)
         # stepload or one-time load?
         if(self.stepload):
             signal_series = [] # create an empty list, which should be merged later
@@ -175,9 +176,9 @@ class pipeline_tstacks(object):
         fig_display  = plt.figure(figsize = (8,5.6))
         ax = fig_display.add_subplot(111)
         ax.imshow(sample_frame, cmap = 'Greys_r')
-        ax.scatter(cblobs[:,1], cblobs[:,0], s = 7, color = 'g')
+        ax.scatter(fblobs[:,1], fblobs[:,0], s = 7, color = 'g')
         ax.axis('off')
-        ax.set_title('# of blobs: '+ str(cblobs.shape[0]), fontsize = 16)
+        ax.set_title('# of blobs: '+ str(fblobs.shape[0]), fontsize = 16)
         fig_display.tight_layout()
         fig_display.savefig(fname_stem + '_cells')
         plt.close(fig_display)
@@ -205,8 +206,9 @@ class pipeline_tstacks(object):
 
 # -----------------------The main test function -----------------------
 def main():
-    folder_list = glob.glob(data_rootpath_portable+"Jul/")
-    folder_list = glob.glob(data_rootpath_portable+"B5_TS/")
+    folder_list = glob.glob(data_rootpath_portable+"Jul*2017*/*TS/")
+
+
     #folder_list = glob.glob(data_rootpath_win+"/B2_TS/\\")
     for data_path in folder_list:
         print(data_path)

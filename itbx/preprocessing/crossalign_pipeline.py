@@ -81,11 +81,12 @@ def cross_align_folder(work_folder, rg_flag = 'TS2ZD', data_flag = 'ZP', zstep =
     '''
     print(work_folder)
     regilist = glob.glob(work_folder + '/*' + rg_flag + '*.txt')
-    datalist = glob.glob(work_folder+ '/Extracted/*' + data_flag + '*.npz')
+    datalist = glob.glob(work_folder+ '/Fake/*' + data_flag + '*.npz')
     if len(datalist) ==0:
-        datalist = glob.glob(work_folder+ '/*TS/Extracted/*' + data_flag + '*.npz')
+        datalist = glob.glob(work_folder+ '/*TS/Fake/*' + data_flag + '*.npz')
     nregi = np.array([int(os.path.basename(regfile).split('.')[0].split('_')[-1] ) for regfile in regilist ])
-    ndata = np.array([int(os.path.basename(datafile).split('.')[0].split('_')[-1]) for datafile in datalist])
+    ndata = np.array([int(os.path.basename(datafile).split('.')[0].split('_')[-2]) for datafile in datalist])
+    #ndata = np.array([int(os.path.basename(datafile).split('.')[0].split('_')[-1]) for datafile in datalist])
     arg_regi = np.argsort(nregi)
     arg_data = np.argsort(ndata)
     print(arg_regi)
@@ -189,22 +190,15 @@ def data_integrate(afc_merge, fluo_merge, rpixel = 0.295):
 # ---------------------------Below is the testing function ---------------------
 def main():
     #full_path = global_datapath + relative_path
-    folder_list = glob.glob(global_datapath_yst+'Sep*/\\')
     #folder_list = glob.glob(global_datapath_win+'Aug*A4\\')
-<<<<<<< HEAD
     folder_list = glob.glob(portable_datapath+'Jul*/')
-=======
->>>>>>> 87687bc426e4362185056b43baed68dee6c7358c
     for folder in folder_list:
         folder_date = os.path.basename(os.path.normpath(folder))
         print(folder_date)
         afc_merge, fluo_merge = cross_align_folder(folder)
         compiled_data = data_integrate(afc_merge, fluo_merge)
-<<<<<<< HEAD
         np.savez(portable_datapath + folder_date+'_fake', **compiled_data)
-=======
-        np.savez(global_datapath_yst + folder_date+'_merged', **compiled_data)
->>>>>>> 87687bc426e4362185056b43baed68dee6c7358c
+        #np.savez(global_datapath_yst + folder_date+'_merged', **compiled_data)
 
 if __name__ == '__main__':
     main()

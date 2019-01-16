@@ -6,6 +6,7 @@ import numpy as np
 from scipy import signal
 from itbx.preprocessing.image_filters import band_pass_dumb as bpd
 
+
 def _phase_construct_(row_range, col_range, n_denom, forward = True, shift_r = False, shift_c = False ):
     '''
     row_range, col_range: the pixel range in rows and cols. If has two elements, then taken as the lower and upper bound; otherwise, taken as range(N).
@@ -36,31 +37,52 @@ def _phase_construct_(row_range, col_range, n_denom, forward = True, shift_r = F
         return re_exin + im_exin*1j
 
 
-def fft_image(img, abs_only = True):
+def fft_image(img, abs_only = True, shift = True):
     '''
     return the fourier transform of the image with the zero-frequency component shifted to the center.
+    Updates on 01/16/2019: Added 3D compatibility.
     '''
-    NY, NX = img.shape
-    ct = pyfftw_container(NY, NX)
+    dims  = img.shape
+    if len(dims) ==2:
+        NY, NX = dims
+        ct = pyfftw_container(NY, NX)
+
+    elif len(dims) ==3:
+        NZ, NY, NZ = dims
+        ct = pyfftw_container_3D(NZ, NY, NX)
+
     ct(img)
     ft_img = ct.get_output_array()
-    ft_img = np.fft.fftshift(ft_img) # move the zero-freq components to the center
+    if shift:
+        print("shift the zero-freq component to the center.")
+        ft_img = np.fft.fftshift(ft_img) # move the zero-freq components to the center
     if abs_only:
         return np.abs(ft_img)
     else:
         return ft_img
 
-def ift_image(imf):
+def ift_image(imf, abs_only = True, shift_back = True):
     '''
     inversely Fourier transform the images
     '''
-    NY,NX = imf.shape
-    ct = pyfftw_container(NY, NX, bwd = True)
-    imf = np.fft.fftshift(imf) # shift the imf first
+    dims = imf.shape
+    if len(dims)==2:
+        NY,NX = imf.shape
+        ct = pyfftw_container(NY, NX, bwd = True)
+    elif len(dims) == 3:
+        NZ, NY, NX = imf.shape
+        ct = pyfftw_container_3D(NZ, NY, NX, bwd = True)
+
+    if shift_back:
+        print("shift back.")
+        imf = np.fft.ifftshift(imf) # shift the imf first
     ct(imf)
     img = ct.get_output_array()
-
-    return np.abs(img)
+    #img = np.fft.ifftshift(img)
+    if abs_only:
+        return np.abs(img)
+    else:
+        return img
 
 
 def pyfftw_container(ny, nx, bwd = False):
@@ -74,6 +96,21 @@ def pyfftw_container(ny, nx, bwd = False):
     else:
         container = pyfftw.FFTW(a,b,axes = (0,1),direction = 'FFTW_FORWARD')
     return container
+
+
+def pyfftw_container_3D(nz, ny, nx, bwd = False):
+    '''
+    construct a 3D fftw container to perform fftw.
+    '''
+    a = pyfftw.empty_aligned((nz, ny, nx), dtype = 'complex128')
+    b = pyfftw.empty_aligned((nz, ny, nx), dtype = 'complex128')
+
+    if bwd:
+        container = pyfftw.FFTW(a,b,axes = (0,1,2), direction = 'FFTW_BACKWARD')
+    else:
+        container = pyfftw.FFTW(a,b,axes = (0,1,2), direction = 'FFTW_FORWARD')
+    return container
+
 
 
 def high_pass(img_k, k_frac = 0.01):

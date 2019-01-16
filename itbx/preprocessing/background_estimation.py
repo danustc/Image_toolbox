@@ -117,17 +117,17 @@ def background_found(pim, nslice = 3):
     mrange = np.max(sub_stack.flatten()*0.6)
 
     hist, be = np.histogram(sub_stack, bins = 100, range = (100, mrange)) # create a intensity distribution of histogram
-    pp, vv = _diff_peaks_(hist)
-    ivp = np.searchsorted(pp, vv)
-    print(ivp)
+    #pp, vv = _diff_peaks_(hist)
+    #ivp = np.searchsorted(pp, vv)
+    #print(ivp)
     #v_background = vv[ivp ==1] # find the first valley
-    v_background = pp[0] # find the first valley
-    print("background level:", be[v_background], be[v_background+1])
-    mh = np.argmax(hist)
-    int_peak = (be[mh] + be[mh+1])*0.5
-    print(int_peak)
+    #v_background = pp[0]-1 # find the first valley
+    #print("background level:", be[v_background], be[v_background+1])
+    #mh = np.argmax(hist)
+    #int_peak = (be[mh] + be[mh+1])*0.5
+    #print(int_peak)
 
-    return be[v_background:v_background+2]
+    return be[5:7]
 
 
 

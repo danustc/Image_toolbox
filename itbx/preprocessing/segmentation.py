@@ -125,14 +125,11 @@ def stack_reextract(raw_stack, coords, dr = None):
     A new version of the function. Instead of recalculating the ROI patches each time, Let's calculate it only once.
     rois: a list of coordinates
     '''
-<<<<<<< HEAD
     crs = coords[:,[0,1]]
     if dr is None:
         dr = coords[:,2].min() #Take the mininum of the radius
-=======
-    crs = coords[:,:2]
-    dr = coords[:,2].min() #Take the mininum of the radius
->>>>>>> 87687bc426e4362185056b43baed68dee6c7358c
+    #crs = coords[:,:2]
+    #dr = coords[:,2].min() #Take the mininum of the radius
     #nz, ny, nx = raw_stack.shape
     YC, XC = circ_mask_patch_group(crs, dr)
     real_sig = raw_stack[:, YC.astype('int'), XC.astype('int')].mean(axis = 2)
