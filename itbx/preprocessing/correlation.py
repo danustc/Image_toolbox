@@ -48,7 +48,7 @@ def fft_image(img, abs_only = True, shift = True):
         ct = pyfftw_container(NY, NX)
 
     elif len(dims) ==3:
-        NZ, NY, NZ = dims
+        NZ, NY, NX = dims
         ct = pyfftw_container_3D(NZ, NY, NX)
 
     ct(img)
@@ -70,7 +70,7 @@ def ift_image(imf, abs_only = True, shift_back = True):
         NY,NX = imf.shape
         ct = pyfftw_container(NY, NX, bwd = True)
     elif len(dims) == 3:
-        NZ, NY, NX = imf.shape
+        NZ, NY, NX = dims
         ct = pyfftw_container_3D(NZ, NY, NX, bwd = True)
 
     if shift_back:
@@ -78,7 +78,7 @@ def ift_image(imf, abs_only = True, shift_back = True):
         imf = np.fft.ifftshift(imf) # shift the imf first
     ct(imf)
     img = ct.get_output_array()
-    #img = np.fft.ifftshift(img)
+    img = np.fft.ifftshift(img)
     if abs_only:
         return np.abs(img)
     else:
