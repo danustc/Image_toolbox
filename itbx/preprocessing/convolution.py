@@ -1,11 +1,10 @@
 '''
 This is the Data generation script.
 '''
-import matplotlib.pyplot as plt
 import numpy as np
 from itbx.preprocessing.correlation import fft_image, ift_image
 
-def conv_2D(image, psf, padding = 10, mode = 'center'):
+def conv_2D(image, psf, padding = 10, mode = 'center', pyfftw = True):
     '''
     image: the ground truth image
     padding:pad each dimension by 10 pixels.
@@ -23,15 +22,15 @@ def conv_2D(image, psf, padding = 10, mode = 'center'):
         padded_image = np.pad(image, ((padding,padding),(padding,padding)), mode = 'constant')
     else:
         padded_image = image
-    ft_image = fft_image(padded_image, abs_only = False, shift = False)
-    ft_psf = fft_image(padded_PSF, abs_only = False, shift = False)
+    ft_image = fft_image(padded_image, abs_only = False, shift = False, use_pyfftw = pyfftw)
+    ft_psf = fft_image(padded_PSF, abs_only = False, shift = False, use_pyfftw = pyfftw)
 
 
-    conv_stack = ift_image(ft_stack*ft_psf, abs_only = True, shift_back = False)
+    conv_stack = ift_image(ft_stack*ft_psf, abs_only = True, shift_back = False, use_pyfftw = pyfftw)
     return conv_stack
 
 
-def conv_3D(stack, psf, padding_xy = 10, padding_z = 1, mode = 'center'):
+def conv_3D(stack, psf, padding_xy = 10, padding_z = 1,PYFFTW = True):
     '''
     stack: the ground truth image stack
     psf: the 3D PSF.
@@ -46,10 +45,12 @@ def conv_3D(stack, psf, padding_xy = 10, padding_z = 1, mode = 'center'):
 
     padded_stack = np.pad(stack,((padding_z, padding_z),(padding_xy, padding_xy), (padding_xy, padding_xy) ), mode = 'constant')
 
-    ft_stack = fft_image(padded_stack,abs_only = False, shift = False)
-    ft_psf = fft_image(padded_psf, abs_only = False, shift = False)
+    ft_stack = fft_image(padded_stack,abs_only = False, shift = False, use_pyfftw=PYFFTW)
+    ft_psf = fft_image(padded_psf, abs_only = False, shift = False, use_pyfftw = PYFFTW)
 
-    conv_stack = ift_image(ft_stack*ft_psf, abs_only = True, shift_back = False)
+    print("Performed fft.")
+    conv_stack = ift_image(ft_stack*ft_psf, abs_only = True, shift_back = False, use_pyfftw=PYFFTW)
+    print("performed ift.")
     return conv_stack
 
 

@@ -37,22 +37,25 @@ def _phase_construct_(row_range, col_range, n_denom, forward = True, shift_r = F
         return re_exin + im_exin*1j
 
 
-def fft_image(img, abs_only = True, shift = True):
+def fft_image(img, abs_only = True, shift = True, use_pyfftw = False):
     '''
     return the fourier transform of the image with the zero-frequency component shifted to the center.
     Updates on 01/16/2019: Added 3D compatibility.
     '''
     dims  = img.shape
-    if len(dims) ==2:
-        NY, NX = dims
-        ct = pyfftw_container(NY, NX)
+    if use_pyfftw:
+        if len(dims) ==2:
+            NY, NX = dims
+            ct = pyfftw_container(NY, NX)
 
-    elif len(dims) ==3:
-        NZ, NY, NX = dims
-        ct = pyfftw_container_3D(NZ, NY, NX)
+        elif len(dims) ==3:
+            NZ, NY, NX = dims
+            ct = pyfftw_container_3D(NZ, NY, NX)
 
-    ct(img)
-    ft_img = ct.get_output_array()
+        ct(img)
+        ft_img = ct.get_output_array()
+    else:
+        ft_img = np.fft.fftn(img)
     if shift:
         print("shift the zero-freq component to the center.")
         ft_img = np.fft.fftshift(ft_img) # move the zero-freq components to the center
@@ -61,23 +64,27 @@ def fft_image(img, abs_only = True, shift = True):
     else:
         return ft_img
 
-def ift_image(imf, abs_only = True, shift_back = True):
+def ift_image(imf, abs_only = True, shift_back = True, use_pyfftw = False):
     '''
     inversely Fourier transform the images
     '''
     dims = imf.shape
-    if len(dims)==2:
-        NY,NX = imf.shape
-        ct = pyfftw_container(NY, NX, bwd = True)
-    elif len(dims) == 3:
-        NZ, NY, NX = dims
-        ct = pyfftw_container_3D(NZ, NY, NX, bwd = True)
-
     if shift_back:
         print("shift back.")
         imf = np.fft.ifftshift(imf) # shift the imf first
-    ct(imf)
-    img = ct.get_output_array()
+
+    if use_pyfftw:
+        if len(dims)==2:
+            NY,NX = imf.shape
+            ct = pyfftw_container(NY, NX, bwd = True)
+        elif len(dims) == 3:
+            NZ, NY, NX = dims
+            ct = pyfftw_container_3D(NZ, NY, NX, bwd = True)
+        ct(imf)
+        img = ct.get_output_array()
+    else:
+        img = np.fft.ifftn(imf)
+
     img = np.fft.ifftshift(img)
     if abs_only:
         return np.abs(img)
