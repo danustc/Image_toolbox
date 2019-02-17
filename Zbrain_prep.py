@@ -80,5 +80,4 @@ def scr_tempcrop():
 
 
 if __name__ =='__main__':
-     #scr_coord_toref()
      scr_padding()
