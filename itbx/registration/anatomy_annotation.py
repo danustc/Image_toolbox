@@ -5,8 +5,8 @@ import subprocess
 import time
 import pandas as pd
 import calendar
-import coord_transform as coord_trans
-import maskdb_parsing as maskdb
+import itbx.registration.coord_transform as coord_trans
+import itbx.registration.maskdb_parsing as maskdb
 import matplotlib.pyplot as plt
 import tifffile as tf
 
@@ -24,7 +24,6 @@ origin_shift_s0 = [240, 310, 80]
 origin_shift_s1 = [245, 310, 82]
 
 rot_angles = [40.0, 38.0]
-
 ref_range = np.array([138, 621, 1406])
 sample_range_s0 = np.array([976, 724, 120]) # the sample range is ordered reversely w.r.t the stack shape, i.e., x--y--z.
 sample_range_s1 = np.array([976, 724, 110])
@@ -84,10 +83,10 @@ def anatomical_labeling(coord_file, arti_clear = False, shift_set = 0, save_rawc
     '''
     print(coord_file)
     if coord_file[-4] == '.':
-        dest_path = coord_file.split('.')[0]+'_fk' # changed by Dan on 12/25 to save fake cells
+        dest_path = coord_file.split('.')[0]+'_lb' # changed by Dan on 12/25 to save fake cells
         data = np.load(coord_file)
     else:
-        dest_path = coord_file+'_fk'
+        dest_path = coord_file+'_lb'
         data = np.load(coord_file+'.npz')
 
     MD = maskdb.mask_db()
@@ -290,7 +289,7 @@ def reg_annotate():
     meta_df = pd.read_csv(meta_path, sep = ',')
     meta_dim = meta_df[['Fish','NY', 'NX']]
     meta_dim.set_index('Fish', inplace = True)
-    response_list = glob.glob(data_rootpath_portable+'Jul*fkdff.npz')
+    response_list = glob.glob(data_rootpath_portable+'Jul*_dff.npz')
     print(response_list)
 
     for response_file in response_list:
@@ -315,20 +314,24 @@ def reg_annotate():
     #label_path = data_path + 'FB_resting_15min/Aug2018_rest.npz'
     #np.savez(label_path, **label_sum)
 
+# -------------------------------------This is a test sample
 
-def crop_annotate():
+
+
+def crop_annotate(raw_stack, ofst, threshold = 100):
     '''
-    a simple annotation.
+    a simple annotation function. The templates must be cropped from the Z-brain template.
+    ofst: started crop positions in the Stack/Crop(3D) plugin
     '''
-    mask_stack =  tf.imread('/home/sillycat/Programming/Python/cmtkRegistration/Adam_CB1_mask.tif')
-    ofst = np.array([6,46,190])
-    iz, iy, ix = np.where(mask_stack) # where the pixel values are not zero.
+    #ofst = np.array([6,46,190])
+    iz, iy, ix = np.where(raw_stack > threshold) # where the pixel values are not zero.
     ref_coord = np.c_[iz, iy, ix] + ofst-1
+    print(ref_coord.shape)
 
-    anno_label = mask_searching(ref_coord)
-    print(anno_label[-1])
+    mask_labels, ind_mask, _= mask_searching(ref_coord)
+    print(mask_labels.shape)
     print("Finished anatomical identification.")
-
+    return mask_labels, ind_mask, ref_coord
 
 
 if __name__ == '__main__':

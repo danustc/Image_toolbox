@@ -37,6 +37,8 @@ def conv_3D(stack, psf, padding_xy = 10, padding_z = 1,PYFFTW = True):
     '''
     NZ, NY, NX = stack.shape
     PZ, PY, PX = psf.shape
+    print(stack.shape)
+    print(psf.shape)
     DZ, DY, DX = NZ-PZ, NY-PY, NX-PX
     HZ, HY, HX = int(DZ//2), int(DY//2), int(DX//2)
 

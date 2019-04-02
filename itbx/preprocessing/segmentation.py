@@ -11,7 +11,7 @@ from skimage.feature import blob_log
 from itbx.shared_funcs.numeric_funcs import circ_mask_origin, circ_mask_patch_group, circ_mask_patch
 
 
-OL_blob = 0.8
+OL_blob = 0.5
 
 # let's have some small handy functions
 def blank_refill(raw_frame, cutoff = None, mode = 'min'):
@@ -73,7 +73,7 @@ def frame_deblur(raw_frame, sig = 4., Nit = 21, padding = ((10,10), (10,10))):
     print("Final size:", recrop.shape)
     return blank_refill(recrop, mode = 'peak')
 
-def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = True, edge_ratio = 3.):
+def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = True, edge_ratio = 0., thresh = 5.0):
     '''
     extract blobs from a single frame. Added on 06/10/2017
     cblob: a 3-column array, (y, x, sigma), the blob radius is sqrt(2)*sigma
@@ -81,7 +81,7 @@ def frame_blobs(filled_frame, bsize = 9, btolerance = 3, bsteps =7, verbose = Tr
     # now, let's calculate threshold
     NY, NX = filled_frame.shape
     #th = (np.mean(filled_frame) - np.std(filled_frame))/7. # This is not quite reliable
-    th = 32.0
+    th = thresh
     mx_sig = bsize + btolerance
     mi_sig = bsize - btolerance
     cblobs = blob_log(filled_frame,max_sigma = mx_sig, min_sigma = mi_sig, num_sigma=bsteps, threshold = th, overlap = OL_blob)
@@ -137,27 +137,6 @@ def stack_reextract(raw_stack, coords, dr = None):
     return real_sig
 
 
-def stack_reextract_old(raw_stack, coords):
-    '''
-    Assume that the coordinates of the cells have been specified, extract all the cells stackwise
-    This is way too slow. Updated on 11/06/2018.
-    '''
-    crs = coords[:, :2]
-    dr = coords[:,2].min() #Take the mininum of the radius
-
-    n_cells = len(coords)
-    nz, ny, nx = raw_stack.shape
-    real_sig = np.zeros((nz, n_cells))
-    for nc in range(n_cells):
-        cr = coords[nc,:2]
-        #dr = coords[nc,2]-1
-        indm = circ_mask_patch((ny,nx), cr, dr)
-        real_sig[:,nc] = np.mean(raw_stack[:, indm[0],indm[1]], axis = 1)
-
-    return real_sig
-
-
-
 def stack_redundreduct(blob_stack, th= 4):
     '''
     blob_stack: a list of blobs
@@ -165,18 +144,27 @@ def stack_redundreduct(blob_stack, th= 4):
     '''
     len_stack = len(blob_stack)
     data_ref = blob_stack[0]
+    SC = data_ref.shape[1]
+
     for data_fol in blob_stack[1:]:
-        ind_ref, ind_fol = redund_detect_merge(data_ref,data_fol, thresh = th)
+        ind_ref, ind_fol, sta = redund_detect_merge(data_ref,data_fol, thresh = th)
         nr_ref = len(ind_ref)
         nr_fol = len(ind_fol)
-        mask_ref = np.array([ir in ind_ref for ir in np.arange(len(data_ref))])
-        mask_fol = np.array([io in ind_fol for io in np.arange(len(data_fol))])
-        dr_unique = data_ref[~mask_ref] # the unique part in data_ref
-        df_unique = data_fol[~mask_fol] # the unique part in data_fol
-        if(np.isscalar(ind_ref)):
-            data_redund = np.array([data_ref[ind_ref, :]])
+        #print(nr_ref, nr_fol)
+        if nr_ref > 0:
+            mask_ref = np.array([ir in ind_ref for ir in np.arange(len(data_ref))])
+            dr_unique = data_ref[~mask_ref] # the unique part in data_ref
         else:
-            data_redund = data_ref[ind_ref,:]
+            dr_unique = data_ref
+        if nr_fol > 0:
+            mask_fol = np.array([io in ind_fol for io in np.arange(len(data_fol))])
+            df_unique = data_fol[~mask_fol] # the unique part in data_fol
+        else:
+            df_unique = data_fol
+        if(np.isscalar(ind_fol)):
+            data_redund = np.array([data_fol[ind_fol, :]])
+        else:
+            data_redund = data_fol[ind_fol,:]
         data_merge = np.concatenate((dr_unique, df_unique, data_redund), axis = 0 )
         data_ref = data_merge
         n_blobs = len(data_ref)# merging extracted cells in several frames
@@ -185,19 +173,27 @@ def stack_redundreduct(blob_stack, th= 4):
     return data_merge
 
 
-def stack_blobs(small_stack, diam, sig = 4.5):
+def stack_blobs(small_stack, diam, sig = 4.5, th = 10.0, brange = 10, bsteps = 50, extract = True):
     '''
     just extract all the blobs from a small stack and return as a list after background subtraction
     btolerance is always considered 2
     '''
     blobs_stack = []
+    ii = 0
     for sample_slice in small_stack:
+        print("Processing %d slice."% ii)
+        ii +=1
         if sig > 0:
             print("Deblur the stack first.")
             db_slice = frame_deblur(sample_slice, sig )
-            cs_blobs = frame_blobs(db_slice, bsize = diam)
+            cs_blobs = frame_blobs(db_slice, bsize = diam, btolerance = 12, bsteps = bsteps)
         else:
-            cs_blobs = frame_blobs(sample_slice.astype('float64'), bsize = diam)
+            cs_blobs = frame_blobs(sample_slice.astype('float64'), bsize = diam, btolerance= brange, bsteps = bsteps, thresh = th)
+
+
+        if extract:
+            signal = frame_reextract(sample_slice, cs_blobs)
+            cs_blobs = np.c_[cs_blobs, signal]
         blobs_stack.append(cs_blobs)
 
     return blobs_stack
